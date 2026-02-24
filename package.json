@@ -1,0 +1,42 @@
+{
+  "name": "react-bun-ssr",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./framework/runtime/index.ts",
+  "bin": {
+    "rbssr": "./bin/rbssr.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./framework/runtime/index.ts",
+      "default": "./framework/index.ts"
+    },
+    "./route": {
+      "types": "./framework/runtime/route-api.ts",
+      "default": "./framework/runtime/route-api.ts"
+    }
+  },
+  "scripts": {
+    "init": "bun bin/rbssr.ts init",
+    "dev": "bun bin/rbssr.ts dev",
+    "build": "bun bin/rbssr.ts build",
+    "start": "bun bin/rbssr.ts start",
+    "typecheck": "bun bin/rbssr.ts typecheck",
+    "test": "bun bin/rbssr.ts test",
+    "test:unit": "bun test tests/unit/**/*.test.ts",
+    "test:integration": "bun test tests/integration/**/*.test.ts",
+    "test:e2e": "bunx playwright test"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5.9.2"
+  }
+}

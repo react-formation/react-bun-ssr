@@ -15,11 +15,10 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
-# Runtime needs framework/app/docs sources in addition to dist artifacts.
+# Runtime needs framework and app sources in addition to dist artifacts.
 COPY --from=builder /app/dist ./dist
 COPY framework ./framework
 COPY app ./app
-COPY docs ./docs
 COPY bin ./bin
 COPY rbssr.config.ts ./rbssr.config.ts
 

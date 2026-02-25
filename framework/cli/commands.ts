@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import { watch, type FSWatcher } from "node:fs";
 import path from "node:path";
 import {
   buildRouteManifest,
@@ -10,6 +10,7 @@ import {
   generateClientEntries,
 } from "../runtime/build-tools";
 import { loadUserConfig, resolveConfig } from "../runtime/config";
+import { ensureDir, existsPath, listEntries, removePath, writeText } from "../runtime/io";
 import { createServer } from "../runtime/server";
 import type { BuildRouteAsset, FrameworkConfig, ResolvedConfig } from "../runtime/types";
 import { scaffoldApp } from "./scaffold";
@@ -31,22 +32,20 @@ async function getConfig(cwd: string): Promise<{ userConfig: FrameworkConfig; re
   return { userConfig, resolved };
 }
 
-function writeProductionServerEntrypoint(options: { distDir: string }): void {
+async function writeProductionServerEntrypoint(options: { distDir: string }): Promise<void> {
   const serverDir = path.join(options.distDir, "server");
-  fs.mkdirSync(serverDir, { recursive: true });
+  await ensureDir(serverDir);
 
   const serverEntryPath = path.join(serverDir, "server.mjs");
-  const content = `import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+  const content = `import path from "node:path";
 import config from "../../rbssr.config.ts";
 import { startHttpServer } from "../../framework/runtime/index.ts";
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const rootDir = path.resolve(path.dirname(Bun.fileURLToPath(import.meta.url)), "../..");
 process.chdir(rootDir);
 
 const manifestPath = path.resolve(rootDir, "dist/manifest.json");
-const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const manifest = await Bun.file(manifestPath).json();
 
 startHttpServer({
   config: {
@@ -60,12 +59,12 @@ startHttpServer({
 });
 `;
 
-  fs.writeFileSync(serverEntryPath, content, "utf8");
+  await writeText(serverEntryPath, content);
 }
 
 export async function runInit(args: string[], cwd = process.cwd()): Promise<void> {
   const flags = parseFlags(args);
-  scaffoldApp(cwd, {
+  await scaffoldApp(cwd, {
     force: flags.force,
   });
   log("project scaffolded");
@@ -77,11 +76,11 @@ export async function runBuild(cwd = process.cwd()): Promise<void> {
   const distClientDir = path.join(resolved.distDir, "client");
   const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
 
-  ensureCleanDirectory(resolved.distDir);
-  ensureCleanDirectory(generatedDir);
+  await ensureCleanDirectory(resolved.distDir);
+  await ensureCleanDirectory(generatedDir);
 
-  const routeManifest = buildRouteManifest(resolved);
-  const entries = generateClientEntries({
+  const routeManifest = await buildRouteManifest(resolved);
+  const entries = await generateClientEntries({
     config: resolved,
     manifest: routeManifest,
     generatedDir,
@@ -94,16 +93,15 @@ export async function runBuild(cwd = process.cwd()): Promise<void> {
     publicPrefix: "/client/",
   });
 
-  copyDirRecursive(resolved.publicDir, distClientDir);
+  await copyDirRecursive(resolved.publicDir, distClientDir);
 
   const buildManifest = createBuildManifest(routeAssets);
-  fs.writeFileSync(
+  await writeText(
     path.join(resolved.distDir, "manifest.json"),
     JSON.stringify(buildManifest, null, 2),
-    "utf8",
   );
 
-  writeProductionServerEntrypoint({ distDir: resolved.distDir });
+  await writeProductionServerEntrypoint({ distDir: resolved.distDir });
 
   log(`build complete: ${resolved.distDir}`);
 }
@@ -116,25 +114,27 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   const docsSourceDir = path.resolve(cwd, "docs");
   const docsSnapshotDir = path.join(serverSnapshotsRoot, "docs");
 
-  fs.mkdirSync(generatedDir, { recursive: true });
-  fs.mkdirSync(devClientDir, { recursive: true });
-  ensureCleanDirectory(serverSnapshotsRoot);
+  await ensureDir(generatedDir);
+  await ensureDir(devClientDir);
+  await ensureCleanDirectory(serverSnapshotsRoot);
 
   let routeAssets: Record<string, BuildRouteAsset> = {};
   let signature = "";
   let version = 0;
-  let sourceDirty = false;
   let currentServerSnapshotDir = resolved.appDir;
   const reloadListeners = new Set<(nextVersion: number) => void>();
   const docsDir = path.resolve(cwd, "docs");
 
   const watchedRoots = [resolved.appDir];
-  if (fs.existsSync(docsDir)) {
+  if (await existsPath(docsDir)) {
     watchedRoots.push(docsDir);
   }
 
-  const getSourceSignature = (): string => {
-    return watchedRoots.map(root => discoverFileSignature(root)).join(":");
+  const getSourceSignature = async (): Promise<string> => {
+    const signatures = await Promise.all(
+      watchedRoots.map(root => discoverFileSignature(root)),
+    );
+    return signatures.join(":");
   };
 
   const notifyReload = (): void => {
@@ -144,21 +144,21 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   };
 
   const rebuildIfNeeded = async (force = false): Promise<void> => {
-    const nextSignature = getSourceSignature();
+    const nextSignature = await getSourceSignature();
     if (!force && nextSignature === signature) {
       return;
     }
 
     signature = nextSignature;
 
-    const manifest = buildRouteManifest(resolved);
-    const entries = generateClientEntries({
+    const manifest = await buildRouteManifest(resolved);
+    const entries = await generateClientEntries({
       config: resolved,
       manifest,
       generatedDir,
     });
 
-    ensureCleanDirectory(devClientDir);
+    await ensureCleanDirectory(devClientDir);
 
     routeAssets = await bundleClientEntries({
       entries,
@@ -168,19 +168,18 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
     });
 
     const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
-    ensureCleanDirectory(snapshotDir);
-    copyDirRecursive(resolved.appDir, snapshotDir);
-    if (fs.existsSync(docsSourceDir)) {
-      ensureCleanDirectory(docsSnapshotDir);
-      copyDirRecursive(docsSourceDir, docsSnapshotDir);
+    await ensureCleanDirectory(snapshotDir);
+    await copyDirRecursive(resolved.appDir, snapshotDir);
+    if (await existsPath(docsSourceDir)) {
+      await ensureCleanDirectory(docsSnapshotDir);
+      await copyDirRecursive(docsSourceDir, docsSnapshotDir);
     } else {
-      fs.rmSync(docsSnapshotDir, { recursive: true, force: true });
+      await removePath(docsSnapshotDir);
     }
     currentServerSnapshotDir = snapshotDir;
 
-    const staleVersions = fs
-      .readdirSync(serverSnapshotsRoot, { withFileTypes: true })
-      .filter(entry => entry.isDirectory() && /^v\d+$/.test(entry.name))
+    const staleVersions = (await listEntries(serverSnapshotsRoot))
+      .filter(entry => entry.isDirectory && /^v\d+$/.test(entry.name))
       .map(entry => entry.name)
       .sort((a, b) => {
         const aNum = Number(a.slice(1));
@@ -189,7 +188,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       })
       .slice(3);
     for (const stale of staleVersions) {
-      fs.rmSync(path.join(serverSnapshotsRoot, stale), { recursive: true, force: true });
+      await removePath(path.join(serverSnapshotsRoot, stale));
     }
 
     version += 1;
@@ -221,11 +220,10 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
     }, 75);
   };
 
-  const watchers: fs.FSWatcher[] = [];
+  const watchers: FSWatcher[] = [];
   for (const root of watchedRoots) {
     try {
-      const watcher = fs.watch(root, { recursive: true }, () => {
-        sourceDirty = true;
+      const watcher = watch(root, { recursive: true }, () => {
         scheduleRebuild();
       });
       watchers.push(watcher);
@@ -276,9 +274,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
         middlewareFile: path.join(currentServerSnapshotDir, "middleware.ts"),
       }),
       onBeforeRequest: () => {
-        const force = sourceDirty;
-        sourceDirty = false;
-        return enqueueRebuild(force);
+        return enqueueRebuild(false);
       },
     },
   );
@@ -296,7 +292,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
 export async function runStart(cwd = process.cwd()): Promise<void> {
   const { resolved } = await getConfig(cwd);
   const serverEntry = path.join(resolved.distDir, "server", "server.mjs");
-  if (!fs.existsSync(serverEntry)) {
+  if (!(await existsPath(serverEntry))) {
     throw new Error("Missing dist/server/server.mjs. Run `rbssr build` first.");
   }
 

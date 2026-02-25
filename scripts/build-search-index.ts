@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import {
   extractHeadings,
@@ -27,8 +26,8 @@ function toSlug(filePath: string, baseDir: string): string {
   return relative.replace(/\.md$/, "");
 }
 
-function fileToRecord(filePath: string, baseDir: string, slugPrefix = ""): SearchRecord {
-  const raw = fs.readFileSync(filePath, "utf8");
+async function fileToRecord(filePath: string, baseDir: string, slugPrefix = ""): Promise<SearchRecord> {
+  const raw = await Bun.file(filePath).text();
   const parsed = parseMarkdownWithFrontmatter(raw);
   const slug = `${slugPrefix}${toSlug(filePath, baseDir)}`;
   const headings = extractHeadings(parsed.body);
@@ -45,9 +44,9 @@ function fileToRecord(filePath: string, baseDir: string, slugPrefix = ""): Searc
   };
 }
 
-export function buildSearchIndex(): SearchRecord[] {
-  const markdownFiles = walkFiles(DOCS_ROUTES_DIR, ".md");
-  const records = markdownFiles.map(file => fileToRecord(file, DOCS_ROUTES_DIR));
+export async function buildSearchIndex(): Promise<SearchRecord[]> {
+  const markdownFiles = await walkFiles(DOCS_ROUTES_DIR, ".md");
+  const records = await Promise.all(markdownFiles.map(file => fileToRecord(file, DOCS_ROUTES_DIR)));
 
   return records
     .sort((a, b) => a.url.localeCompare(b.url))
@@ -57,12 +56,15 @@ export function buildSearchIndex(): SearchRecord[] {
     }));
 }
 
-export function writeSearchIndex(): void {
-  const records = buildSearchIndex();
-  fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(records, null, 2), "utf8");
+export async function writeSearchIndex(): Promise<void> {
+  const records = await buildSearchIndex();
+  await Bun.write(OUTPUT_FILE, JSON.stringify(records, null, 2));
 }
 
 if (import.meta.main) {
-  writeSearchIndex();
+  writeSearchIndex().catch(error => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exit(1);
+  });
 }

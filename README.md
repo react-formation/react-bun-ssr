@@ -23,6 +23,12 @@ This repository contains both:
 - Bun `>= 1.3.9`
 - macOS/Linux (or equivalent Bun-supported environment)
 
+## Runtime API policy
+
+- Prefer Bun APIs for file content I/O, hashing, build, and runtime operations.
+- `node:path` is intentionally retained for robust path resolution behavior.
+- `node:fs` is retained only for `watch` usage in dev mode.
+
 ## Run locally
 
 Install dependencies:

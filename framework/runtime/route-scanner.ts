@@ -1,12 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
+import { compileMarkdownRouteModule } from "./markdown-routes";
+import { existsPath, glob } from "./io";
 import type {
   ApiRouteDefinition,
   PageRouteDefinition,
   RouteManifest,
   RouteSegment,
 } from "./types";
-import { compileMarkdownRouteModule } from "./markdown-routes";
 import {
   isRouteGroup,
   normalizeSlashes,
@@ -21,30 +21,12 @@ const API_FILE_RE = /\.(ts|js|tsx|jsx)$/;
 const MD_FILE_RE = /\.md$/;
 const MDX_FILE_RE = /\.mdx$/;
 
-function walkFiles(rootDir: string): string[] {
-  const files: string[] = [];
-
-  if (!fs.existsSync(rootDir)) {
-    return files;
+async function walkFiles(rootDir: string): Promise<string[]> {
+  if (!(await existsPath(rootDir))) {
+    return [];
   }
 
-  const stack = [rootDir];
-
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const absolutePath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(absolutePath);
-      } else if (entry.isFile()) {
-        files.push(absolutePath);
-      }
-    }
-  }
-
-  return files;
+  return glob("**/*", { cwd: rootDir, absolute: true });
 }
 
 function toUrlShape(relativePathWithoutExt: string): {
@@ -137,13 +119,13 @@ function sortRoutes<T extends { score: number; segments: RouteSegment[]; routePa
   });
 }
 
-export function scanRoutes(
+export async function scanRoutes(
   routesDir: string,
   options: {
     generatedMarkdownRootDir?: string;
   } = {},
-): RouteManifest {
-  const allFiles = walkFiles(routesDir).sort((a, b) => a.localeCompare(b));
+): Promise<RouteManifest> {
+  const allFiles = (await walkFiles(routesDir)).sort((a, b) => a.localeCompare(b));
 
   const layoutByDir = new Map<string, string>();
   const middlewareByDir = new Map<string, string>();
@@ -180,8 +162,8 @@ export function scanRoutes(
     const fileBaseName = trimFileExtension(fileName);
 
     if (
-      (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName)) ||
-      (fileBaseName === "_middleware" && API_FILE_RE.test(fileName))
+      (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName))
+      || (fileBaseName === "_middleware" && API_FILE_RE.test(fileName))
     ) {
       continue;
     }
@@ -221,7 +203,7 @@ export function scanRoutes(
     const shape = toUrlShape(withoutExt);
     const ancestors = getAncestorDirs(relativeDir);
     const routeFilePath = MD_FILE_RE.test(fileName)
-      ? compileMarkdownRouteModule({
+      ? await compileMarkdownRouteModule({
           routesDir,
           sourceFilePath: absoluteFilePath,
           generatedMarkdownRootDir: options.generatedMarkdownRootDir,
@@ -254,3 +236,4 @@ export function scanRoutes(
     api: sortRoutes(apiRoutes),
   };
 }
+

@@ -1,24 +1,24 @@
-import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
+import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
 import { createServer } from "../../framework/runtime/server";
 
 const tmpDirs: string[] = [];
 
-afterEach(() => {
+afterEach(async () => {
   for (const dir of tmpDirs.splice(0, tmpDirs.length)) {
-    fs.rmSync(dir, { recursive: true, force: true });
+    await removePath(dir);
   }
 });
 
-function writeFixture(files: Record<string, string>): string {
-  const root = fs.mkdtempSync(path.join(process.cwd(), ".rbssr-server-"));
+async function writeFixture(files: Record<string, string>): Promise<string> {
+  const root = await makeTempDir("rbssr-server");
   tmpDirs.push(root);
 
   for (const [relativePath, content] of Object.entries(files)) {
     const fullPath = path.join(root, relativePath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, content, "utf8");
+    await ensureDir(path.dirname(fullPath));
+    await Bun.write(fullPath, content);
   }
 
   return root;
@@ -27,7 +27,7 @@ function writeFixture(files: Record<string, string>): string {
 describe("createServer integration", () => {
   it("renders SSR HTML with loader data", async () => {
     const runtimeImport = "react-bun-ssr/route";
-    const cwd = writeFixture({
+    const cwd = await writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
       export default function Root(){ return <div><Outlet /></div>; }
       export function NotFound(){ return <h1>missing</h1>; }`,

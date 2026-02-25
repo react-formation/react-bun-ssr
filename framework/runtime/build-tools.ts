@@ -1,6 +1,13 @@
-import fs from "node:fs";
 import path from "node:path";
 import { scanRoutes } from "./route-scanner";
+import {
+  ensureCleanDir,
+  ensureDir,
+  existsPath,
+  glob,
+  statPath,
+  writeTextIfChanged,
+} from "./io";
 import type {
   BuildManifest,
   BuildRouteAsset,
@@ -16,41 +23,12 @@ interface ClientEntryFile {
   route: PageRouteDefinition;
 }
 
-function ensureDir(dirPath: string): void {
-  fs.mkdirSync(dirPath, { recursive: true });
-}
-
-function walkFiles(rootDir: string): string[] {
-  const files: string[] = [];
-  if (!fs.existsSync(rootDir)) {
-    return files;
+async function walkFiles(rootDir: string): Promise<string[]> {
+  if (!(await existsPath(rootDir))) {
+    return [];
   }
 
-  const stack = [rootDir];
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-      } else if (entry.isFile()) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  return files;
-}
-
-function writeFileIfChanged(filePath: string, content: string): void {
-  if (fs.existsSync(filePath)) {
-    const current = fs.readFileSync(filePath, "utf8");
-    if (current === content) {
-      return;
-    }
-  }
-  fs.writeFileSync(filePath, content, "utf8");
+  return glob("**/*", { cwd: rootDir, absolute: true });
 }
 
 function buildClientEntrySource(options: {
@@ -96,13 +74,13 @@ hydrateRoute(modules);
 `;
 }
 
-export function generateClientEntries(options: {
+export async function generateClientEntries(options: {
   config: ResolvedConfig;
   manifest: RouteManifest;
   generatedDir: string;
-}): ClientEntryFile[] {
+}): Promise<ClientEntryFile[]> {
   const { config, manifest, generatedDir } = options;
-  ensureDir(generatedDir);
+  await ensureDir(generatedDir);
 
   const runtimeClientFile = path.resolve(config.cwd, "framework/runtime/client-runtime.tsx");
 
@@ -118,7 +96,7 @@ export function generateClientEntries(options: {
       runtimeClientFile,
     });
 
-    writeFileIfChanged(entryFilePath, source);
+    await writeTextIfChanged(entryFilePath, source);
 
     entries.push({
       routeId: route.id,
@@ -130,13 +108,13 @@ export function generateClientEntries(options: {
   return entries;
 }
 
-function mapBuildOutputsByPrefix(options: {
+async function mapBuildOutputsByPrefix(options: {
   outDir: string;
   routeIds: string[];
   publicPrefix: string;
-}): Record<string, BuildRouteAsset> {
+}): Promise<Record<string, BuildRouteAsset>> {
   const { outDir, routeIds, publicPrefix } = options;
-  const files = walkFiles(outDir).map(filePath => normalizeSlashes(path.relative(outDir, filePath)));
+  const files = (await walkFiles(outDir)).map(filePath => normalizeSlashes(path.relative(outDir, filePath)));
 
   const routeAssets: Record<string, BuildRouteAsset> = {};
 
@@ -166,7 +144,7 @@ export async function bundleClientEntries(options: {
 }): Promise<Record<string, BuildRouteAsset>> {
   const { entries, outDir, dev, publicPrefix } = options;
 
-  ensureDir(outDir);
+  await ensureDir(outDir);
   if (entries.length === 0) {
     return {};
   }
@@ -194,27 +172,28 @@ export async function bundleClientEntries(options: {
   });
 }
 
-export function ensureCleanDirectory(dirPath: string): void {
-  fs.rmSync(dirPath, { recursive: true, force: true });
-  fs.mkdirSync(dirPath, { recursive: true });
+export async function ensureCleanDirectory(dirPath: string): Promise<void> {
+  await ensureCleanDir(dirPath);
 }
 
-export function copyDirRecursive(sourceDir: string, destinationDir: string): void {
-  if (!fs.existsSync(sourceDir)) {
+export async function copyDirRecursive(sourceDir: string, destinationDir: string): Promise<void> {
+  if (!(await existsPath(sourceDir))) {
     return;
   }
 
-  fs.mkdirSync(destinationDir, { recursive: true });
+  await ensureDir(destinationDir);
 
-  const entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  const entries = await glob("**/*", { cwd: sourceDir });
   for (const entry of entries) {
-    const from = path.join(sourceDir, entry.name);
-    const to = path.join(destinationDir, entry.name);
-    if (entry.isDirectory()) {
-      copyDirRecursive(from, to);
-    } else if (entry.isFile()) {
-      fs.copyFileSync(from, to);
+    const from = path.join(sourceDir, entry);
+    const to = path.join(destinationDir, entry);
+    const fileStat = await statPath(from);
+    if (!fileStat?.isFile()) {
+      continue;
     }
+
+    await ensureDir(path.dirname(to));
+    await Bun.write(to, Bun.file(from));
   }
 }
 
@@ -226,21 +205,27 @@ export function createBuildManifest(routeAssets: Record<string, BuildRouteAsset>
   };
 }
 
-export function discoverFileSignature(rootDir: string): string {
-  const files = walkFiles(rootDir)
+export async function discoverFileSignature(rootDir: string): Promise<string> {
+  const files = (await walkFiles(rootDir))
     .filter(file => !normalizeSlashes(file).includes("/node_modules/"))
     .sort();
 
-  const signatureBits = files.map(filePath => {
-    const contentHash = stableHash(fs.readFileSync(filePath));
-    return `${normalizeSlashes(filePath)}:${contentHash}`;
-  });
+  const signatureBits: string[] = [];
+  for (const filePath of files) {
+    const fileStat = await statPath(filePath);
+    if (!fileStat?.isFile()) {
+      continue;
+    }
+    const contentHash = stableHash(await Bun.file(filePath).bytes());
+    signatureBits.push(`${normalizeSlashes(filePath)}:${contentHash}`);
+  }
 
   return stableHash(signatureBits.join("|"));
 }
 
-export function buildRouteManifest(config: ResolvedConfig): RouteManifest {
+export async function buildRouteManifest(config: ResolvedConfig): Promise<RouteManifest> {
   return scanRoutes(config.routesDir, {
     generatedMarkdownRootDir: path.resolve(config.cwd, ".rbssr/generated/markdown-routes"),
   });
 }
+

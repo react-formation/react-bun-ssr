@@ -1,18 +1,17 @@
-import fs from "node:fs";
 import path from "node:path";
+import { existsPath, writeText } from "../runtime/io";
 
 interface ScaffoldFile {
   filePath: string;
   content: string;
 }
 
-function writeIfMissing(filePath: string, content: string, force: boolean): void {
-  if (!force && fs.existsSync(filePath)) {
+async function writeIfMissing(filePath: string, content: string, force: boolean): Promise<void> {
+  if (!force && await existsPath(filePath)) {
     return;
   }
 
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, "utf8");
+  await writeText(filePath, content);
 }
 
 function templateFiles(cwd: string): ScaffoldFile[] {
@@ -91,8 +90,8 @@ export const middleware: Middleware = async (ctx, next) => {
   ];
 }
 
-export function scaffoldApp(cwd: string, options: { force: boolean }): void {
+export async function scaffoldApp(cwd: string, options: { force: boolean }): Promise<void> {
   for (const file of templateFiles(cwd)) {
-    writeIfMissing(file.filePath, file.content, options.force);
+    await writeIfMissing(file.filePath, file.content, options.force);
   }
 }

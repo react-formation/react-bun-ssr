@@ -1,33 +1,32 @@
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "bun:test";
+import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
 import { scanRoutes } from "../../framework/runtime/route-scanner";
 
 const tempDirs: string[] = [];
 
-afterAll(() => {
+afterAll(async () => {
   for (const dir of tempDirs.splice(0, tempDirs.length)) {
-    fs.rmSync(dir, { recursive: true, force: true });
+    await removePath(dir);
   }
 });
 
-function withFixture(files: Record<string, string>): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "rbssr-routes-"));
+async function withFixture(files: Record<string, string>): Promise<string> {
+  const root = await makeTempDir("rbssr-routes");
   tempDirs.push(root);
 
   for (const [relative, content] of Object.entries(files)) {
     const target = path.join(root, relative);
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, content, "utf8");
+    await ensureDir(path.dirname(target));
+    await Bun.write(target, content);
   }
 
   return root;
 }
 
 describe("scanRoutes", () => {
-  it("parses static, dynamic, and catchall routes", () => {
-    const routesDir = withFixture({
+  it("parses static, dynamic, and catchall routes", async () => {
+    const routesDir = await withFixture({
       "index.tsx": "export default function Route(){return null}",
       "guide.md": "# Guide\n\nHello markdown",
       "posts/[id].tsx": "export default function Route(){return null}",
@@ -38,7 +37,7 @@ describe("scanRoutes", () => {
       "posts/_middleware.ts": "export const middleware = async (ctx,next)=>next();",
     });
 
-    const manifest = scanRoutes(routesDir);
+    const manifest = await scanRoutes(routesDir);
 
     expect(manifest.pages.some(route => route.routePath === "/")).toBe(true);
     expect(manifest.pages.some(route => route.routePath === "/guide")).toBe(true);
@@ -58,24 +57,31 @@ describe("scanRoutes", () => {
     expect(manifest.api.some(route => route.routePath === "/api/hello")).toBe(true);
   });
 
-  it("ranks static routes above dynamic routes", () => {
-    const routesDir = withFixture({
+  it("ranks static routes above dynamic routes", async () => {
+    const routesDir = await withFixture({
       "users/[id].tsx": "export default function Route(){return null}",
       "users/new.tsx": "export default function Route(){return null}",
     });
 
-    const manifest = scanRoutes(routesDir);
+    const manifest = await scanRoutes(routesDir);
 
     expect(manifest.pages[0]?.routePath).toBe("/users/new");
     expect(manifest.pages[1]?.routePath).toBe("/users/:id");
   });
 
-  it("rejects unsupported mdx page routes with a clear error", () => {
-    const routesDir = withFixture({
+  it("rejects unsupported mdx page routes with a clear error", async () => {
+    const routesDir = await withFixture({
       "index.tsx": "export default function Route(){return null}",
       "guide.mdx": "# MDX\n",
     });
 
-    expect(() => scanRoutes(routesDir)).toThrow(".mdx route files are not supported yet");
+    let message = "";
+    try {
+      await scanRoutes(routesDir);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain(".mdx route files are not supported yet");
   });
 });

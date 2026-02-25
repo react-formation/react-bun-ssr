@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import { statPath } from "./io";
 import type {
   ActionContext,
   BuildRouteAsset,
@@ -93,12 +93,12 @@ async function tryServeStatic(baseDir: string, pathname: string): Promise<Respon
   }
 
   const resolved = ensureWithin(baseDir, relativePath);
-  if (!resolved || !fs.existsSync(resolved)) {
+  if (!resolved) {
     return null;
   }
 
-  const stat = fs.statSync(resolved);
-  if (!stat.isFile()) {
+  const stat = await statPath(resolved);
+  if (!stat?.isFile()) {
     return null;
   }
 
@@ -260,9 +260,9 @@ export function createServer(
     };
     const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
 
-    const getManifest = (): RouteManifest => {
+    const getManifest = async (): Promise<RouteManifest> => {
       if (!cachedManifest || dev) {
-        cachedManifest = scanRoutes(activeConfig.routesDir, {
+        cachedManifest = await scanRoutes(activeConfig.routesDir, {
           generatedMarkdownRootDir: path.resolve(activeConfig.cwd, ".rbssr/generated/markdown-routes"),
         });
       }
@@ -316,7 +316,7 @@ export function createServer(
       return publicResponse;
     }
 
-    const manifest = getManifest();
+    const manifest = await getManifest();
     const cacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? Date.now()) : undefined;
 
     const apiMatch = matchApiRoute(manifest.api, url.pathname);

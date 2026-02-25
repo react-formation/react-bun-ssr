@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
@@ -38,10 +37,6 @@ interface ApiEntrypoint {
 
 const ROOT = process.cwd();
 const OUT_DIR = path.join(ROOT, "app/routes/docs/api");
-
-function ensureDir(dir: string): void {
-  fs.mkdirSync(dir, { recursive: true });
-}
 
 function normalizeSignature(signature: string): string {
   return signature.replace(/\s+/g, " ").trim();
@@ -246,15 +241,18 @@ export const middleware: Middleware = async (ctx, next) => {
   return output;
 }
 
-export function generateApiDocs(): void {
-  ensureDir(OUT_DIR);
+export async function generateApiDocs(): Promise<void> {
   const docs = buildApiDocs();
 
   for (const [slug, markdown] of Object.entries(docs)) {
-    fs.writeFileSync(path.join(OUT_DIR, `${slug}.md`), markdown, "utf8");
+    await Bun.write(path.join(OUT_DIR, `${slug}.md`), markdown);
   }
 }
 
 if (import.meta.main) {
-  generateApiDocs();
+  generateApiDocs().catch(error => {
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exit(1);
+  });
 }

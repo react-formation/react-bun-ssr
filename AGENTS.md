@@ -25,6 +25,12 @@ Guidance for AI coding agents working in this repository.
 - If `bun` is not on PATH in non-interactive shells, use:
   - `export PATH="$HOME/.bun/bin:$PATH"`
 
+## Runtime API policy
+
+- Prefer Bun APIs for file content I/O, hashing, build, and runtime operations.
+- Keep `node:path` for path manipulation.
+- Keep `node:fs` only for `watch` usage in dev mode.
+
 ## Critical rules
 
 1. Do not manually edit generated files unless the task is specifically to repair generation output format.

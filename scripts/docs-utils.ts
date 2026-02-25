@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import path from "node:path";
 
 export interface ParsedFrontmatter {
@@ -10,29 +9,36 @@ export interface ParsedMarkdownFile {
   body: string;
 }
 
-export function walkFiles(rootDir: string, ext: string): string[] {
-  if (!fs.existsSync(rootDir)) {
+async function directoryExists(dirPath: string): Promise<boolean> {
+  try {
+    return (await Bun.file(dirPath).stat()).isDirectory();
+  } catch (error) {
+    if (
+      error
+      && typeof error === "object"
+      && "code" in error
+      && (error as { code?: unknown }).code === "ENOENT"
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+export async function walkFiles(rootDir: string, ext: string): Promise<string[]> {
+  if (!(await directoryExists(rootDir))) {
     return [];
   }
 
+  const normalizedExt = ext.startsWith(".") ? ext : `.${ext}`;
+  const scanner = new Bun.Glob(`**/*${normalizedExt}`);
   const result: string[] = [];
-  const stack = [rootDir];
 
-  while (stack.length > 0) {
-    const dir = stack.pop()!;
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(fullPath);
-      } else if (entry.isFile() && fullPath.endsWith(ext)) {
-        result.push(fullPath);
-      }
-    }
+  for await (const filePath of scanner.scan({ cwd: rootDir, absolute: true, dot: true })) {
+    result.push(path.resolve(filePath));
   }
 
-  return result.sort();
+  return result.sort((a, b) => a.localeCompare(b));
 }
 
 export function parseMarkdownWithFrontmatter(raw: string): ParsedMarkdownFile {

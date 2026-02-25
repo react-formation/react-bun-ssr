@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import { ensureDir, existsPath } from "./io";
 import type {
   ApiRouteModule,
   Middleware,
@@ -57,7 +57,7 @@ async function buildServerModule(filePath: string, cacheBustKey?: string): Promi
       "server-modules",
       stableHash(cacheKey),
     );
-    fs.mkdirSync(outDir, { recursive: true });
+    await ensureDir(outDir);
 
     const buildResult = await Bun.build({
       entrypoints: [absoluteFilePath],
@@ -153,7 +153,7 @@ export async function loadGlobalMiddleware(
   middlewareFilePath: string,
   cacheBustKey?: string,
 ): Promise<Middleware[]> {
-  if (!fs.existsSync(middlewareFilePath)) {
+  if (!(await existsPath(middlewareFilePath))) {
     return [];
   }
 

@@ -2,8 +2,8 @@ import { generateApiDocs } from "./generate-api-docs.ts";
 import { writeSearchIndex } from "./build-search-index.ts";
 
 async function main(): Promise<void> {
-  generateApiDocs();
-  writeSearchIndex();
+  await generateApiDocs();
+  await writeSearchIndex();
   const subprocess = Bun.spawnSync({
     cmd: ["bun", "bin/rbssr.ts", "build"],
     stdout: "inherit",

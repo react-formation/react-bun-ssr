@@ -1,5 +1,5 @@
 import path from "node:path";
-import { createHash, type BinaryLike } from "node:crypto";
+import { sha256Short, type HashInput } from "./io";
 
 export function normalizeSlashes(value: string): string {
   return value.replace(/\\+/g, "/");
@@ -90,8 +90,8 @@ export function sanitizeErrorMessage(error: unknown, production: boolean): strin
   return "Internal Server Error";
 }
 
-export function stableHash(input: BinaryLike): string {
-  return createHash("sha256").update(input).digest("hex").slice(0, 8);
+export function stableHash(input: HashInput): string {
+  return sha256Short(input);
 }
 
 export function ensureWithin(baseDir: string, target: string): string | null {

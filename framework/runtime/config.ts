@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import { existsPath } from "./io";
 import type { FrameworkConfig, ResolvedConfig } from "./types";
 import { toFileImportUrl } from "./utils";
 
@@ -32,7 +32,14 @@ export async function loadUserConfig(cwd = process.cwd()): Promise<FrameworkConf
     path.resolve(cwd, "rbssr.config.mjs"),
   ];
 
-  const filePath = candidates.find(file => fs.existsSync(file));
+  let filePath: string | undefined;
+  for (const candidate of candidates) {
+    if (await existsPath(candidate)) {
+      filePath = candidate;
+      break;
+    }
+  }
+
   if (!filePath) {
     return {};
   }

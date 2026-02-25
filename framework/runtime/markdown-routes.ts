@@ -1,5 +1,5 @@
-import fs from "node:fs";
 import path from "node:path";
+import { existsPath, readText, writeTextIfChanged } from "./io";
 import { normalizeSlashes, stableHash, trimFileExtension } from "./utils";
 
 const compiledMarkdownCache = new Map<string, { sourceHash: string; outputPath: string }>();
@@ -278,23 +278,15 @@ export function meta() {
 `;
 }
 
-function writeFileIfChanged(filePath: string, content: string): void {
-  if (fs.existsSync(filePath)) {
-    const current = fs.readFileSync(filePath, "utf8");
-    if (current === content) {
-      return;
-    }
-  }
-
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, "utf8");
+async function writeFileIfChanged(filePath: string, content: string): Promise<void> {
+  await writeTextIfChanged(filePath, content);
 }
 
-export function compileMarkdownRouteModule(options: {
+export async function compileMarkdownRouteModule(options: {
   routesDir: string;
   sourceFilePath: string;
   generatedMarkdownRootDir?: string;
-}): string {
+}): Promise<string> {
   const routesDir = path.resolve(options.routesDir);
   const sourceFilePath = path.resolve(options.sourceFilePath);
   const generatedRoot = resolveGeneratedRoot(routesDir, options.generatedMarkdownRootDir);
@@ -303,18 +295,18 @@ export function compileMarkdownRouteModule(options: {
   const routeModuleRelativePath = `${trimFileExtension(relativeRoutePath)}.tsx`;
   const outputPath = path.join(generatedRoot, routeGroupKey, routeModuleRelativePath);
 
-  const markdownSource = fs.readFileSync(sourceFilePath, "utf8");
+  const markdownSource = await readText(sourceFilePath);
   const sourceHash = stableHash(`${MARKDOWN_WRAPPER_VERSION}\0${markdownSource}`);
   const cacheKey = `${sourceFilePath}::${outputPath}`;
   const cached = compiledMarkdownCache.get(cacheKey);
-  if (cached && cached.sourceHash === sourceHash && fs.existsSync(cached.outputPath)) {
+  if (cached && cached.sourceHash === sourceHash && await existsPath(cached.outputPath)) {
     return cached.outputPath;
   }
 
   const parsed = parseFrontmatter(markdownSource);
   const highlightedHtml = applySyntaxHighlight(Bun.markdown.html(parsed.markdown));
   const html = parsed.frontmatter.title ? stripLeadingH1(highlightedHtml) : highlightedHtml;
-  writeFileIfChanged(
+  await writeFileIfChanged(
     outputPath,
     toWrapperSource({
       html,

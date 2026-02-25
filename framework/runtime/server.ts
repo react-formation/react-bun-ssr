@@ -1,5 +1,6 @@
-import fs from "node:fs";
 import path from "node:path";
+import { createBunRouteAdapter, type BunRouteAdapter } from "./bun-route-adapter";
+import { statPath } from "./io";
 import type {
   ActionContext,
   BuildRouteAsset,
@@ -7,13 +8,11 @@ import type {
   LoaderContext,
   RequestContext,
   ResolvedConfig,
-  RouteManifest,
   RouteModule,
   ServerRuntimeOptions,
 } from "./types";
 import { resolveConfig } from "./config";
 import { isRedirectResult, json } from "./helpers";
-import { matchApiRoute, matchPageRoute } from "./matcher";
 import {
   extractRouteMiddleware,
   loadApiRouteModule,
@@ -29,11 +28,11 @@ import {
   renderNotFoundApp,
   renderPageApp,
 } from "./render";
-import { scanRoutes } from "./route-scanner";
 import { runMiddlewareChain } from "./middleware";
 import {
   ensureWithin,
   isMutatingMethod,
+  normalizeSlashes,
   parseCookieHeader,
   sanitizeErrorMessage,
 } from "./utils";
@@ -93,12 +92,12 @@ async function tryServeStatic(baseDir: string, pathname: string): Promise<Respon
   }
 
   const resolved = ensureWithin(baseDir, relativePath);
-  if (!resolved || !fs.existsSync(resolved)) {
+  if (!resolved) {
     return null;
   }
 
-  const stat = fs.statSync(resolved);
-  if (!stat.isFile()) {
+  const stat = await statPath(resolved);
+  if (!stat?.isFile()) {
     return null;
   }
 
@@ -248,7 +247,64 @@ export function createServer(
 
   const dev = runtimeOptions.dev ?? resolvedConfig.mode !== "production";
 
-  let cachedManifest: RouteManifest | null = null;
+  const adapterCache = new Map<string, BunRouteAdapter>();
+  const pendingAdapterCache = new Map<string, Promise<BunRouteAdapter>>();
+
+  const getAdapterKey = (activeConfig: ResolvedConfig): string => {
+    const reloadVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : 0;
+    return `${normalizeSlashes(activeConfig.routesDir)}|${dev ? "dev" : "prod"}|${reloadVersion}`;
+  };
+
+  const trimAdapterCache = (): void => {
+    if (!dev || adapterCache.size <= 3) {
+      return;
+    }
+
+    const keys = [...adapterCache.keys()];
+    while (keys.length > 3) {
+      const oldestKey = keys.shift();
+      if (!oldestKey) {
+        break;
+      }
+      adapterCache.delete(oldestKey);
+      pendingAdapterCache.delete(oldestKey);
+    }
+  };
+
+  const getRouteAdapter = async (activeConfig: ResolvedConfig): Promise<BunRouteAdapter> => {
+    const cacheKey = getAdapterKey(activeConfig);
+    const cached = adapterCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const pending = pendingAdapterCache.get(cacheKey);
+    if (pending) {
+      return pending;
+    }
+
+    const reloadVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : 0;
+    const projectionRootDir = dev
+      ? path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", `dev-v${reloadVersion}`)
+      : path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", "prod");
+
+    const buildAdapterPromise = createBunRouteAdapter({
+      routesDir: activeConfig.routesDir,
+      generatedMarkdownRootDir: path.resolve(activeConfig.cwd, ".rbssr/generated/markdown-routes"),
+      projectionRootDir,
+    });
+
+    pendingAdapterCache.set(cacheKey, buildAdapterPromise);
+
+    try {
+      const adapter = await buildAdapterPromise;
+      adapterCache.set(cacheKey, adapter);
+      trimAdapterCache();
+      return adapter;
+    } finally {
+      pendingAdapterCache.delete(cacheKey);
+    }
+  };
 
   const fetchHandler = async (request: Request): Promise<Response> => {
     await runtimeOptions.onBeforeRequest?.();
@@ -259,15 +315,6 @@ export function createServer(
       ...runtimePaths,
     };
     const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
-
-    const getManifest = (): RouteManifest => {
-      if (!cachedManifest || dev) {
-        cachedManifest = scanRoutes(activeConfig.routesDir, {
-          generatedMarkdownRootDir: path.resolve(activeConfig.cwd, ".rbssr/generated/markdown-routes"),
-        });
-      }
-      return cachedManifest;
-    };
 
     const url = new URL(request.url);
 
@@ -316,10 +363,10 @@ export function createServer(
       return publicResponse;
     }
 
-    const manifest = getManifest();
+    const routeAdapter = await getRouteAdapter(activeConfig);
     const cacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? Date.now()) : undefined;
 
-    const apiMatch = matchApiRoute(manifest.api, url.pathname);
+    const apiMatch = routeAdapter.matchApi(url.pathname);
     if (apiMatch) {
       const apiModule = await loadApiRouteModule(apiMatch.route.filePath, cacheBustKey);
       const methodHandler = getMethodHandler(apiModule as Record<string, unknown>, request.method);
@@ -377,7 +424,7 @@ export function createServer(
       return response;
     }
 
-    const pageMatch = matchPageRoute(manifest.pages, url.pathname);
+    const pageMatch = routeAdapter.matchPage(url.pathname);
 
     if (!pageMatch) {
       const rootModule = await loadRootOnlyModule(activeConfig.rootModule, cacheBustKey);

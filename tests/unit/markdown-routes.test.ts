@@ -1,31 +1,30 @@
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "bun:test";
+import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
 import { compileMarkdownRouteModule } from "../../framework/runtime/markdown-routes";
 
 const tempDirs: string[] = [];
 
-afterAll(() => {
+afterAll(async () => {
   for (const dir of tempDirs.splice(0, tempDirs.length)) {
-    fs.rmSync(dir, { recursive: true, force: true });
+    await removePath(dir);
   }
 });
 
-function makeTempDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rbssr-md-routes-"));
+async function createTempDir(): Promise<string> {
+  const dir = await makeTempDir("rbssr-md-routes");
   tempDirs.push(dir);
   return dir;
 }
 
 describe("compileMarkdownRouteModule", () => {
-  it("compiles markdown to a TSX wrapper module", () => {
-    const root = makeTempDir();
+  it("compiles markdown to a TSX wrapper module", async () => {
+    const root = await createTempDir();
     const routesDir = path.join(root, "app", "routes");
-    fs.mkdirSync(routesDir, { recursive: true });
+    await ensureDir(routesDir);
 
     const markdownFile = path.join(routesDir, "guide.md");
-    fs.writeFileSync(
+    await Bun.write(
       markdownFile,
       "---\n"
         + "title: Guide\n"
@@ -35,16 +34,15 @@ describe("compileMarkdownRouteModule", () => {
         + "tags: markdown,test\n"
         + "---\n\n"
         + "# Guide\n\nHello **framework**\n\n```ts\nconst value = 1;\n```\n",
-      "utf8",
     );
 
-    const outputPath = compileMarkdownRouteModule({
+    const outputPath = await compileMarkdownRouteModule({
       routesDir,
       sourceFilePath: markdownFile,
       generatedMarkdownRootDir: path.join(root, ".generated"),
     });
 
-    const output = fs.readFileSync(outputPath, "utf8");
+    const output = await Bun.file(outputPath).text();
     expect(outputPath.endsWith(".tsx")).toBe(true);
     expect(output).toContain("dangerouslySetInnerHTML");
     expect(output).toContain("className=\"docs-hero\"");
@@ -52,31 +50,31 @@ describe("compileMarkdownRouteModule", () => {
     expect(output).toContain("token keyword");
   });
 
-  it("invalidates generated output when markdown content changes", () => {
-    const root = makeTempDir();
+  it("invalidates generated output when markdown content changes", async () => {
+    const root = await createTempDir();
     const routesDir = path.join(root, "app", "routes");
-    fs.mkdirSync(routesDir, { recursive: true });
+    await ensureDir(routesDir);
 
     const markdownFile = path.join(routesDir, "guide.md");
-    fs.writeFileSync(markdownFile, "# Guide\n\nOriginal", "utf8");
+    await Bun.write(markdownFile, "# Guide\n\nOriginal");
 
     const generatedMarkdownRootDir = path.join(root, ".generated");
-    const firstOutputPath = compileMarkdownRouteModule({
+    const firstOutputPath = await compileMarkdownRouteModule({
       routesDir,
       sourceFilePath: markdownFile,
       generatedMarkdownRootDir,
     });
-    const firstOutput = fs.readFileSync(firstOutputPath, "utf8");
+    const firstOutput = await Bun.file(firstOutputPath).text();
     expect(firstOutput).toContain("Original");
 
-    fs.writeFileSync(markdownFile, "# Guide\n\nUpdated", "utf8");
+    await Bun.write(markdownFile, "# Guide\n\nUpdated");
 
-    const secondOutputPath = compileMarkdownRouteModule({
+    const secondOutputPath = await compileMarkdownRouteModule({
       routesDir,
       sourceFilePath: markdownFile,
       generatedMarkdownRootDir,
     });
-    const secondOutput = fs.readFileSync(secondOutputPath, "utf8");
+    const secondOutput = await Bun.file(secondOutputPath).text();
 
     expect(secondOutputPath).toBe(firstOutputPath);
     expect(secondOutput).toContain("Updated");

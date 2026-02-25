@@ -325,7 +325,7 @@ export async function runTest(extraArgs: string[]): Promise<void> {
     return;
   }
 
-  runSubprocess(["bun", "test", "tests/unit/**/*.test.ts"]);
-  runSubprocess(["bun", "test", "tests/integration/**/*.test.ts"]);
+  runSubprocess(["bun", "test", "./tests/unit"]);
+  runSubprocess(["bun", "test", "./tests/integration"]);
   runSubprocess(["bun", "x", "playwright", "test"]);
 }

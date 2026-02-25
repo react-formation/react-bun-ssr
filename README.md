@@ -124,11 +124,14 @@ Include:
 ## CI contract
 
 CI runs:
-- `bun run test`
+- `bun run test:unit`
+- `bun run test:integration`
 - `bun run docs:check`
 - `bun run docs:build`
 
 `docs:check` fails when docs metadata, links, or generated artifacts are stale.
+
+E2E (`bun run test:e2e`) runs on `push` to `main` only.
 
 ## Deploy to Fly.io
 

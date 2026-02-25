@@ -251,7 +251,9 @@ function parseMarkdown(markdown: string): { html: string; headings: DocHeading[]
     if (heading) {
       flushParagraph();
       flushList();
-      const level = heading[1]!.length;
+      // The page title is rendered by the docs shell, so markdown content starts at h2.
+      const rawLevel = heading[1]!.length;
+      const level = rawLevel === 1 ? 2 : rawLevel;
       const text = heading[2]!.trim();
       const id = slugify(text);
       headings.push({ level, text, id });

@@ -15,8 +15,8 @@ test.describe("Documentation app", () => {
 
   test("supports docs deep link", async ({ page }) => {
     await page.goto("/docs/core-concepts/loaders");
-    await expect(page.locator("h1")).toContainText("Loaders and data flow");
-    await expect(page.locator("text=Return values")).toBeVisible();
+    await expect(page.locator(".docs-hero h1")).toContainText("Loaders and data flow");
+    await expect(page.getByRole("heading", { name: "Return values" })).toBeVisible();
   });
 
   test("serves not found page", async ({ page }) => {

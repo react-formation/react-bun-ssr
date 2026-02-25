@@ -1,4 +1,4 @@
-import { Outlet } from "react-bun-ssr/route";
+import { Outlet } from 'react-bun-ssr/route';
 
 export default function RootLayout() {
   return (
@@ -22,7 +22,14 @@ export function head() {
   return (
     <>
       <title>react-bun-ssr documentation</title>
-      <meta name="description" content="Bun-native fully SSR React framework documentation" />
+      <meta
+        name="description"
+        content="Bun-native fully SSR React framework documentation"
+      />
+      <meta
+        name="google-site-verification"
+        content="sI7GYFWWtoQhNipsdQncDKnJiehzPk8prWjj3H7zFJU"
+      />
       <link rel="stylesheet" href="/app.css" />
     </>
   );

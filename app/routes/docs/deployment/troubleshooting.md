@@ -16,6 +16,15 @@ If server and client assets are out of sync, ensure dev snapshot rebuild complet
 
 If a route file cannot be imported from `.rbssr/dev/server-snapshots/*`, restart dev server and ensure snapshot root is cleaned only once on startup.
 
+## Unexpected stale static assets
+
+Production static files are cached by default:
+
+- `/client/*-[hash].js|css`: long-lived immutable cache
+- other static files: 1 hour cache
+
+If you need different behavior, override with `headers` rules in `rbssr.config.ts`.
+
 ## Title children warning
 
 Use a single string in `<title>` children. Example:

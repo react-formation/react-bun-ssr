@@ -82,6 +82,15 @@ export interface ApiRouteModule {
   OPTIONS?: ApiHandler;
 }
 
+export interface ResponseHeaderRule {
+  source: string;
+  headers: Record<string, string>;
+}
+
+export interface ResolvedResponseHeaderRule extends ResponseHeaderRule {
+  matcher: RegExp;
+}
+
 export interface FrameworkConfig {
   appDir?: string;
   routesDir?: string;
@@ -92,6 +101,7 @@ export interface FrameworkConfig {
   host?: string;
   port?: number;
   mode?: "development" | "production";
+  headers?: ResponseHeaderRule[];
 }
 
 export interface ResolvedConfig {
@@ -105,6 +115,7 @@ export interface ResolvedConfig {
   host: string;
   port: number;
   mode: "development" | "production";
+  headerRules: ResolvedResponseHeaderRule[];
 }
 
 export type SegmentKind = "static" | "dynamic" | "catchall";

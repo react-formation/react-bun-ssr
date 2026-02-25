@@ -20,6 +20,42 @@ export default defineConfig({
 });
 ```
 
+## Response headers config
+
+You can configure response headers with path-based rules.
+
+```ts
+import { defineConfig } from "react-bun-ssr";
+
+export default defineConfig({
+  headers: [
+    {
+      source: "/api/**",
+      headers: {
+        "x-frame-options": "DENY",
+      },
+    },
+    {
+      source: "/client/**",
+      headers: {
+        "cache-control": "public, max-age=31536000, immutable",
+      },
+    },
+  ],
+});
+```
+
+Rules are evaluated top-to-bottom, and later matching rules override earlier ones.
+
+## Default static cache behavior
+
+In production:
+
+- Hashed JS/CSS chunks under `/client/*` get `cache-control: public, max-age=31536000, immutable`.
+- Other static files served by the framework get `cache-control: public, max-age=3600`.
+
+Custom `headers` rules can override these defaults.
+
 ## Go deeper with Bun docs
 
 - [Environment variables](https://bun.sh/docs/runtime/env)

@@ -12,6 +12,7 @@ export type {
   Middleware,
   Params,
   RedirectResult,
+  ResponseHeaderRule,
   RequestContext,
   RouteModule,
 } from "./types";

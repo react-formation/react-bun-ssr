@@ -183,6 +183,15 @@ export interface RedirectResult {
 export interface RequestContext {
 ```
 
+## ResponseHeaderRule
+
+- Kind: interface
+- Source: `framework/runtime/types.ts`
+
+```ts
+export interface ResponseHeaderRule {
+```
+
 ## RouteModule
 
 - Kind: interface

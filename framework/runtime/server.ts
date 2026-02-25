@@ -37,6 +37,12 @@ import {
   sanitizeErrorMessage,
 } from "./utils";
 
+type ResponseKind = "static" | "html" | "api" | "internal-dev";
+
+const HASHED_CLIENT_CHUNK_RE = /^\/client\/.+-[A-Za-z0-9]{6,}\.(?:js|css)$/;
+const STATIC_IMMUTABLE_CACHE = "public, max-age=31536000, immutable";
+const STATIC_DEFAULT_CACHE = "public, max-age=3600";
+
 function toRedirectResponse(location: string, status = 302): Response {
   return Response.redirect(location, status);
 }
@@ -45,38 +51,92 @@ function isResponse(value: unknown): value is Response {
   return value instanceof Response;
 }
 
-function toHeadResponse(response: Response): Response {
-  return new Response(null, {
-    status: response.status,
-    headers: response.headers,
-  });
-}
-
-function withNoStore(response: Response): Response {
-  const headers = new Headers(response.headers);
-  headers.set("cache-control", "no-store");
-  headers.set("pragma", "no-cache");
-  headers.set("expires", "0");
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
-
-function toHtmlResponse(html: string, status: number, method: string): Response {
-  const response = new Response(method === "HEAD" ? null : html, {
+function toHtmlResponse(html: string, status: number): Response {
+  return new Response(html, {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
     },
   });
+}
 
-  if (method === "HEAD") {
-    return toHeadResponse(response);
+function applyFrameworkDefaultHeaders(options: {
+  headers: Headers;
+  dev: boolean;
+  kind: ResponseKind;
+  pathname: string;
+}): void {
+  const { headers, dev, kind, pathname } = options;
+
+  if (kind === "internal-dev") {
+    if (!headers.has("cache-control")) {
+      headers.set("cache-control", "no-store");
+    }
+    return;
   }
 
-  return response;
+  if (dev) {
+    if (kind === "static") {
+      headers.set("cache-control", "no-store");
+      headers.set("pragma", "no-cache");
+      headers.set("expires", "0");
+    }
+    return;
+  }
+
+  if (kind === "static" && !headers.has("cache-control")) {
+    headers.set(
+      "cache-control",
+      HASHED_CLIENT_CHUNK_RE.test(pathname) ? STATIC_IMMUTABLE_CACHE : STATIC_DEFAULT_CACHE,
+    );
+  }
+}
+
+function applyConfiguredHeaders(options: {
+  headers: Headers;
+  pathname: string;
+  config: ResolvedConfig;
+}): void {
+  const { headers, pathname, config } = options;
+  for (const rule of config.headerRules) {
+    if (!rule.matcher.test(pathname)) {
+      continue;
+    }
+
+    for (const [name, value] of Object.entries(rule.headers)) {
+      headers.set(name, value);
+    }
+  }
+}
+
+function finalizeResponseHeaders(options: {
+  response: Response;
+  request: Request;
+  pathname: string;
+  kind: ResponseKind;
+  dev: boolean;
+  config: ResolvedConfig;
+}): Response {
+  const headers = new Headers(options.response.headers);
+
+  applyFrameworkDefaultHeaders({
+    headers,
+    dev: options.dev,
+    kind: options.kind,
+    pathname: options.pathname,
+  });
+
+  applyConfiguredHeaders({
+    headers,
+    pathname: options.pathname,
+    config: options.config,
+  });
+
+  return new Response(options.request.method.toUpperCase() === "HEAD" ? null : options.response.body, {
+    status: options.response.status,
+    statusText: options.response.statusText,
+    headers,
+  });
 }
 
 async function tryServeStatic(baseDir: string, pathname: string): Promise<Response | null> {
@@ -317,29 +377,39 @@ export function createServer(
     const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
 
     const url = new URL(request.url);
+    const finalize = (response: Response, kind: ResponseKind): Response => {
+      return finalizeResponseHeaders({
+        response,
+        request,
+        pathname: url.pathname,
+        kind,
+        dev,
+        config: activeConfig,
+      });
+    };
 
     if (dev && url.pathname === "/__rbssr/events") {
-      return createDevReloadEventStream({
+      return finalize(createDevReloadEventStream({
         getVersion: () => runtimeOptions.reloadVersion?.() ?? 0,
         subscribe: runtimeOptions.subscribeReload,
-      });
+      }), "internal-dev");
     }
 
     if (dev && url.pathname === "/__rbssr/version") {
       const version = runtimeOptions.reloadVersion?.() ?? 0;
-      return new Response(String(version), {
+      return finalize(new Response(String(version), {
         headers: {
           "content-type": "text/plain; charset=utf-8",
           "cache-control": "no-store",
         },
-      });
+      }), "internal-dev");
     }
 
     if (dev && url.pathname.startsWith("/__rbssr/client/")) {
       const relative = url.pathname.replace(/^\/__rbssr\/client\//, "");
       const response = await tryServeStatic(devClientDir, relative);
       if (response) {
-        return withNoStore(response);
+        return finalize(response, "static");
       }
     }
 
@@ -347,20 +417,20 @@ export function createServer(
       const relative = url.pathname.replace(/^\/client\//, "");
       const response = await tryServeStatic(path.join(activeConfig.distDir, "client"), relative);
       if (response) {
-        return response;
+        return finalize(response, "static");
       }
     }
 
     if (!dev) {
       const builtPublicResponse = await tryServeStatic(path.join(activeConfig.distDir, "client"), url.pathname);
       if (builtPublicResponse) {
-        return builtPublicResponse;
+        return finalize(builtPublicResponse, "static");
       }
     }
 
     const publicResponse = await tryServeStatic(activeConfig.publicDir, url.pathname);
     if (publicResponse) {
-      return publicResponse;
+      return finalize(publicResponse, "static");
     }
 
     const routeAdapter = await getRouteAdapter(activeConfig);
@@ -373,12 +443,12 @@ export function createServer(
 
       if (typeof methodHandler !== "function") {
         const allow = getAllowedMethods(apiModule as Record<string, unknown>);
-        return new Response("Method Not Allowed", {
+        return finalize(new Response("Method Not Allowed", {
           status: 405,
           headers: {
             allow: allow.join(", "),
           },
-        });
+        }), "api");
       }
 
       const requestContext: RequestContext = {
@@ -409,19 +479,14 @@ export function createServer(
           return json(result);
         });
       } catch (error) {
-        return json(
+        return finalize(json(
           {
             error: sanitizeErrorMessage(error, !dev),
           },
           { status: 500 },
-        );
+        ), "api");
       }
-
-      if (request.method.toUpperCase() === "HEAD") {
-        return toHeadResponse(response);
-      }
-
-      return response;
+      return finalize(response, "api");
     }
 
     const pageMatch = routeAdapter.matchPage(url.pathname);
@@ -460,7 +525,7 @@ export function createServer(
         headMarkup: head,
       });
 
-      return toHtmlResponse(html, 404, request.method.toUpperCase());
+      return finalize(toHtmlResponse(html, 404), "html");
     }
 
     const routeModules = await loadRouteModules({
@@ -567,7 +632,7 @@ export function createServer(
                 },
                 headMarkup: errorHead,
               });
-              return toHtmlResponse(html, 500, method);
+              return toHtmlResponse(html, 500);
             }
 
             const message = sanitizeErrorMessage(error, !dev);
@@ -585,11 +650,10 @@ export function createServer(
             headMarkup,
           });
 
-          return toHtmlResponse(html, 200, method);
+          return toHtmlResponse(html, 200);
         },
       );
     } catch (error) {
-      const method = request.method.toUpperCase();
       const payload = {
         routeId: pageMatch.route.id,
         data: null,
@@ -615,17 +679,13 @@ export function createServer(
           },
           headMarkup: errorHead,
         });
-        return toHtmlResponse(html, 500, method);
+        return finalize(toHtmlResponse(html, 500), "html");
       }
 
-      return new Response(sanitizeErrorMessage(error, !dev), { status: 500 });
+      return finalize(new Response(sanitizeErrorMessage(error, !dev), { status: 500 }), "html");
     }
 
-    if (request.method.toUpperCase() === "HEAD") {
-      return toHeadResponse(response);
-    }
-
-    return response;
+    return finalize(response, "html");
   };
 
   return {

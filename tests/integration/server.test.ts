@@ -116,4 +116,147 @@ This route is **native markdown**.`,
     expect(markdownHtml).toContain("Markdown Guide");
     expect(markdownHtml).toContain("native markdown");
   });
+
+  it("applies production static cache headers", async () => {
+    const runtimeImport = "react-bun-ssr/route";
+    const cwd = await writeFixture({
+      "app/root.tsx": `import { Outlet } from "${runtimeImport}";
+      export default function Root(){ return <div><Outlet /></div>; }`,
+      "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
+      "dist/client/route__index-abc123.js": "console.log('chunk');",
+      "dist/client/route__index-abc123.css": ".hero{color:red;}",
+      "app/public/logo.png": "png-bytes",
+    });
+
+    const server = createServer({
+      appDir: path.join(cwd, "app"),
+      distDir: path.join(cwd, "dist"),
+      mode: "production",
+    });
+
+    const jsResponse = await server.fetch(
+      new Request("http://localhost/client/route__index-abc123.js"),
+    );
+    expect(jsResponse.status).toBe(200);
+    expect(jsResponse.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+
+    const cssResponse = await server.fetch(
+      new Request("http://localhost/client/route__index-abc123.css"),
+    );
+    expect(cssResponse.status).toBe(200);
+    expect(cssResponse.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+
+    const logoGet = await server.fetch(new Request("http://localhost/logo.png"));
+    expect(logoGet.status).toBe(200);
+    expect(logoGet.headers.get("cache-control")).toBe("public, max-age=3600");
+
+    const logoHead = await server.fetch(
+      new Request("http://localhost/logo.png", { method: "HEAD" }),
+    );
+    expect(logoHead.status).toBe(200);
+    expect(logoHead.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(await logoHead.text()).toBe("");
+  });
+
+  it("applies configured headers and lets config override defaults", async () => {
+    const runtimeImport = "react-bun-ssr/route";
+    const cwd = await writeFixture({
+      "app/root.tsx": `import { Outlet } from "${runtimeImport}";
+      export default function Root(){ return <main><Outlet /></main>; }`,
+      "app/routes/docs/index.tsx": `export default function Docs(){ return <h1>docs</h1>; }`,
+      "app/routes/api/hello.ts": `export function GET(){ return Response.json({ ok: true }); }`,
+      "dist/client/route__docs__index-abc123.js": "console.log('docs-chunk');",
+      "app/public/robots.txt": "User-agent: *",
+    });
+
+    const server = createServer({
+      appDir: path.join(cwd, "app"),
+      distDir: path.join(cwd, "dist"),
+      mode: "production",
+      headers: [
+        {
+          source: "/docs/**",
+          headers: {
+            "x-docs-header": "enabled",
+          },
+        },
+        {
+          source: "/api/**",
+          headers: {
+            "x-api-header": "enabled",
+          },
+        },
+        {
+          source: "/client/**",
+          headers: {
+            "cache-control": "public, max-age=120",
+          },
+        },
+      ],
+    });
+
+    const docsGet = await server.fetch(new Request("http://localhost/docs"));
+    expect(docsGet.status).toBe(200);
+    expect(docsGet.headers.get("x-docs-header")).toBe("enabled");
+
+    const docsHead = await server.fetch(new Request("http://localhost/docs", { method: "HEAD" }));
+    expect(docsHead.status).toBe(200);
+    expect(docsHead.headers.get("x-docs-header")).toBe("enabled");
+    expect(await docsHead.text()).toBe("");
+
+    const apiResponse = await server.fetch(new Request("http://localhost/api/hello"));
+    expect(apiResponse.status).toBe(200);
+    expect(apiResponse.headers.get("x-api-header")).toBe("enabled");
+
+    const chunkResponse = await server.fetch(
+      new Request("http://localhost/client/route__docs__index-abc123.js"),
+    );
+    expect(chunkResponse.status).toBe(200);
+    expect(chunkResponse.headers.get("cache-control")).toBe("public, max-age=120");
+
+    const robotsResponse = await server.fetch(new Request("http://localhost/robots.txt"));
+    expect(robotsResponse.status).toBe(200);
+    expect(robotsResponse.headers.get("cache-control")).toBe("public, max-age=3600");
+  });
+
+  it("keeps dev internal endpoints and dev static files non-cacheable", async () => {
+    const runtimeImport = "react-bun-ssr/route";
+    const cwd = await writeFixture({
+      "app/root.tsx": `import { Outlet } from "${runtimeImport}";
+      export default function Root(){ return <main><Outlet /></main>; }`,
+      "app/routes/index.tsx": `export default function Index(){ return <h1>dev</h1>; }`,
+    });
+
+    const devClientDir = path.join(process.cwd(), ".rbssr/dev/client");
+    await ensureDir(devClientDir);
+    const devAssetPath = path.join(devClientDir, "integration-header-test.js");
+    await Bun.write(devAssetPath, "console.log('dev-asset');");
+
+    try {
+      const server = createServer(
+        {
+          appDir: path.join(cwd, "app"),
+          mode: "development",
+        },
+        {
+          dev: true,
+          reloadVersion: () => 1,
+        },
+      );
+
+      const versionResponse = await server.fetch(new Request("http://localhost/__rbssr/version"));
+      expect(versionResponse.status).toBe(200);
+      const versionCache = versionResponse.headers.get("cache-control") ?? "";
+      expect(versionCache.includes("no-store") || versionCache.includes("no-cache")).toBe(true);
+
+      const devAssetResponse = await server.fetch(
+        new Request("http://localhost/__rbssr/client/integration-header-test.js"),
+      );
+      expect(devAssetResponse.status).toBe(200);
+      expect(devAssetResponse.headers.get("cache-control")).toBe("no-store");
+    } finally {
+      await Bun.write(devAssetPath, "");
+      await removePath(devAssetPath);
+    }
+  });
 });

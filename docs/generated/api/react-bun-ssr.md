@@ -10,6 +10,8 @@ tags: api,generated
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 
+## Exported symbols
+
 ## Action
 
 - Kind: type

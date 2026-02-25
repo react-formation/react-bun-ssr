@@ -10,6 +10,53 @@ tags: api,generated
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 
+Use this entrypoint inside route modules for hooks (`useLoaderData`, `useParams`, `Outlet`) and route contract types (`Loader`, `Action`, `Middleware`).
+
+## Examples
+
+### Loader + `useLoaderData`
+
+```tsx
+import { useLoaderData, type Loader } from "react-bun-ssr/route";
+
+export const loader: Loader = ({ params }) => {
+  return { postId: params.id ?? "unknown" };
+};
+
+export default function PostPage() {
+  const data = useLoaderData<{ postId: string }>();
+  return <h1>Post {data.postId}</h1>;
+}
+```
+
+### Action + redirect helper
+
+```tsx
+import { redirect } from "react-bun-ssr";
+import type { Action } from "react-bun-ssr/route";
+
+export const action: Action = async ({ formData }) => {
+  const name = String(formData?.get("name") ?? "").trim();
+  if (!name) return { error: "name is required" };
+  return redirect("/docs/core-concepts/actions");
+};
+```
+
+### Route middleware
+
+```tsx
+import type { Middleware } from "react-bun-ssr/route";
+
+export const middleware: Middleware = async (ctx, next) => {
+  if (!ctx.cookies.get("session")) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  return next();
+};
+```
+
+## Exported symbols
+
 ## Action
 
 - Kind: type

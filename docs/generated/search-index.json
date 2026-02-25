@@ -38,6 +38,7 @@
     "section": "API Reference",
     "headings": [
       "react-bun-ssr",
+      "Exported symbols",
       "Action",
       "ActionContext",
       "ActionResult",
@@ -64,7 +65,7 @@
       "useRequestUrl",
       "useRouteError"
     ],
-    "excerpt": "react bun ssr Auto generated from framework TypeScript exports. Do not edit manually. Action Kind: type Source: ActionContext Kind: interface Source: ActionResult Kind: type Source",
+    "excerpt": "react bun ssr Auto generated from framework TypeScript exports. Do not edit manually. Exported symbols Action Kind: type Source: ActionContext Kind: interface Source: ActionResult ",
     "url": "/docs/api/react-bun-ssr",
     "tokens": [
       "react",
@@ -80,6 +81,8 @@
       "not",
       "edit",
       "manually",
+      "exported",
+      "symbols",
       "action",
       "kind",
       "type",
@@ -118,6 +121,11 @@
     "section": "API Reference",
     "headings": [
       "react-bun-ssr/route",
+      "Examples",
+      "Loader + `useLoaderData`",
+      "Action + redirect helper",
+      "Route middleware",
+      "Exported symbols",
       "Action",
       "ActionContext",
       "ActionResult",
@@ -136,7 +144,7 @@
       "useRequestUrl",
       "useRouteError"
     ],
-    "excerpt": "react bun ssr/route Auto generated from framework TypeScript exports. Do not edit manually. Action Kind: type Source: ActionContext Kind: interface Source: ActionResult Kind: type ",
+    "excerpt": "react bun ssr/route Auto generated from framework TypeScript exports. Do not edit manually. Use this entrypoint inside route modules for hooks ( , , ) and route contract types ( , ",
     "url": "/docs/api/react-bun-ssr-route",
     "tokens": [
       "react",
@@ -153,7 +161,24 @@
       "not",
       "edit",
       "manually",
+      "use",
+      "this",
+      "entrypoint",
+      "inside",
+      "modules",
+      "for",
+      "hooks",
+      "and",
+      "contract",
+      "types",
+      "examples",
+      "loader",
       "action",
+      "redirect",
+      "helper",
+      "middleware",
+      "exported",
+      "symbols",
       "kind",
       "type",
       "source",
@@ -162,13 +187,10 @@
       "actionresult",
       "json",
       "function",
-      "loader",
       "loadercontext",
       "loaderresult",
-      "middleware",
       "outlet",
       "params",
-      "redirect",
       "redirectresult",
       "requestcontext",
       "useloaderdata",
@@ -373,9 +395,10 @@
     "title": "Bun-only deployment",
     "section": "Deployment",
     "headings": [
-      "Bun-only deployment"
+      "Bun-only deployment",
+      "Go deeper with Bun docs"
     ],
-    "excerpt": "Bun only deployment 1. 2. 3. Deploy environments must provide Bun runtime compatible with your lockfile and framework version.",
+    "excerpt": "Bun only deployment 1. 2. 3. Deploy environments must provide Bun runtime compatible with your lockfile and framework version. Go deeper with Bun docs",
     "url": "/docs/deployment/bun-deployment",
     "tokens": [
       "bun",
@@ -392,7 +415,10 @@
       "lockfile",
       "and",
       "framework",
-      "version"
+      "version",
+      "go",
+      "deeper",
+      "docs"
     ]
   },
   {
@@ -400,9 +426,10 @@
     "title": "Environment configuration",
     "section": "Deployment",
     "headings": [
-      "Environment configuration"
+      "Environment configuration",
+      "Go deeper with Bun docs"
     ],
-    "excerpt": "Environment configuration Set host/port in .",
+    "excerpt": "Environment configuration Set host/port in . Go deeper with Bun docs",
     "url": "/docs/deployment/environment",
     "tokens": [
       "environment",
@@ -410,7 +437,12 @@
       "set",
       "host",
       "port",
-      "in"
+      "in",
+      "go",
+      "deeper",
+      "with",
+      "bun",
+      "docs"
     ]
   },
   {
@@ -597,7 +629,8 @@
       "Dev/build/start lifecycle",
       "Development",
       "Build",
-      "Start"
+      "Start",
+      "Go deeper with Bun docs"
     ],
     "excerpt": "Dev/build/start lifecycle Development watches app sources, rebuilds client entries, snapshots server modules, and sends SSE reload events. Build emits: Start runs the production se",
     "url": "/docs/getting-started/lifecycle",
@@ -628,7 +661,11 @@
       "entry",
       "with",
       "manifest",
-      "wiring"
+      "wiring",
+      "go",
+      "deeper",
+      "bun",
+      "docs"
     ]
   },
   {
@@ -986,9 +1023,10 @@
     "title": "Build artifacts",
     "section": "Tooling",
     "headings": [
-      "Build artifacts"
+      "Build artifacts",
+      "Go deeper with Bun docs"
     ],
-    "excerpt": "Build artifacts writes: hashed browser assets route to asset mapping Bun production entry Docs generation additionally writes:",
+    "excerpt": "Build artifacts writes: hashed browser assets route to asset mapping Bun production entry Docs generation additionally writes: Go deeper with Bun docs",
     "url": "/docs/tooling/build-artifacts",
     "tokens": [
       "build",
@@ -1006,7 +1044,10 @@
       "entry",
       "docs",
       "generation",
-      "additionally"
+      "additionally",
+      "go",
+      "deeper",
+      "with"
     ]
   },
   {

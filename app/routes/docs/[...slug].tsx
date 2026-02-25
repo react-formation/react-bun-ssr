@@ -95,6 +95,7 @@ export default function DocsPageRoute() {
   const data = useLoaderData<LoaderData>();
   const [query, setQuery] = useState("");
   const [sectionFilter, setSectionFilter] = useState("all");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const results = useMemo(() => {
     const normalized = query.toLowerCase().trim();
@@ -126,7 +127,34 @@ export default function DocsPageRoute() {
 
   return (
     <main className="docs-main">
-      <aside className="docs-sidebar">
+      <button
+        type="button"
+        className="docs-menu-toggle"
+        aria-expanded={menuOpen}
+        aria-controls="docs-sidebar"
+        onClick={() => setMenuOpen(value => !value)}
+      >
+        {menuOpen ? "Close menu" : "Browse docs"}
+      </button>
+
+      {menuOpen ? (
+        <button
+          type="button"
+          className="docs-sidebar-backdrop"
+          aria-label="Close docs menu"
+          onClick={() => setMenuOpen(false)}
+        />
+      ) : null}
+
+      <aside id="docs-sidebar" className={`docs-sidebar${menuOpen ? " is-open" : ""}`}>
+        <button
+          type="button"
+          className="docs-sidebar-close"
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close docs menu"
+        >
+          Close
+        </button>
         <label className="search-label" htmlFor="docs-search">
           Search docs
         </label>
@@ -153,7 +181,12 @@ export default function DocsPageRoute() {
         {query ? (
           <div className="search-results">
             {results.map(result => (
-              <a key={result.item.id} href={result.item.url} className="search-result-item">
+              <a
+                key={result.item.id}
+                href={result.item.url}
+                className="search-result-item"
+                onClick={() => setMenuOpen(false)}
+              >
                 <strong>{result.item.title}</strong>
                 <span>{result.item.excerpt}</span>
               </a>
@@ -170,7 +203,12 @@ export default function DocsPageRoute() {
                 const href = `/docs/${item.slug}`;
                 const active = item.slug === data.page.slug;
                 return (
-                  <a key={item.slug} href={href} aria-current={active ? "page" : undefined}>
+                  <a
+                    key={item.slug}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setMenuOpen(false)}
+                  >
                     {item.title}
                   </a>
                 );

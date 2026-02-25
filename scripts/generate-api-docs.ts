@@ -15,6 +15,25 @@ interface ApiDocFile {
   section: string;
   order: number;
   symbols: ApiSymbolDoc[];
+  intro?: string;
+  examples?: Array<{
+    title: string;
+    code: string;
+  }>;
+}
+
+interface ApiEntrypoint {
+  slug: string;
+  source: string;
+  title: string;
+  description: string;
+  section: string;
+  order: number;
+  intro?: string;
+  examples?: Array<{
+    title: string;
+    code: string;
+  }>;
 }
 
 const ROOT = process.cwd();
@@ -99,6 +118,14 @@ function collectModuleExportDocs(
 }
 
 function docMarkdown(file: ApiDocFile): string {
+  const introBlock = file.intro ? `${file.intro}\n\n` : "";
+  const examplesBlock =
+    file.examples && file.examples.length > 0
+      ? `## Examples\n\n${file.examples
+          .map(example => `### ${example.title}\n\n\`\`\`tsx\n${example.code}\n\`\`\``)
+          .join("\n\n")}\n\n`
+      : "";
+
   const blocks = file.symbols
     .map(
       symbol => `## ${symbol.name}\n\n- Kind: ${symbol.kind}\n- Source: \`${symbol.sourcePath}\`\n\n\`\`\`ts\n${symbol.signature}\n\`\`\``,
@@ -117,12 +144,14 @@ tags: api,generated
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 
+${introBlock}${examplesBlock}## Exported symbols
+
 ${blocks}
 `;
 }
 
 function buildApiDocs(): Record<string, string> {
-  const entrypoints = [
+  const entrypoints: ApiEntrypoint[] = [
     {
       slug: "react-bun-ssr",
       source: path.join(ROOT, "framework/runtime/index.ts"),
@@ -138,6 +167,45 @@ function buildApiDocs(): Record<string, string> {
       description: "Route module contracts, hooks, and helpers exposed to application routes.",
       section: "API Reference",
       order: 3,
+      intro:
+        "Use this entrypoint inside route modules for hooks (`useLoaderData`, `useParams`, `Outlet`) and route contract types (`Loader`, `Action`, `Middleware`).",
+      examples: [
+        {
+          title: "Loader + `useLoaderData`",
+          code: `import { useLoaderData, type Loader } from "react-bun-ssr/route";
+
+export const loader: Loader = ({ params }) => {
+  return { postId: params.id ?? "unknown" };
+};
+
+export default function PostPage() {
+  const data = useLoaderData<{ postId: string }>();
+  return <h1>Post {data.postId}</h1>;
+}`,
+        },
+        {
+          title: "Action + redirect helper",
+          code: `import { redirect } from "react-bun-ssr";
+import type { Action } from "react-bun-ssr/route";
+
+export const action: Action = async ({ formData }) => {
+  const name = String(formData?.get("name") ?? "").trim();
+  if (!name) return { error: "name is required" };
+  return redirect("/docs/core-concepts/actions");
+};`,
+        },
+        {
+          title: "Route middleware",
+          code: `import type { Middleware } from "react-bun-ssr/route";
+
+export const middleware: Middleware = async (ctx, next) => {
+  if (!ctx.cookies.get("session")) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  return next();
+};`,
+        },
+      ],
     },
   ];
 
@@ -170,6 +238,8 @@ function buildApiDocs(): Record<string, string> {
       section: entry.section,
       order: entry.order,
       symbols,
+      intro: entry.intro,
+      examples: entry.examples,
     });
   }
 

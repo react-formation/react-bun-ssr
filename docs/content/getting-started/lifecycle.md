@@ -23,3 +23,9 @@ tags: dev,build,start
 ## Start
 
 `rbssr start` runs the production server entry with build manifest wiring.
+
+## Go deeper with Bun docs
+
+- [Bun runtime](https://bun.sh/docs/runtime)
+- [bun build](https://bun.sh/docs/bundler)
+- [Bun.serve](https://bun.sh/docs/api/http)

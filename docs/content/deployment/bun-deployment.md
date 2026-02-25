@@ -13,3 +13,9 @@ tags: deploy,bun
 3. `bun run start`
 
 Deploy environments must provide Bun runtime compatible with your lockfile and framework version.
+
+## Go deeper with Bun docs
+
+- [Bun in production](https://bun.sh/docs/runtime/production)
+- [Deployment guides](https://bun.sh/guides)
+- [Package manager (lockfile / install)](https://bun.sh/docs/pm/cli/install)

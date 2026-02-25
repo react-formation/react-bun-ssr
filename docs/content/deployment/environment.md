@@ -19,3 +19,8 @@ export default defineConfig({
   mode: "production",
 });
 ```
+
+## Go deeper with Bun docs
+
+- [Environment variables](https://bun.sh/docs/runtime/env)
+- [Bun.serve options](https://bun.sh/docs/api/http)

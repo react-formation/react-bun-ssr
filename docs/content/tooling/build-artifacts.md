@@ -18,3 +18,9 @@ Docs generation additionally writes:
 
 - `docs/generated/api/*.md`
 - `docs/generated/search-index.json`
+
+## Go deeper with Bun docs
+
+- [Bundler overview](https://bun.sh/docs/bundler)
+- [TypeScript support](https://bun.sh/docs/runtime/typescript)
+- [CLI reference](https://bun.sh/docs/cli)

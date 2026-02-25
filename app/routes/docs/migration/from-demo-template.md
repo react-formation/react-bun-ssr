@@ -12,7 +12,7 @@ This repository now treats documentation as the canonical app UI.
 
 ## Migration checklist
 
-- Move example pages into markdown snippets under `docs/content`.
+- Move example pages into markdown routes under `app/routes/docs`.
 - Keep framework implementation in `framework/**` as source of truth.
 - Use generated API docs rather than hand-maintained signatures.
 - Replace home route with docs redirect.

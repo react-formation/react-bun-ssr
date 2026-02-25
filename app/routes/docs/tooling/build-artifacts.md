@@ -16,8 +16,8 @@ tags: dist,manifest
 
 Docs generation additionally writes:
 
-- `docs/generated/api/*.md`
-- `docs/generated/search-index.json`
+- `app/routes/docs/api/*.md`
+- `app/routes/docs/search-index.json`
 
 ## Go deeper with Bun docs
 

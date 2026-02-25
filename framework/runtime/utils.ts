@@ -6,7 +6,7 @@ export function normalizeSlashes(value: string): string {
 }
 
 export function trimFileExtension(value: string): string {
-  return value.replace(/\.(tsx?|jsx?)$/, "");
+  return value.replace(/\.(tsx?|jsx?|mdx?)$/, "");
 }
 
 export function ensureLeadingSlash(value: string): string {

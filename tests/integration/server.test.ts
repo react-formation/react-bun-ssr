@@ -44,6 +44,9 @@ describe("createServer integration", () => {
       "app/routes/styled.tsx": `import styles from "./styled.module.css";
       export default function Styled(){ return <div className={styles.hero}>styled-route</div>; }`,
       "app/routes/styled.module.css": `.hero { color: red; }`,
+      "app/routes/guide.md": `# Markdown Guide
+
+This route is **native markdown**.`,
       "app/routes/api/hello.ts": `export function GET(){ return Response.json({ ok: true }); }`,
     });
 
@@ -59,6 +62,7 @@ describe("createServer integration", () => {
           submit: { script: "/__rbssr/client/route__submit.js", css: [] },
           error: { script: "/__rbssr/client/route__error.js", css: [] },
           styled: { script: "/__rbssr/client/route__styled.js", css: [] },
+          guide: { script: "/__rbssr/client/route__guide.js", css: [] },
         },
       },
     );
@@ -105,5 +109,11 @@ describe("createServer integration", () => {
     expect(styledHtml).toContain("styled-route");
     expect(styledHtml).toContain("class=\"hero_");
     expect(styledHtml).not.toContain("undefined");
+
+    const markdownResponse = await server.fetch(new Request("http://localhost/guide"));
+    expect(markdownResponse.status).toBe(200);
+    const markdownHtml = await markdownResponse.text();
+    expect(markdownHtml).toContain("Markdown Guide");
+    expect(markdownHtml).toContain("native markdown");
   });
 });

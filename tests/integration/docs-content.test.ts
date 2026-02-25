@@ -1,16 +1,18 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "bun:test";
-import { getAllDocSlugs, loadDocPage } from "../../app/lib/docs";
+import { sidebar } from "../../app/routes/docs/_sidebar";
 
 describe("docs content", () => {
-  it("loads introduction markdown into html", () => {
-    const page = loadDocPage("getting-started/introduction");
-    expect(page.title).toBe("Introduction");
-    expect(page.html).toContain("react-bun-ssr");
-    expect(page.toc.length).toBeGreaterThan(0);
+  it("loads introduction markdown source", () => {
+    const filePath = path.resolve(process.cwd(), "app/routes/docs/getting-started/introduction.md");
+    const source = fs.readFileSync(filePath, "utf8");
+    expect(source).toContain("title: Introduction");
+    expect(source).toContain("react-bun-ssr");
   });
 
   it("keeps sidebar slugs unique", () => {
-    const slugs = getAllDocSlugs();
+    const slugs = sidebar.flatMap(section => section.items.map(item => item.slug));
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 });

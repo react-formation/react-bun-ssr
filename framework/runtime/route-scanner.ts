@@ -6,6 +6,7 @@ import type {
   RouteManifest,
   RouteSegment,
 } from "./types";
+import { compileMarkdownRouteModule } from "./markdown-routes";
 import {
   isRouteGroup,
   normalizeSlashes,
@@ -14,8 +15,11 @@ import {
   trimFileExtension,
 } from "./utils";
 
-const PAGE_FILE_RE = /\.(tsx|jsx|ts|js)$/;
+const PAGE_FILE_RE = /\.(tsx|jsx|ts|js|md|mdx)$/;
+const LAYOUT_FILE_RE = /\.(tsx|jsx|ts|js)$/;
 const API_FILE_RE = /\.(ts|js|tsx|jsx)$/;
+const MD_FILE_RE = /\.md$/;
+const MDX_FILE_RE = /\.mdx$/;
 
 function walkFiles(rootDir: string): string[] {
   const files: string[] = [];
@@ -133,7 +137,12 @@ function sortRoutes<T extends { score: number; segments: RouteSegment[]; routePa
   });
 }
 
-export function scanRoutes(routesDir: string): RouteManifest {
+export function scanRoutes(
+  routesDir: string,
+  options: {
+    generatedMarkdownRootDir?: string;
+  } = {},
+): RouteManifest {
   const allFiles = walkFiles(routesDir).sort((a, b) => a.localeCompare(b));
 
   const layoutByDir = new Map<string, string>();
@@ -148,7 +157,13 @@ export function scanRoutes(routesDir: string): RouteManifest {
     const fileName = path.basename(relativeFilePath);
     const fileBaseName = trimFileExtension(fileName);
 
-    if (fileBaseName === "_layout" && PAGE_FILE_RE.test(fileName)) {
+    if (MDX_FILE_RE.test(fileName)) {
+      throw new Error(
+        `Unsupported route file "${relativeFilePath}": .mdx route files are not supported yet; use .md or TSX route module.`,
+      );
+    }
+
+    if (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName)) {
       layoutByDir.set(relativeDir, absoluteFilePath);
       continue;
     }
@@ -165,7 +180,7 @@ export function scanRoutes(routesDir: string): RouteManifest {
     const fileBaseName = trimFileExtension(fileName);
 
     if (
-      (fileBaseName === "_layout" && PAGE_FILE_RE.test(fileName)) ||
+      (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName)) ||
       (fileBaseName === "_middleware" && API_FILE_RE.test(fileName))
     ) {
       continue;
@@ -205,6 +220,13 @@ export function scanRoutes(routesDir: string): RouteManifest {
     const withoutExt = trimFileExtension(relativeFilePath);
     const shape = toUrlShape(withoutExt);
     const ancestors = getAncestorDirs(relativeDir);
+    const routeFilePath = MD_FILE_RE.test(fileName)
+      ? compileMarkdownRouteModule({
+          routesDir,
+          sourceFilePath: absoluteFilePath,
+          generatedMarkdownRootDir: options.generatedMarkdownRootDir,
+        })
+      : absoluteFilePath;
 
     const layoutFiles = ancestors
       .map(dir => layoutByDir.get(dir))
@@ -217,7 +239,7 @@ export function scanRoutes(routesDir: string): RouteManifest {
     pageRoutes.push({
       type: "page",
       id: toRouteId(withoutExt),
-      filePath: absoluteFilePath,
+      filePath: routeFilePath,
       routePath: shape.routePath,
       segments: shape.segments,
       score: getRouteScore(shape.segments),

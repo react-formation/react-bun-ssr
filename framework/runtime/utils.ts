@@ -1,5 +1,5 @@
 import path from "node:path";
-import { createHash } from "node:crypto";
+import { createHash, type BinaryLike } from "node:crypto";
 
 export function normalizeSlashes(value: string): string {
   return value.replace(/\\+/g, "/");
@@ -90,7 +90,7 @@ export function sanitizeErrorMessage(error: unknown, production: boolean): strin
   return "Internal Server Error";
 }
 
-export function stableHash(input: string): string {
+export function stableHash(input: BinaryLike): string {
   return createHash("sha256").update(input).digest("hex").slice(0, 8);
 }
 

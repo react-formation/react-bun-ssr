@@ -168,6 +168,14 @@ function buildDevReloadScript(version: number): string {
   return `\n<script>\n(() => {\n  const currentVersion = ${version};\n  const source = new EventSource('/__rbssr/events');\n\n  source.addEventListener('reload', event => {\n    const nextVersion = Number(event.data);\n    if (Number.isFinite(nextVersion) && nextVersion > currentVersion) {\n      location.reload();\n    }\n  });\n\n  window.addEventListener('beforeunload', () => {\n    source.close();\n  });\n})();\n</script>`;
 }
 
+function withVersionQuery(url: string, version?: number): string {
+  if (typeof version !== "number") {
+    return url;
+  }
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${version}`;
+}
+
 export function renderDocument(options: {
   appMarkup: string;
   payload: RenderPayload;
@@ -175,13 +183,14 @@ export function renderDocument(options: {
   headMarkup: string;
 }): string {
   const { appMarkup, payload, assets, headMarkup } = options;
+  const versionedScript = assets.script ? withVersionQuery(assets.script, assets.devVersion) : undefined;
   const cssLinks = assets.css
-    .map(href => `<link rel="stylesheet" href="${escapeHtml(href)}"/>`)
+    .map(href => `<link rel="stylesheet" href="${escapeHtml(withVersionQuery(href, assets.devVersion))}"/>`)
     .join("\n");
 
   const payloadScript = `<script id="__RBSSR_PAYLOAD__" type="application/json">${safeJsonSerialize(payload)}</script>`;
-  const entryScript = assets.script
-    ? `<script type="module" src="${escapeHtml(assets.script)}"></script>`
+  const entryScript = versionedScript
+    ? `<script type="module" src="${escapeHtml(versionedScript)}"></script>`
     : "";
   const devScript = typeof assets.devVersion === "number" ? buildDevReloadScript(assets.devVersion) : "";
 

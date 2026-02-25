@@ -21,5 +21,6 @@ describe("renderDocument dev reload", () => {
 
     expect(html).toContain("new EventSource('/__rbssr/events')");
     expect(html).not.toContain("/__rbssr/version");
+    expect(html).toContain("/__rbssr/client/route__index.js?v=2");
   });
 });

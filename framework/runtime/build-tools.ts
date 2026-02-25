@@ -232,8 +232,8 @@ export function discoverFileSignature(rootDir: string): string {
     .sort();
 
   const signatureBits = files.map(filePath => {
-    const stat = fs.statSync(filePath);
-    return `${normalizeSlashes(filePath)}:${stat.mtimeMs}:${stat.size}`;
+    const contentHash = stableHash(fs.readFileSync(filePath));
+    return `${normalizeSlashes(filePath)}:${contentHash}`;
   });
 
   return stableHash(signatureBits.join("|"));

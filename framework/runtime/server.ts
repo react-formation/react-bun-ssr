@@ -53,6 +53,18 @@ function toHeadResponse(response: Response): Response {
   });
 }
 
+function withNoStore(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "no-store");
+  headers.set("pragma", "no-cache");
+  headers.set("expires", "0");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function toHtmlResponse(html: string, status: number, method: string): Response {
   const response = new Response(method === "HEAD" ? null : html, {
     status,
@@ -243,19 +255,25 @@ export function createServer(
   const resolvedConfig: ResolvedConfig = resolveConfig(config);
 
   const dev = runtimeOptions.dev ?? resolvedConfig.mode !== "production";
-  const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
 
   let cachedManifest: RouteManifest | null = null;
 
-  const getManifest = (): RouteManifest => {
-    if (!cachedManifest || dev) {
-      cachedManifest = scanRoutes(resolvedConfig.routesDir);
-    }
-    return cachedManifest;
-  };
-
   const fetchHandler = async (request: Request): Promise<Response> => {
     await runtimeOptions.onBeforeRequest?.();
+
+    const runtimePaths = runtimeOptions.resolvePaths?.() ?? {};
+    const activeConfig: ResolvedConfig = {
+      ...resolvedConfig,
+      ...runtimePaths,
+    };
+    const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
+
+    const getManifest = (): RouteManifest => {
+      if (!cachedManifest || dev) {
+        cachedManifest = scanRoutes(activeConfig.routesDir);
+      }
+      return cachedManifest;
+    };
 
     const url = new URL(request.url);
 
@@ -280,26 +298,26 @@ export function createServer(
       const relative = url.pathname.replace(/^\/__rbssr\/client\//, "");
       const response = await tryServeStatic(devClientDir, relative);
       if (response) {
-        return response;
+        return withNoStore(response);
       }
     }
 
     if (!dev && url.pathname.startsWith("/client/")) {
       const relative = url.pathname.replace(/^\/client\//, "");
-      const response = await tryServeStatic(path.join(resolvedConfig.distDir, "client"), relative);
+      const response = await tryServeStatic(path.join(activeConfig.distDir, "client"), relative);
       if (response) {
         return response;
       }
     }
 
     if (!dev) {
-      const builtPublicResponse = await tryServeStatic(path.join(resolvedConfig.distDir, "client"), url.pathname);
+      const builtPublicResponse = await tryServeStatic(path.join(activeConfig.distDir, "client"), url.pathname);
       if (builtPublicResponse) {
         return builtPublicResponse;
       }
     }
 
-    const publicResponse = await tryServeStatic(resolvedConfig.publicDir, url.pathname);
+    const publicResponse = await tryServeStatic(activeConfig.publicDir, url.pathname);
     if (publicResponse) {
       return publicResponse;
     }
@@ -330,7 +348,7 @@ export function createServer(
         locals: {},
       };
 
-      const globalMiddleware = await loadGlobalMiddleware(resolvedConfig.middlewareFile, cacheBustKey);
+      const globalMiddleware = await loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey);
       const routeMiddleware = await loadNestedMiddleware(apiMatch.route.middlewareFiles, cacheBustKey);
       const allMiddleware = [...globalMiddleware, ...routeMiddleware];
 
@@ -368,7 +386,7 @@ export function createServer(
     const pageMatch = matchPageRoute(manifest.pages, url.pathname);
 
     if (!pageMatch) {
-      const rootModule = await loadRootOnlyModule(resolvedConfig.rootModule, cacheBustKey);
+      const rootModule = await loadRootOnlyModule(activeConfig.rootModule, cacheBustKey);
       const fallbackRoute: RouteModule = {
         default: () => null,
         NotFound: rootModule.NotFound,
@@ -405,13 +423,13 @@ export function createServer(
     }
 
     const routeModules = await loadRouteModules({
-      rootFilePath: resolvedConfig.rootModule,
+      rootFilePath: activeConfig.rootModule,
       layoutFiles: pageMatch.route.layoutFiles,
       routeFilePath: pageMatch.route.filePath,
       cacheBustKey,
     });
 
-    const globalMiddleware = await loadGlobalMiddleware(resolvedConfig.middlewareFile, cacheBustKey);
+    const globalMiddleware = await loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey);
     const nestedMiddleware = await loadNestedMiddleware(pageMatch.route.middlewareFiles, cacheBustKey);
     const moduleMiddleware = extractRouteMiddleware(routeModules.route);
 

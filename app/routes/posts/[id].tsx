@@ -1,12 +1,16 @@
-import { useLoaderData, useParams } from "react-bun-ssr/route";
+import { useLoaderData, useParams } from 'react-bun-ssr/route';
 
 type PostData = {
   title: string;
   slug: string;
 };
 
-export function loader({ params }: { params: Record<string, string> }): PostData {
-  const slug = params.id ?? "unknown";
+export function loader({
+  params,
+}: {
+  params: Record<string, string>;
+}): PostData {
+  const slug = params.id ?? 'unknown';
   return {
     title: `Post: ${slug}`,
     slug,
@@ -20,7 +24,7 @@ export default function PostRoute() {
   return (
     <section className="card stack">
       <h1>{data.title}</h1>
-      <p>Dynamic param id = {params.id}</p>
+      <p>Dynamic param = {params.id}</p>
       <p>
         <a href="/">Back home</a>
       </p>
@@ -29,5 +33,5 @@ export default function PostRoute() {
 }
 
 export function head({ params }: { params: Record<string, string> }) {
-  return <title>{`Post ${params.id ?? ""}`}</title>;
+  return <title>{`Post ${params.id ?? ''}`}</title>;
 }

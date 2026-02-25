@@ -180,5 +180,6 @@ export interface ServerRuntimeOptions {
   getDevAssets?: () => Record<string, BuildRouteAsset>;
   reloadVersion?: () => number;
   subscribeReload?: (listener: (version: number) => void) => (() => void) | void;
+  resolvePaths?: () => Partial<ResolvedConfig>;
   onBeforeRequest?: () => Promise<void>;
 }

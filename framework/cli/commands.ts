@@ -112,13 +112,17 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   const { userConfig, resolved } = await getConfig(cwd);
   const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
   const devClientDir = path.resolve(cwd, ".rbssr/dev/client");
+  const serverSnapshotsRoot = path.resolve(cwd, ".rbssr/dev/server-snapshots");
 
   fs.mkdirSync(generatedDir, { recursive: true });
   fs.mkdirSync(devClientDir, { recursive: true });
+  ensureCleanDirectory(serverSnapshotsRoot);
 
   let routeAssets: Record<string, BuildRouteAsset> = {};
   let signature = "";
   let version = 0;
+  let sourceDirty = false;
+  let currentServerSnapshotDir = resolved.appDir;
   const reloadListeners = new Set<(nextVersion: number) => void>();
 
   const notifyReload = (): void => {
@@ -151,14 +155,42 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       publicPrefix: "/__rbssr/client/",
     });
 
+    const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
+    ensureCleanDirectory(snapshotDir);
+    copyDirRecursive(resolved.appDir, snapshotDir);
+    currentServerSnapshotDir = snapshotDir;
+
+    const staleVersions = fs
+      .readdirSync(serverSnapshotsRoot, { withFileTypes: true })
+      .filter(entry => entry.isDirectory() && /^v\d+$/.test(entry.name))
+      .map(entry => entry.name)
+      .sort((a, b) => {
+        const aNum = Number(a.slice(1));
+        const bNum = Number(b.slice(1));
+        return bNum - aNum;
+      })
+      .slice(3);
+    for (const stale of staleVersions) {
+      fs.rmSync(path.join(serverSnapshotsRoot, stale), { recursive: true, force: true });
+    }
+
     version += 1;
     notifyReload();
     log(`rebuilt client assets (version ${version})`);
   };
 
-  await rebuildIfNeeded(true);
+  let rebuildQueue: Promise<void> = Promise.resolve();
+  const enqueueRebuild = (force = false): Promise<void> => {
+    const task = rebuildQueue.then(() => rebuildIfNeeded(force));
+    rebuildQueue = task.catch(error => {
+      // eslint-disable-next-line no-console
+      console.error("[rbssr] rebuild failed", error);
+    });
+    return task;
+  };
 
-  let rebuildQueue = Promise.resolve();
+  await enqueueRebuild(true);
+
   let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
   const scheduleRebuild = (): void => {
     if (rebuildTimer) {
@@ -167,22 +199,18 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
 
     rebuildTimer = setTimeout(() => {
       rebuildTimer = undefined;
-      rebuildQueue = rebuildQueue
-        .then(() => rebuildIfNeeded(false))
-        .catch(error => {
-          // eslint-disable-next-line no-console
-          console.error("[rbssr] rebuild failed", error);
-        });
+      void enqueueRebuild(false);
     }, 75);
   };
 
   let watcher: fs.FSWatcher | undefined;
   try {
     watcher = fs.watch(resolved.appDir, { recursive: true }, () => {
+      sourceDirty = true;
       scheduleRebuild();
     });
-  } catch (error) {
-    log("recursive file watching unavailable; using request-time rebuild checks");
+  } catch {
+    log("recursive file watching unavailable; relying on request-time rebuild checks");
   }
 
   const cleanup = (): void => {
@@ -218,7 +246,17 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
           reloadListeners.delete(listener);
         };
       },
-      onBeforeRequest: watcher ? undefined : () => rebuildIfNeeded(false),
+      resolvePaths: () => ({
+        appDir: currentServerSnapshotDir,
+        routesDir: path.join(currentServerSnapshotDir, "routes"),
+        rootModule: path.join(currentServerSnapshotDir, "root.tsx"),
+        middlewareFile: path.join(currentServerSnapshotDir, "middleware.ts"),
+      }),
+      onBeforeRequest: () => {
+        const force = sourceDirty;
+        sourceDirty = false;
+        return enqueueRebuild(force);
+      },
     },
   );
 

@@ -1,46 +1,29 @@
-# syntax = docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
-# Adjust BUN_VERSION as desired
-ARG BUN_VERSION=1.1.24
-FROM oven/bun:${BUN_VERSION}-slim AS base
-
-LABEL fly_launch_runtime="Bun"
-
-# Bun app lives here
+FROM oven/bun:1.3.9 AS builder
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-
-# Throw-away build stage to reduce size of final image
-FROM base AS build
-
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
-
-# Install node modules
-COPY bun.lock package.json ./
-RUN bun install
-
-# Copy application code
 COPY . .
+RUN bun run docs:build
 
-# Build application
-RUN bun run build
+FROM oven/bun:1.3.9 AS runtime
+WORKDIR /app
 
-# Remove development dependencies
-RUN rm -rf node_modules && \
-    bun install --ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
+# Runtime needs framework/app/docs sources in addition to dist artifacts.
+COPY dist ./dist
+COPY framework ./framework
+COPY app ./app
+COPY docs ./docs
+COPY bin ./bin
+COPY rbssr.config.ts ./rbssr.config.ts
 
-# Final stage for app image
-FROM base
-
-# Copy built application
-COPY --from=build /app /app
-
-# Start the server by default, this can be overwritten at runtime
+ENV NODE_ENV=production
 EXPOSE 3000
-CMD [ "bun", "run", "start" ]
+
+CMD ["bun", "run", "docs:preview"]

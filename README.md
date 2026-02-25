@@ -129,3 +129,65 @@ CI runs:
 - `bun run docs:build`
 
 `docs:check` fails when docs metadata, links, or generated artifacts are stale.
+
+## Deploy to Fly.io
+
+### Prerequisites
+
+- Install `flyctl`: https://fly.io/docs/hands-on/install-flyctl/
+- Login:
+
+```bash
+fly auth login
+```
+
+### One-time setup
+
+`fly.toml` is included in this repository. Update the `app` name if needed:
+
+- `fly.toml`
+
+Initialize without deploying (optional):
+
+```bash
+fly launch --no-deploy
+```
+
+### Deploy
+
+```bash
+fly deploy
+```
+
+### Validate deployment
+
+```bash
+fly status
+fly logs
+```
+
+Open:
+
+```text
+https://<your-fly-app>.fly.dev/docs/getting-started/introduction
+```
+
+### Rollback
+
+```bash
+fly releases
+fly deploy --image <image-ref-from-release>
+```
+
+### Scaling (optional)
+
+```bash
+fly scale vm shared-cpu-1x
+```
+
+### Optional CI deploy
+
+The workflow includes an optional `deploy-fly` job on `main` push.  
+Set this repository secret before enabling production deploys:
+
+- `FLY_API_TOKEN`

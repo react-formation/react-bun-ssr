@@ -27,3 +27,19 @@ jobs:
 
       - name: Docs build
         run: bun run docs:build
+
+  deploy-fly:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test-and-docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

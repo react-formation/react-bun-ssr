@@ -1,11 +1,14 @@
 import fs from "node:fs";
+import path from "node:path";
 import type {
   ApiRouteModule,
   Middleware,
   RouteModule,
   RouteModuleBundle,
 } from "./types";
-import { toFileImportUrl } from "./utils";
+import { stableHash, toFileImportUrl } from "./utils";
+
+const serverBundlePathCache = new Map<string, Promise<string>>();
 
 export async function importModule<T>(
   filePath: string,
@@ -30,23 +33,98 @@ function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   } as RouteModule;
 }
 
+function isCompilableRouteModule(filePath: string): boolean {
+  return /\.(tsx|jsx|ts|js)$/.test(filePath);
+}
+
+async function buildServerModule(filePath: string, cacheBustKey?: string): Promise<string> {
+  const absoluteFilePath = path.resolve(filePath);
+  if (!isCompilableRouteModule(absoluteFilePath)) {
+    return absoluteFilePath;
+  }
+
+  const cacheKey = `${absoluteFilePath}|${cacheBustKey ?? "prod"}`;
+  const existing = serverBundlePathCache.get(cacheKey);
+  if (existing) {
+    return existing;
+  }
+
+  const pending = (async () => {
+    const outDir = path.join(
+      process.cwd(),
+      ".rbssr",
+      "cache",
+      "server-modules",
+      stableHash(cacheKey),
+    );
+    fs.mkdirSync(outDir, { recursive: true });
+
+    const buildResult = await Bun.build({
+      entrypoints: [absoluteFilePath],
+      outdir: outDir,
+      target: "bun",
+      format: "esm",
+      splitting: false,
+      sourcemap: "none",
+      minify: false,
+      naming: "entry-[hash].[ext]",
+      external: [
+        "react",
+        "react-dom",
+        "react-dom/server",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react-bun-ssr",
+        "react-bun-ssr/route",
+      ],
+    });
+
+    if (!buildResult.success) {
+      const messages = buildResult.logs.map(log => log.message).join("\n");
+      throw new Error(`Server module build failed for ${absoluteFilePath}\n${messages}`);
+    }
+
+    const outputPath = buildResult.outputs.find(output => output.path.endsWith(".js"))?.path;
+    if (!outputPath) {
+      throw new Error(`Server module build produced no JavaScript output for ${absoluteFilePath}`);
+    }
+
+    return outputPath;
+  })();
+
+  serverBundlePathCache.set(cacheKey, pending);
+
+  try {
+    return await pending;
+  } catch (error) {
+    serverBundlePathCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+export async function loadRouteModule(
+  filePath: string,
+  cacheBustKey?: string,
+): Promise<RouteModule> {
+  const bundledModulePath = await buildServerModule(filePath, cacheBustKey);
+  const moduleValue = await importModule<unknown>(bundledModulePath);
+  return toRouteModule(filePath, moduleValue);
+}
+
 export async function loadRouteModules(options: {
   rootFilePath: string;
   layoutFiles: string[];
   routeFilePath: string;
   cacheBustKey?: string;
 }): Promise<RouteModuleBundle> {
-  const rootRaw = await importModule<unknown>(options.rootFilePath, options.cacheBustKey);
-  const root = toRouteModule(options.rootFilePath, rootRaw);
+  const root = await loadRouteModule(options.rootFilePath, options.cacheBustKey);
 
   const layouts: RouteModule[] = [];
   for (const layoutFilePath of options.layoutFiles) {
-    const layoutRaw = await importModule<unknown>(layoutFilePath, options.cacheBustKey);
-    layouts.push(toRouteModule(layoutFilePath, layoutRaw));
+    layouts.push(await loadRouteModule(layoutFilePath, options.cacheBustKey));
   }
 
-  const routeRaw = await importModule<unknown>(options.routeFilePath, options.cacheBustKey);
-  const route = toRouteModule(options.routeFilePath, routeRaw);
+  const route = await loadRouteModule(options.routeFilePath, options.cacheBustKey);
 
   return {
     root,

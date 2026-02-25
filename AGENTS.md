@@ -11,9 +11,10 @@ Guidance for AI coding agents working in this repository.
 - `framework/`: framework runtime and build system.
 - `bin/rbssr.ts`: CLI entrypoint.
 - `app/`: docs web app routes/components/styles.
-- `docs/content/`: authored markdown docs.
-- `docs/meta/sidebar.ts`: canonical docs nav structure.
-- `docs/generated/`: generated API docs + search index.
+- `app/routes/docs/**/*.md`: authored markdown docs as first-class routes.
+- `app/routes/docs/_sidebar.ts`: canonical docs nav structure.
+- `app/routes/docs/api/*.md`: generated API docs.
+- `app/routes/docs/search-index.json`: generated search index.
 - `scripts/`: docs generation and validation scripts.
 - `tests/`: unit/integration tests.
 - `e2e/`: Playwright specs.
@@ -27,8 +28,8 @@ Guidance for AI coding agents working in this repository.
 ## Critical rules
 
 1. Do not manually edit generated files unless the task is specifically to repair generation output format.
-   - `docs/generated/api/*.md`
-   - `docs/generated/search-index.json`
+   - `app/routes/docs/api/*.md`
+   - `app/routes/docs/search-index.json`
 2. If exports/docs content change, regenerate and commit generated artifacts.
 3. Keep docs site as the primary product surface (no demo-first reintroduction).
 4. Prefer small, targeted patches over broad rewrites.

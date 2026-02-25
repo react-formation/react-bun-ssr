@@ -37,7 +37,7 @@ interface ApiEntrypoint {
 }
 
 const ROOT = process.cwd();
-const OUT_DIR = path.join(ROOT, "docs/generated/api");
+const OUT_DIR = path.join(ROOT, "app/routes/docs/api");
 
 function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });

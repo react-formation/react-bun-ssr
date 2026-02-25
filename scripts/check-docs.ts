@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { sidebar } from "../docs/meta/sidebar.ts";
+import { sidebar } from "../app/routes/docs/_sidebar.ts";
 import { buildSearchIndex } from "./build-search-index.ts";
 import { parseMarkdownWithFrontmatter, walkFiles } from "./docs-utils.ts";
 import { generateApiDocs } from "./generate-api-docs.ts";
 
 const ROOT = process.cwd();
-const CONTENT_DIR = path.join(ROOT, "docs/content");
-const GENERATED_DIR = path.join(ROOT, "docs/generated");
+const DOCS_ROUTES_DIR = path.join(ROOT, "app/routes/docs");
+const API_DIR = path.join(DOCS_ROUTES_DIR, "api");
 const REQUIRED_FIELDS = ["title", "description", "section", "order"] as const;
 
 function fail(message: string): never {
@@ -19,7 +19,7 @@ function toSlug(baseDir: string, filePath: string): string {
 }
 
 function validateFrontmatter(): void {
-  const files = walkFiles(CONTENT_DIR, ".md");
+  const files = walkFiles(DOCS_ROUTES_DIR, ".md");
 
   for (const file of files) {
     const raw = fs.readFileSync(file, "utf8");
@@ -43,17 +43,15 @@ function validateSidebarMappings(): void {
     }
     seen.add(slug);
 
-    const contentPath = path.join(CONTENT_DIR, `${slug}.md`);
-    const generatedPath = path.join(GENERATED_DIR, `${slug}.md`);
-    if (!fs.existsSync(contentPath) && !fs.existsSync(generatedPath)) {
+    const markdownPath = path.join(DOCS_ROUTES_DIR, `${slug}.md`);
+    if (!fs.existsSync(markdownPath)) {
       fail(`Sidebar slug has no matching markdown file: ${slug}`);
     }
   }
 
-  const contentSlugs = walkFiles(CONTENT_DIR, ".md").map(file => toSlug(CONTENT_DIR, file));
-  const generatedSlugs = walkFiles(path.join(GENERATED_DIR, "api"), ".md").map(file => `api/${toSlug(path.join(GENERATED_DIR, "api"), file)}`);
+  const routeSlugs = walkFiles(DOCS_ROUTES_DIR, ".md").map(file => toSlug(DOCS_ROUTES_DIR, file));
 
-  for (const slug of [...contentSlugs, ...generatedSlugs]) {
+  for (const slug of routeSlugs) {
     if (!seen.has(slug) && !slug.startsWith("api-reference/")) {
       fail(`Markdown slug is not referenced in sidebar: ${slug}`);
     }
@@ -61,10 +59,7 @@ function validateSidebarMappings(): void {
 }
 
 function validateLinks(): void {
-  const files = [
-    ...walkFiles(CONTENT_DIR, ".md"),
-    ...walkFiles(path.join(GENERATED_DIR, "api"), ".md"),
-  ];
+  const files = walkFiles(DOCS_ROUTES_DIR, ".md");
 
   const validSlugs = new Set(sidebar.flatMap(section => section.items.map(item => item.slug)));
 
@@ -89,7 +84,7 @@ function validateLinks(): void {
 }
 
 function validateGeneratedFreshness(): void {
-  const apiFiles = walkFiles(path.join(GENERATED_DIR, "api"), ".md");
+  const apiFiles = walkFiles(API_DIR, ".md");
   const before = new Map(apiFiles.map(file => [file, fs.readFileSync(file, "utf8")]));
 
   generateApiDocs();
@@ -102,7 +97,7 @@ function validateGeneratedFreshness(): void {
   }
 
   const expectedIndex = JSON.stringify(buildSearchIndex(), null, 2);
-  const searchIndexFile = path.join(GENERATED_DIR, "search-index.json");
+  const searchIndexFile = path.join(DOCS_ROUTES_DIR, "search-index.json");
   const currentIndex = fs.existsSync(searchIndexFile) ? fs.readFileSync(searchIndexFile, "utf8") : "";
   if (expectedIndex !== currentIndex) {
     fail("Search index is stale. Run `bun run scripts/build-search-index.ts`.");

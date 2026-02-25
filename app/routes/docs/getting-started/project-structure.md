@@ -15,12 +15,11 @@ app/
   public/
   routes/
     index.tsx
-    docs/[...slug].tsx
+    docs/
+      getting-started/introduction.md
+      _layout.tsx
+      _sidebar.ts
     api/search.ts
-docs/
-  content/
-  generated/
-  meta/
 framework/
 ```
 
@@ -28,4 +27,5 @@ framework/
 
 - `app/routes/api/**` defines resource routes.
 - `app/routes/**/_layout.tsx` and `_middleware.ts` scope behavior to subtrees.
-- `docs/generated/**` is machine-generated and checked in.
+- Markdown docs are first-class routes: add new pages as `app/routes/docs/**/*.md`.
+- `app/routes/docs/api/*.md` and `app/routes/docs/search-index.json` are machine-generated and checked in.

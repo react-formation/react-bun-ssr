@@ -29,6 +29,7 @@ describe("scanRoutes", () => {
   it("parses static, dynamic, and catchall routes", () => {
     const routesDir = withFixture({
       "index.tsx": "export default function Route(){return null}",
+      "guide.md": "# Guide\n\nHello markdown",
       "posts/[id].tsx": "export default function Route(){return null}",
       "docs/[...slug].tsx": "export default function Route(){return null}",
       "(group)/about.tsx": "export default function Route(){return null}",
@@ -40,9 +41,14 @@ describe("scanRoutes", () => {
     const manifest = scanRoutes(routesDir);
 
     expect(manifest.pages.some(route => route.routePath === "/")).toBe(true);
+    expect(manifest.pages.some(route => route.routePath === "/guide")).toBe(true);
     expect(manifest.pages.some(route => route.routePath === "/posts/:id")).toBe(true);
     expect(manifest.pages.some(route => route.routePath === "/docs/*slug")).toBe(true);
     expect(manifest.pages.some(route => route.routePath === "/about")).toBe(true);
+
+    const markdownRoute = manifest.pages.find(route => route.routePath === "/guide");
+    expect(markdownRoute).toBeDefined();
+    expect(markdownRoute?.filePath.endsWith(".tsx")).toBe(true);
 
     const postRoute = manifest.pages.find(route => route.routePath === "/posts/:id");
     expect(postRoute).toBeDefined();
@@ -62,5 +68,14 @@ describe("scanRoutes", () => {
 
     expect(manifest.pages[0]?.routePath).toBe("/users/new");
     expect(manifest.pages[1]?.routePath).toBe("/users/:id");
+  });
+
+  it("rejects unsupported mdx page routes with a clear error", () => {
+    const routesDir = withFixture({
+      "index.tsx": "export default function Route(){return null}",
+      "guide.mdx": "# MDX\n",
+    });
+
+    expect(() => scanRoutes(routesDir)).toThrow(".mdx route files are not supported yet");
   });
 });

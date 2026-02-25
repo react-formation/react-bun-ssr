@@ -262,7 +262,9 @@ export function createServer(
 
     const getManifest = (): RouteManifest => {
       if (!cachedManifest || dev) {
-        cachedManifest = scanRoutes(activeConfig.routesDir);
+        cachedManifest = scanRoutes(activeConfig.routesDir, {
+          generatedMarkdownRootDir: path.resolve(activeConfig.cwd, ".rbssr/generated/markdown-routes"),
+        });
       }
       return cachedManifest;
     };

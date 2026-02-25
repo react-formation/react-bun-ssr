@@ -19,9 +19,8 @@ interface SearchRecord {
 }
 
 const ROOT = process.cwd();
-const CONTENT_DIR = path.join(ROOT, "docs/content");
-const GENERATED_API_DIR = path.join(ROOT, "docs/generated/api");
-const OUTPUT_FILE = path.join(ROOT, "docs/generated/search-index.json");
+const DOCS_ROUTES_DIR = path.join(ROOT, "app/routes/docs");
+const OUTPUT_FILE = path.join(DOCS_ROUTES_DIR, "search-index.json");
 
 function toSlug(filePath: string, baseDir: string): string {
   const relative = path.relative(baseDir, filePath).replace(/\\/g, "/");
@@ -47,12 +46,10 @@ function fileToRecord(filePath: string, baseDir: string, slugPrefix = ""): Searc
 }
 
 export function buildSearchIndex(): SearchRecord[] {
-  const contentRecords = walkFiles(CONTENT_DIR, ".md").map(file => fileToRecord(file, CONTENT_DIR));
-  const apiRecords = walkFiles(GENERATED_API_DIR, ".md").map(file =>
-    fileToRecord(file, GENERATED_API_DIR, "api/"),
-  );
+  const markdownFiles = walkFiles(DOCS_ROUTES_DIR, ".md");
+  const records = markdownFiles.map(file => fileToRecord(file, DOCS_ROUTES_DIR));
 
-  return [...contentRecords, ...apiRecords]
+  return records
     .sort((a, b) => a.url.localeCompare(b.url))
     .map((record, index) => ({
       ...record,

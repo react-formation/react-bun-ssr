@@ -240,5 +240,7 @@ export function discoverFileSignature(rootDir: string): string {
 }
 
 export function buildRouteManifest(config: ResolvedConfig): RouteManifest {
-  return scanRoutes(config.routesDir);
+  return scanRoutes(config.routesDir, {
+    generatedMarkdownRootDir: path.resolve(config.cwd, ".rbssr/generated/markdown-routes"),
+  });
 }

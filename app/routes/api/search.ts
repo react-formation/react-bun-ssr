@@ -1,6 +1,6 @@
 import { json } from "react-bun-ssr";
-import { loadSearchIndex } from "../../lib/docs";
+import searchIndex from "../docs/search-index.json";
 
 export function GET() {
-  return json(loadSearchIndex());
+  return json(searchIndex);
 }

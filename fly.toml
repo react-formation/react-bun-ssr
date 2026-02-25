@@ -1,4 +1,4 @@
-app = "react-bun-ssr-docs"
+app = "react-bun-ssr"
 primary_region = "cdg"
 
 [build]

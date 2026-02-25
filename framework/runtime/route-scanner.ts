@@ -134,7 +134,7 @@ function sortRoutes<T extends { score: number; segments: RouteSegment[]; routePa
 }
 
 export function scanRoutes(routesDir: string): RouteManifest {
-  const allFiles = walkFiles(routesDir);
+  const allFiles = walkFiles(routesDir).sort((a, b) => a.localeCompare(b));
 
   const layoutByDir = new Map<string, string>();
   const middlewareByDir = new Map<string, string>();
@@ -155,6 +155,19 @@ export function scanRoutes(routesDir: string): RouteManifest {
 
     if (fileBaseName === "_middleware" && API_FILE_RE.test(fileName)) {
       middlewareByDir.set(relativeDir, absoluteFilePath);
+    }
+  }
+
+  for (const absoluteFilePath of allFiles) {
+    const relativeFilePath = normalizeSlashes(path.relative(routesDir, absoluteFilePath));
+    const relativeDir = normalizeSlashes(path.dirname(relativeFilePath) === "." ? "" : path.dirname(relativeFilePath));
+    const fileName = path.basename(relativeFilePath);
+    const fileBaseName = trimFileExtension(fileName);
+
+    if (
+      (fileBaseName === "_layout" && PAGE_FILE_RE.test(fileName)) ||
+      (fileBaseName === "_middleware" && API_FILE_RE.test(fileName))
+    ) {
       continue;
     }
 

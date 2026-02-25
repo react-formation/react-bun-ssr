@@ -16,7 +16,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 # Runtime needs framework/app/docs sources in addition to dist artifacts.
-COPY dist ./dist
+COPY --from=builder /app/dist ./dist
 COPY framework ./framework
 COPY app ./app
 COPY docs ./docs

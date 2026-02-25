@@ -1,17 +1,17 @@
 import fs from "node:fs";
-import { pathToFileURL } from "node:url";
 import type {
   ApiRouteModule,
   Middleware,
   RouteModule,
   RouteModuleBundle,
 } from "./types";
+import { toFileImportUrl } from "./utils";
 
 export async function importModule<T>(
   filePath: string,
   cacheBustKey?: string,
 ): Promise<T> {
-  const baseUrl = pathToFileURL(filePath).href;
+  const baseUrl = toFileImportUrl(filePath);
   const url = cacheBustKey ? `${baseUrl}?v=${cacheBustKey}` : baseUrl;
   return (await import(url)) as T;
 }

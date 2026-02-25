@@ -11,7 +11,7 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: "bun run dev",
+    command: "bun run docs:dev",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

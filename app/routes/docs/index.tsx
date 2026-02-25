@@ -7,6 +7,6 @@ export const loader: Loader = () => {
   return redirect(`/docs/${DEFAULT_DOC_SLUG}`);
 };
 
-export default function IndexRoute() {
+export default function DocsIndexRoute() {
   return null;
 }

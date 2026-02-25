@@ -113,6 +113,8 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
   const devClientDir = path.resolve(cwd, ".rbssr/dev/client");
   const serverSnapshotsRoot = path.resolve(cwd, ".rbssr/dev/server-snapshots");
+  const docsSourceDir = path.resolve(cwd, "docs");
+  const docsSnapshotDir = path.join(serverSnapshotsRoot, "docs");
 
   fs.mkdirSync(generatedDir, { recursive: true });
   fs.mkdirSync(devClientDir, { recursive: true });
@@ -124,6 +126,16 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   let sourceDirty = false;
   let currentServerSnapshotDir = resolved.appDir;
   const reloadListeners = new Set<(nextVersion: number) => void>();
+  const docsDir = path.resolve(cwd, "docs");
+
+  const watchedRoots = [resolved.appDir];
+  if (fs.existsSync(docsDir)) {
+    watchedRoots.push(docsDir);
+  }
+
+  const getSourceSignature = (): string => {
+    return watchedRoots.map(root => discoverFileSignature(root)).join(":");
+  };
 
   const notifyReload = (): void => {
     for (const listener of reloadListeners) {
@@ -132,7 +144,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   };
 
   const rebuildIfNeeded = async (force = false): Promise<void> => {
-    const nextSignature = discoverFileSignature(resolved.appDir);
+    const nextSignature = getSourceSignature();
     if (!force && nextSignature === signature) {
       return;
     }
@@ -158,6 +170,12 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
     const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
     ensureCleanDirectory(snapshotDir);
     copyDirRecursive(resolved.appDir, snapshotDir);
+    if (fs.existsSync(docsSourceDir)) {
+      ensureCleanDirectory(docsSnapshotDir);
+      copyDirRecursive(docsSourceDir, docsSnapshotDir);
+    } else {
+      fs.rmSync(docsSnapshotDir, { recursive: true, force: true });
+    }
     currentServerSnapshotDir = snapshotDir;
 
     const staleVersions = fs
@@ -203,14 +221,17 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
     }, 75);
   };
 
-  let watcher: fs.FSWatcher | undefined;
-  try {
-    watcher = fs.watch(resolved.appDir, { recursive: true }, () => {
-      sourceDirty = true;
-      scheduleRebuild();
-    });
-  } catch {
-    log("recursive file watching unavailable; relying on request-time rebuild checks");
+  const watchers: fs.FSWatcher[] = [];
+  for (const root of watchedRoots) {
+    try {
+      const watcher = fs.watch(root, { recursive: true }, () => {
+        sourceDirty = true;
+        scheduleRebuild();
+      });
+      watchers.push(watcher);
+    } catch {
+      log(`recursive file watching unavailable for ${root}; relying on request-time rebuild checks`);
+    }
   }
 
   const cleanup = (): void => {
@@ -218,7 +239,9 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       clearTimeout(rebuildTimer);
       rebuildTimer = undefined;
     }
-    watcher?.close();
+    for (const watcher of watchers) {
+      watcher.close();
+    }
   };
 
   process.once("SIGINT", () => {

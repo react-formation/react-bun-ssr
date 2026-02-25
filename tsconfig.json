@@ -31,8 +31,10 @@
   },
   "include": [
     "app",
+    "docs",
     "framework",
     "bin",
+    "scripts",
     "tests",
     "e2e",
     "rbssr.config.ts",

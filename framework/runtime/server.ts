@@ -215,7 +215,7 @@ function createDevReloadEventStream(options: {
         try {
           controller.enqueue(encoder.encode(chunk));
         } catch {
-          cleanup();
+          cleanup?.();
         }
       };
 

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import type { FrameworkConfig, ResolvedConfig } from "./types";
+import { toFileImportUrl } from "./utils";
 
 export function resolveConfig(config: FrameworkConfig = {}, cwd = process.cwd()): ResolvedConfig {
   const appDir = path.resolve(cwd, config.appDir ?? "app");
@@ -37,6 +37,6 @@ export async function loadUserConfig(cwd = process.cwd()): Promise<FrameworkConf
     return {};
   }
 
-  const imported = await import(pathToFileURL(filePath).href);
+  const imported = await import(toFileImportUrl(filePath));
   return (imported.default ?? imported.config ?? {}) as FrameworkConfig;
 }

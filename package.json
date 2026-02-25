@@ -26,7 +26,11 @@
     "test": "bun bin/rbssr.ts test",
     "test:unit": "bun test tests/unit/**/*.test.ts",
     "test:integration": "bun test tests/integration/**/*.test.ts",
-    "test:e2e": "bunx playwright test"
+    "test:e2e": "bunx playwright test",
+    "docs:dev": "bun run scripts/generate-api-docs.ts && bun run scripts/build-search-index.ts && bun bin/rbssr.ts dev",
+    "docs:build": "bun run scripts/docs-build.ts",
+    "docs:check": "bun run scripts/check-docs.ts",
+    "docs:preview": "bun run start"
   },
   "dependencies": {
     "react": "^19",

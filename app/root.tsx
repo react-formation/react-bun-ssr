@@ -1,21 +1,19 @@
-import { Outlet, useRouteError } from "react-bun-ssr/route";
+import { Outlet } from "react-bun-ssr/route";
 
 export default function RootLayout() {
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <a href="/" className="brand">
+    <div className="docs-shell">
+      <header className="docs-topbar">
+        <a className="docs-brand" href="/docs/getting-started/introduction">
           react-bun-ssr
         </a>
-        <nav>
-          <a href="/">Home</a>
-          <a href="/posts/first-post">Dynamic Route</a>
-          <a href="/contact">Action Route</a>
+        <nav className="docs-topnav">
+          <a href="/docs/getting-started/introduction">Docs</a>
+          <a href="/docs/api-reference/overview">API</a>
+          <a href="https://github.com/gaudiauj/react-bun-ssr">GitHub</a>
         </nav>
       </header>
-      <main className="content">
-        <Outlet />
-      </main>
+      <Outlet />
     </div>
   );
 }
@@ -23,41 +21,34 @@ export default function RootLayout() {
 export function head() {
   return (
     <>
-      <title>react-bun-ssr</title>
-      <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+      <title>react-bun-ssr documentation</title>
+      <meta name="description" content="Bun-native fully SSR React framework documentation" />
       <link rel="stylesheet" href="/app.css" />
     </>
   );
 }
 
-export function meta() {
-  return {
-    description: "Bun-native fully SSR React framework",
-  };
-}
-
 export function NotFound() {
   return (
-    <section className="card">
-      <h1>404</h1>
-      <p>The page you requested does not exist.</p>
-      <p>
-        <a href="/">Back to home</a>
-      </p>
-    </section>
+    <main className="docs-main docs-single">
+      <section className="card">
+        <h1>404</h1>
+        <p>Documentation page not found.</p>
+        <p>
+          <a href="/docs/getting-started/introduction">Go to introduction</a>
+        </p>
+      </section>
+    </main>
   );
 }
 
 export function ErrorBoundary() {
-  const error = useRouteError();
-
   return (
-    <section className="card">
-      <h1>Something failed</h1>
-      <pre>{String(error instanceof Error ? error.message : error)}</pre>
-      <p>
-        <a href="/">Back to home</a>
-      </p>
-    </section>
+    <main className="docs-main docs-single">
+      <section className="card">
+        <h1>500</h1>
+        <p>Something failed while rendering this page.</p>
+      </section>
+    </main>
   );
 }

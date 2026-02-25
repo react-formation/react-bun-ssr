@@ -106,3 +106,10 @@ export function ensureWithin(baseDir: string, target: string): string | null {
 export function toPosixPath(value: string): string {
   return normalizeSlashes(value);
 }
+
+export function toFileImportUrl(filePath: string): string {
+  const resolved = path.resolve(filePath).replace(/\\/g, "/");
+  const withLeadingSlash = resolved.startsWith("/") ? resolved : `/${resolved}`;
+  const encoded = encodeURI(withLeadingSlash).replace(/#/g, "%23").replace(/\?/g, "%3F");
+  return `file://${encoded}`;
+}

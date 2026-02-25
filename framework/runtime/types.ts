@@ -17,7 +17,14 @@ export interface ActionContext extends RequestContext {
   json?: unknown;
 }
 
-export type LoaderResult = Response | Record<string, unknown> | string | number | boolean | null;
+export type LoaderResult =
+  | Response
+  | RedirectResult
+  | Record<string, unknown>
+  | string
+  | number
+  | boolean
+  | null;
 export type ActionResult = LoaderResult | RedirectResult;
 
 export type Loader = (ctx: LoaderContext) => Promise<LoaderResult> | LoaderResult;

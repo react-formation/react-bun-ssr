@@ -16,10 +16,10 @@ import { isRedirectResult, json } from "./helpers";
 import { matchApiRoute, matchPageRoute } from "./matcher";
 import {
   extractRouteMiddleware,
-  importModule,
   loadApiRouteModule,
   loadGlobalMiddleware,
   loadNestedMiddleware,
+  loadRouteModule,
   loadRouteModules,
 } from "./module-loader";
 import {
@@ -148,15 +148,7 @@ async function loadRootOnlyModule(
   rootModulePath: string,
   cacheBustKey?: string,
 ): Promise<RouteModule> {
-  const moduleValue = await importModule<Partial<RouteModule>>(rootModulePath, cacheBustKey);
-  if (typeof moduleValue.default !== "function") {
-    throw new Error(`Root module ${rootModulePath} must export a default React component`);
-  }
-
-  return {
-    ...moduleValue,
-    default: moduleValue.default,
-  } as RouteModule;
+  return loadRouteModule(rootModulePath, cacheBustKey);
 }
 
 function resolveRouteAssets(

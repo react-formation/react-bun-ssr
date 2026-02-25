@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it } from "bun:test";
 import { createServer } from "../../framework/runtime/server";
 
@@ -27,7 +26,7 @@ function writeFixture(files: Record<string, string>): string {
 
 describe("createServer integration", () => {
   it("renders SSR HTML with loader data", async () => {
-    const runtimeImport = pathToFileURL(path.resolve(process.cwd(), "framework/runtime/route-api.ts")).href;
+    const runtimeImport = "react-bun-ssr/route";
     const cwd = writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
       export default function Root(){ return <div><Outlet /></div>; }
@@ -42,6 +41,9 @@ describe("createServer integration", () => {
       export function loader(){ throw new Error("loader boom"); }
       export function ErrorBoundary(){ const err = useRouteError(); return <p>boundary:{String((err as { message?: string })?.message ?? err)}</p>; }
       export default function ErrorRoute(){ return <div>never</div>; }`,
+      "app/routes/styled.tsx": `import styles from "./styled.module.css";
+      export default function Styled(){ return <div className={styles.hero}>styled-route</div>; }`,
+      "app/routes/styled.module.css": `.hero { color: red; }`,
       "app/routes/api/hello.ts": `export function GET(){ return Response.json({ ok: true }); }`,
     });
 
@@ -56,6 +58,7 @@ describe("createServer integration", () => {
           index: { script: "/__rbssr/client/route__index.js", css: [] },
           submit: { script: "/__rbssr/client/route__submit.js", css: [] },
           error: { script: "/__rbssr/client/route__error.js", css: [] },
+          styled: { script: "/__rbssr/client/route__styled.js", css: [] },
         },
       },
     );
@@ -95,5 +98,12 @@ describe("createServer integration", () => {
     const boundaryHtml = await boundaryResponse.text();
     expect(boundaryHtml).toContain("boundary:");
     expect(boundaryHtml).toContain("loader boom");
+
+    const styledResponse = await server.fetch(new Request("http://localhost/styled"));
+    expect(styledResponse.status).toBe(200);
+    const styledHtml = await styledResponse.text();
+    expect(styledHtml).toContain("styled-route");
+    expect(styledHtml).toContain("class=\"hero_");
+    expect(styledHtml).not.toContain("undefined");
   });
 });

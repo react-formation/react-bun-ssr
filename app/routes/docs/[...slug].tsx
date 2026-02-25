@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLoaderData } from "react-bun-ssr/route";
 import type { Loader } from "react-bun-ssr/route";
+import styles from "./docs-page.module.css";
 
 interface DocHeading {
   level: number;
@@ -219,14 +220,23 @@ export default function DocsPageRoute() {
       </aside>
 
       <article className="docs-content">
-        <header className="docs-hero">
+        <header className={`docs-hero ${styles.hero}`}>
           <p className="kicker">{data.page.section}</p>
           <h1>{data.page.title}</h1>
           <p>{data.page.description}</p>
+          {data.page.tags.length > 0 ? (
+            <div className={styles.tagRow}>
+              {data.page.tags.map(tag => (
+                <span key={tag} className={styles.tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </header>
 
         {data.page.toc.length > 1 ? (
-          <nav className="toc">
+          <nav className={`toc ${styles.tocCard}`}>
             <h2>On this page</h2>
             {data.page.toc.map(item => (
               <a key={item.id} href={`#${item.id}`}>
@@ -236,9 +246,9 @@ export default function DocsPageRoute() {
           </nav>
         ) : null}
 
-        <section dangerouslySetInnerHTML={{ __html: data.page.html }} />
+        <section className={styles.contentBody} dangerouslySetInnerHTML={{ __html: data.page.html }} />
 
-        <footer className="docs-pagination">
+        <footer className={`docs-pagination ${styles.pagination}`}>
           {data.neighbors.prev ? (
             <a href={`/docs/${data.neighbors.prev.slug}`}>Previous: {data.neighbors.prev.title}</a>
           ) : (

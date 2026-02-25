@@ -5,7 +5,14 @@ export default function RootLayout() {
     <div className="docs-shell">
       <header className="docs-topbar">
         <a className="docs-brand" href="/docs/getting-started/introduction">
-          react-bun-ssr
+          <img
+            className="docs-brand-logo"
+            src="/logo.svg"
+            alt="react-bun-ssr"
+            width={28}
+            height={28}
+          />
+          <span>react-bun-ssr</span>
         </a>
         <nav className="docs-topnav">
           <a href="/docs/getting-started/introduction">Docs</a>
@@ -30,6 +37,8 @@ export function head() {
         name="google-site-verification"
         content="sI7GYFWWtoQhNipsdQncDKnJiehzPk8prWjj3H7zFJU"
       />
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      <link rel="shortcut icon" href="/favicon.svg" />
       <link rel="stylesheet" href="/app.css" />
     </>
   );

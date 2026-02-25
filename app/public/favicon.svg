@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="faviconTitle faviconDesc">
+  <title id="faviconTitle">react-bun-ssr favicon</title>
+  <desc id="faviconDesc">Mirrored chevrons around a central node.</desc>
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e" />
+      <stop offset="100%" stop-color="#0b5953" />
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#favBg)" />
+  <g fill="none" stroke="#f6fbfa" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M25 19 16 32l9 13" />
+    <path d="m39 19 9 13-9 13" />
+  </g>
+  <circle cx="32" cy="32" r="5" fill="#f6fbfa" />
+</svg>

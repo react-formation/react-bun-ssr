@@ -8,7 +8,15 @@ tags: css,global
 
 # Global CSS
 
-Global CSS files are typically served from `app/public` and linked in `root.tsx` `head()`.
+Keep global CSS minimal and focused on app-wide primitives:
+
+- design tokens (`:root`)
+- reset/base element rules (`html`, `body`, `a`, `code`, `pre`)
+- syntax-highlight token styles
+
+Component and route layout styles should live in co-located CSS Modules.
+
+Global CSS is served from `app/public` and linked in `root.tsx` `head()`.
 
 ```tsx
 export function head() {

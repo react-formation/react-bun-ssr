@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Outlet, useRequestUrl } from 'react-bun-ssr/route';
 import { sidebar } from './_sidebar';
 import searchIndexData from './search-index.json';
+import styles from './_layout.module.css';
 
 interface SidebarItem {
   title: string;
@@ -86,10 +87,10 @@ export default function DocsLayoutRoute() {
   ).sort();
 
   return (
-    <main className="docs-main">
+    <main className={styles.main}>
       <button
         type="button"
-        className="docs-menu-toggle"
+        className={styles.menuToggle}
         aria-expanded={menuOpen}
         aria-controls="docs-sidebar"
         onClick={() => setMenuOpen((value) => !value)}
@@ -100,7 +101,7 @@ export default function DocsLayoutRoute() {
       {menuOpen ? (
         <button
           type="button"
-          className="docs-sidebar-backdrop"
+          className={styles.sidebarBackdrop}
           aria-label="Close docs menu"
           onClick={() => setMenuOpen(false)}
         />
@@ -108,28 +109,28 @@ export default function DocsLayoutRoute() {
 
       <aside
         id="docs-sidebar"
-        className={`docs-sidebar${menuOpen ? ' is-open' : ''}`}
+        className={`${styles.sidebar}${menuOpen ? ` ${styles.isOpen}` : ''}`}
       >
         <button
           type="button"
-          className="docs-sidebar-close"
+          className={styles.sidebarClose}
           onClick={() => setMenuOpen(false)}
           aria-label="Close docs menu"
         >
           Close
         </button>
-        <label className="search-label" htmlFor="docs-search">
+        <label className={styles.searchLabel} htmlFor="docs-search">
           Search docs
         </label>
         <input
           id="docs-search"
-          className="search-input"
+          className={styles.searchInput}
           placeholder="Search title, headings, keywords"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
         <select
-          className="search-select"
+          className={styles.searchSelect}
           value={sectionFilter}
           onChange={(event) => setSectionFilter(event.currentTarget.value)}
         >
@@ -142,23 +143,23 @@ export default function DocsLayoutRoute() {
         </select>
 
         {query ? (
-          <div className="search-results">
+          <div className={styles.results}>
             {results.map((result) => (
               <a
                 key={result.item.id}
                 href={result.item.url}
-                className="search-result-item"
+                className={`${styles.resultItem} search-result-item`}
                 onClick={() => setMenuOpen(false)}
               >
                 <strong>{result.item.title}</strong>
                 <span>{result.item.excerpt}</span>
               </a>
             ))}
-            {results.length === 0 ? <p className="muted">No result.</p> : null}
+            {results.length === 0 ? <p className={styles.muted}>No result.</p> : null}
           </div>
         ) : null}
 
-        <nav className="docs-nav">
+        <nav className={styles.nav}>
           {sidebarData.map((section) => (
             <section key={section.section}>
               <h3>{section.section}</h3>
@@ -181,9 +182,9 @@ export default function DocsLayoutRoute() {
         </nav>
       </aside>
 
-      <article className="docs-content">
+      <article className={styles.content}>
         <Outlet />
-        <footer className="docs-pagination">
+        <footer className={styles.pagination}>
           {prev ? (
             <a href={`/docs/${prev.slug}`}>Previous: {prev.title}</a>
           ) : (

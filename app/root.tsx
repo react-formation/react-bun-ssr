@@ -1,12 +1,13 @@
 import { Outlet } from 'react-bun-ssr/route';
+import styles from './root.module.css';
 
 export default function RootLayout() {
   return (
-    <div className="docs-shell">
-      <header className="docs-topbar">
-        <a className="docs-brand" href="/docs/getting-started/introduction">
+    <div className={styles.shell}>
+      <header className={styles.topbar}>
+        <a className={styles.brand} href="/docs/getting-started/introduction">
           <img
-            className="docs-brand-logo"
+            className={styles.brandLogo}
             src="/logo.svg"
             alt="react-bun-ssr"
             width={28}
@@ -14,7 +15,7 @@ export default function RootLayout() {
           />
           <span>react-bun-ssr</span>
         </a>
-        <nav className="docs-topnav">
+        <nav className={styles.topnav}>
           <a href="/docs/getting-started/introduction">Docs</a>
           <a href="/docs/api-reference/overview">API</a>
           <a href="https://github.com/gaudiauj/react-bun-ssr">GitHub</a>
@@ -46,8 +47,8 @@ export function head() {
 
 export function NotFound() {
   return (
-    <main className="docs-main docs-single">
-      <section className="card">
+    <main className={styles.singleMain}>
+      <section className={styles.card}>
         <h1>404</h1>
         <p>Documentation page not found.</p>
         <p>
@@ -60,8 +61,8 @@ export function NotFound() {
 
 export function ErrorBoundary() {
   return (
-    <main className="docs-main docs-single">
-      <section className="card">
+    <main className={styles.singleMain}>
+      <section className={styles.card}>
         <h1>500</h1>
         <p>Something failed while rendering this page.</p>
       </section>

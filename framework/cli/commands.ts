@@ -151,9 +151,27 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
 
     signature = nextSignature;
 
-    const manifest = await buildRouteManifest(resolved);
+    const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
+    await ensureCleanDirectory(snapshotDir);
+    await copyDirRecursive(resolved.appDir, snapshotDir);
+    if (await existsPath(docsSourceDir)) {
+      await ensureCleanDirectory(docsSnapshotDir);
+      await copyDirRecursive(docsSourceDir, docsSnapshotDir);
+    } else {
+      await removePath(docsSnapshotDir);
+    }
+
+    const snapshotConfig: ResolvedConfig = {
+      ...resolved,
+      appDir: snapshotDir,
+      routesDir: path.join(snapshotDir, "routes"),
+      rootModule: path.join(snapshotDir, "root.tsx"),
+      middlewareFile: path.join(snapshotDir, "middleware.ts"),
+    };
+
+    const manifest = await buildRouteManifest(snapshotConfig);
     const entries = await generateClientEntries({
-      config: resolved,
+      config: snapshotConfig,
       manifest,
       generatedDir,
     });
@@ -167,15 +185,6 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       publicPrefix: "/__rbssr/client/",
     });
 
-    const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
-    await ensureCleanDirectory(snapshotDir);
-    await copyDirRecursive(resolved.appDir, snapshotDir);
-    if (await existsPath(docsSourceDir)) {
-      await ensureCleanDirectory(docsSnapshotDir);
-      await copyDirRecursive(docsSourceDir, docsSnapshotDir);
-    } else {
-      await removePath(docsSnapshotDir);
-    }
     currentServerSnapshotDir = snapshotDir;
 
     const staleVersions = (await listEntries(serverSnapshotsRoot))

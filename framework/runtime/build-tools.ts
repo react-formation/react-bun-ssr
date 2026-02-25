@@ -1,5 +1,5 @@
 import path from "node:path";
-import { scanRoutes } from "./route-scanner";
+import { createBunRouteAdapter } from "./bun-route-adapter";
 import {
   ensureCleanDir,
   ensureDir,
@@ -224,8 +224,10 @@ export async function discoverFileSignature(rootDir: string): Promise<string> {
 }
 
 export async function buildRouteManifest(config: ResolvedConfig): Promise<RouteManifest> {
-  return scanRoutes(config.routesDir, {
+  const adapter = await createBunRouteAdapter({
+    routesDir: config.routesDir,
     generatedMarkdownRootDir: path.resolve(config.cwd, ".rbssr/generated/markdown-routes"),
+    projectionRootDir: path.resolve(config.cwd, ".rbssr/generated/router-projection/build-manifest"),
   });
+  return adapter.manifest;
 }
-

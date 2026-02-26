@@ -122,7 +122,7 @@ export async function listEntries(dirPath: string): Promise<FileEntry[]> {
 }
 
 export async function makeTempDir(prefix: string): Promise<string> {
-  const dirPath = path.join("/tmp", `${prefix}-${crypto.randomUUID()}`);
+  const dirPath = path.join("/tmp", `${prefix}-${Bun.randomUUIDv7()}`);
   await ensureDir(dirPath);
   return dirPath;
 }

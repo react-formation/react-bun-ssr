@@ -47,15 +47,6 @@ export function renderNotFoundApp(modules: RouteModuleBundle, payload: RenderPay
   return tree ? renderToString(tree) : null;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function toTitleText(children: ReactNode): string {
   return Children.toArray(children)
     .map(child => {
@@ -168,7 +159,7 @@ export function createManagedHeadMarkup(options: {
   assets: HydrationDocumentAssets;
 }): string {
   const cssLinks = createVersionedCssHrefs(options.assets)
-    .map(href => `<link rel="stylesheet" href="${escapeHtml(href)}"/>`)
+    .map(href => `<link rel="stylesheet" href="${Bun.escapeHTML(href)}"/>`)
     .join("");
   return `${options.headMarkup}${cssLinks}`;
 }
@@ -315,7 +306,7 @@ export function renderDocument(options: {
   const payloadScript = `<script id="${RBSSR_PAYLOAD_SCRIPT_ID}" type="application/json">${safeJsonSerialize(payload)}</script>`;
   const routerScript = `<script id="${RBSSR_ROUTER_SCRIPT_ID}" type="application/json">${safeJsonSerialize(routerSnapshot)}</script>`;
   const entryScript = versionedScript
-    ? `<script type="module" src="${escapeHtml(versionedScript)}"></script>`
+    ? `<script type="module" src="${Bun.escapeHTML(versionedScript)}"></script>`
     : "";
   const devScript = typeof assets.devVersion === "number"
     ? `<script>${buildDevReloadClientScript(assets.devVersion)}</script>`

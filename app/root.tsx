@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-bun-ssr/route';
+import { initDatadogRum } from './lib/datadog-rum';
 import styles from './root.module.css';
 
 export default function RootLayout() {
+  useEffect(() => {
+    void initDatadogRum();
+  }, []);
+
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>

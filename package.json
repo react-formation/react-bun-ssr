@@ -55,5 +55,9 @@
     "react": "^19",
     "react-dom": "^19",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@datadog/browser-rum": "^6.28.1",
+    "@datadog/browser-rum-react": "^6.28.1"
   }
 }

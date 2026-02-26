@@ -1,9 +1,20 @@
 {
   "name": "react-bun-ssr",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "types": "./framework/runtime/index.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "bun": ">=1.3.9"
+  },
+  "files": [
+    "bin",
+    "framework",
+    "README.md"
+  ],
   "bin": {
     "rbssr": "./bin/rbssr.ts"
   },
@@ -32,7 +43,7 @@
     "docs:check": "bun run scripts/check-docs.ts",
     "docs:preview": "bun run start"
   },
-  "dependencies": {
+  "peerDependencies": {
     "react": "^19",
     "react-dom": "^19"
   },
@@ -41,6 +52,8 @@
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "react": "^19",
+    "react-dom": "^19",
     "typescript": "^5.9.2"
   }
 }

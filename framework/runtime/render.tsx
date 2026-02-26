@@ -4,54 +4,33 @@ import {
   isValidElement,
   Suspense,
   use,
-  type ComponentType,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { renderToReadableStream, renderToStaticMarkup, renderToString } from "react-dom/server";
 import type { DeferredSettleEntry } from "./deferred";
 import type {
+  ClientRouterSnapshot,
   HydrationDocumentAssets,
   RenderPayload,
   RouteModule,
   RouteModuleBundle,
 } from "./types";
 import { safeJsonSerialize } from "./utils";
-import { createRouteTree } from "./tree";
-
-function resolveErrorBoundary(modules: RouteModuleBundle): ComponentType<{ error: unknown }> | null {
-  if (modules.route.ErrorBoundary) {
-    return modules.route.ErrorBoundary;
-  }
-
-  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
-    const candidate = modules.layouts[index]!.ErrorBoundary;
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  return modules.root.ErrorBoundary ?? null;
-}
-
-function resolveNotFoundBoundary(modules: RouteModuleBundle): ComponentType | null {
-  if (modules.route.NotFound) {
-    return modules.route.NotFound;
-  }
-
-  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
-    const candidate = modules.layouts[index]!.NotFound;
-    if (candidate) {
-      return candidate;
-    }
-  }
-
-  return modules.root.NotFound ?? null;
-}
+import {
+  RBSSR_HEAD_MARKER_END_ATTR,
+  RBSSR_HEAD_MARKER_START_ATTR,
+  RBSSR_PAYLOAD_SCRIPT_ID,
+  RBSSR_ROUTER_SCRIPT_ID,
+} from "./runtime-constants";
+import {
+  createErrorAppTree,
+  createNotFoundAppTree,
+  createPageAppTree,
+} from "./tree";
 
 export function renderPageApp(modules: RouteModuleBundle, payload: RenderPayload): string {
-  const Leaf = modules.route.default;
-  return renderToString(createRouteTree(modules, <Leaf />, payload));
+  return renderToString(createPageAppTree(modules, payload));
 }
 
 export function renderErrorApp(
@@ -66,40 +45,6 @@ export function renderErrorApp(
 export function renderNotFoundApp(modules: RouteModuleBundle, payload: RenderPayload): string | null {
   const tree = createNotFoundAppTree(modules, payload);
   return tree ? renderToString(tree) : null;
-}
-
-export function createPageAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement {
-  const Leaf = modules.route.default;
-  return createRouteTree(modules, <Leaf />, payload);
-}
-
-export function createErrorAppTree(
-  modules: RouteModuleBundle,
-  payload: RenderPayload,
-  error: unknown,
-): ReactElement | null {
-  const Boundary = resolveErrorBoundary(modules);
-  if (!Boundary) {
-    return null;
-  }
-
-  const boundaryPayload: RenderPayload = {
-    ...payload,
-    error: {
-      message: error instanceof Error ? error.message : String(error),
-    },
-  };
-
-  return createRouteTree(modules, <Boundary error={error} />, boundaryPayload);
-}
-
-export function createNotFoundAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement | null {
-  const Boundary = resolveNotFoundBoundary(modules);
-  if (!Boundary) {
-    return null;
-  }
-
-  return createRouteTree(modules, <Boundary />, payload);
 }
 
 function escapeHtml(value: string): string {
@@ -214,6 +159,20 @@ function withVersionQuery(url: string, version?: number): string {
   return `${url}${separator}v=${version}`;
 }
 
+function createVersionedCssHrefs(assets: HydrationDocumentAssets): string[] {
+  return assets.css.map(href => withVersionQuery(href, assets.devVersion));
+}
+
+export function createManagedHeadMarkup(options: {
+  headMarkup: string;
+  assets: HydrationDocumentAssets;
+}): string {
+  const cssLinks = createVersionedCssHrefs(options.assets)
+    .map(href => `<link rel="stylesheet" href="${escapeHtml(href)}"/>`)
+    .join("");
+  return `${options.headMarkup}${cssLinks}`;
+}
+
 function toDeferredScript(entry: DeferredSettleEntry): ReactElement {
   return (
     <Suspense fallback={null} key={entry.id}>
@@ -236,13 +195,13 @@ function HtmlDocument(options: {
   appTree: ReactElement;
   payload: RenderPayload;
   assets: HydrationDocumentAssets;
-  headElements: ReactNode[];
+  managedHeadElements: ReactNode[];
+  routerSnapshot: ClientRouterSnapshot;
   deferredSettleEntries: DeferredSettleEntry[];
 }): ReactElement {
-  const { appTree, payload, assets, headElements, deferredSettleEntries } = options;
+  const { appTree, payload, assets, managedHeadElements, deferredSettleEntries } = options;
   const versionedScript = assets.script ? withVersionQuery(assets.script, assets.devVersion) : undefined;
-  const cssLinks = assets.css.map((href, index) => {
-    const versionedHref = withVersionQuery(href, assets.devVersion);
+  const cssLinks = createVersionedCssHrefs(assets).map((versionedHref, index) => {
     return <link key={`css:${index}:${versionedHref}`} rel="stylesheet" href={versionedHref} />;
   });
 
@@ -251,8 +210,10 @@ function HtmlDocument(options: {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {headElements}
+        <meta {...{ [RBSSR_HEAD_MARKER_START_ATTR]: "1" }} />
+        {managedHeadElements}
         {cssLinks}
+        <meta {...{ [RBSSR_HEAD_MARKER_END_ATTR]: "1" }} />
       </head>
       <body>
         <div id="rbssr-root">{appTree}</div>
@@ -262,9 +223,14 @@ function HtmlDocument(options: {
           }}
         />
         <script
-          id="__RBSSR_PAYLOAD__"
+          id={RBSSR_PAYLOAD_SCRIPT_ID}
           type="application/json"
           dangerouslySetInnerHTML={{ __html: safeJsonSerialize(payload) }}
+        />
+        <script
+          id={RBSSR_ROUTER_SCRIPT_ID}
+          type="application/json"
+          dangerouslySetInnerHTML={{ __html: safeJsonSerialize(options.routerSnapshot) }}
         />
         {versionedScript ? <script type="module" src={versionedScript} /> : null}
         {typeof assets.devVersion === "number" ? (
@@ -315,6 +281,7 @@ export async function renderDocumentStream(options: {
   payload: RenderPayload;
   assets: HydrationDocumentAssets;
   headElements: ReactNode[];
+  routerSnapshot: ClientRouterSnapshot;
   deferredSettleEntries?: DeferredSettleEntry[];
 }): Promise<ReadableStream<Uint8Array>> {
   const stream = await renderToReadableStream(
@@ -322,7 +289,8 @@ export async function renderDocumentStream(options: {
       appTree={options.appTree}
       payload={options.payload}
       assets={options.assets}
-      headElements={options.headElements}
+      managedHeadElements={options.headElements}
+      routerSnapshot={options.routerSnapshot}
       deferredSettleEntries={options.deferredSettleEntries ?? []}
     />,
   );
@@ -335,14 +303,17 @@ export function renderDocument(options: {
   payload: RenderPayload;
   assets: HydrationDocumentAssets;
   headMarkup: string;
+  routerSnapshot: ClientRouterSnapshot;
 }): string {
-  const { appMarkup, payload, assets, headMarkup } = options;
+  const { appMarkup, payload, assets, headMarkup, routerSnapshot } = options;
   const versionedScript = assets.script ? withVersionQuery(assets.script, assets.devVersion) : undefined;
-  const cssLinks = assets.css
-    .map(href => `<link rel="stylesheet" href="${escapeHtml(withVersionQuery(href, assets.devVersion))}"/>`)
-    .join("\n");
+  const managedHeadMarkup = createManagedHeadMarkup({
+    headMarkup,
+    assets,
+  });
 
-  const payloadScript = `<script id="__RBSSR_PAYLOAD__" type="application/json">${safeJsonSerialize(payload)}</script>`;
+  const payloadScript = `<script id="${RBSSR_PAYLOAD_SCRIPT_ID}" type="application/json">${safeJsonSerialize(payload)}</script>`;
+  const routerScript = `<script id="${RBSSR_ROUTER_SCRIPT_ID}" type="application/json">${safeJsonSerialize(routerSnapshot)}</script>`;
   const entryScript = versionedScript
     ? `<script type="module" src="${escapeHtml(versionedScript)}"></script>`
     : "";
@@ -356,13 +327,15 @@ export function renderDocument(options: {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    ${headMarkup}
-    ${cssLinks}
+    <meta ${RBSSR_HEAD_MARKER_START_ATTR}="1" />
+    ${managedHeadMarkup}
+    <meta ${RBSSR_HEAD_MARKER_END_ATTR}="1" />
   </head>
   <body>
     <div id="rbssr-root">${appMarkup}</div>
     ${deferredBootstrapScript}
     ${payloadScript}
+    ${routerScript}
     ${entryScript}
     ${devScript}
   </body>

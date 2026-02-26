@@ -20,3 +20,10 @@ Each exported symbol now includes:
 - generated TypeScript signature and source path
 
 Generation is deterministic and CI checks for stale artifacts.
+
+Recent additions in `react-bun-ssr/route` include:
+
+- `Link` for client-side transitions
+- `useRouter` for programmatic navigation
+- `Loading` route export support (typed in `RouteModule`)
+- deferred transition chunk types used by the runtime protocol

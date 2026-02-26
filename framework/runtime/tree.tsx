@@ -1,4 +1,10 @@
-import { createContext, useContext, type ReactElement, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type ComponentType,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import type { Params, RenderPayload, RouteModuleBundle } from "./types";
 
 interface RuntimeState {
@@ -74,4 +80,77 @@ export function createRouteTree(
   );
 
   return <RuntimeContext.Provider value={runtimeState}>{tree}</RuntimeContext.Provider>;
+}
+
+function resolveErrorBoundary(modules: RouteModuleBundle): ComponentType<{ error: unknown }> | null {
+  if (modules.route.ErrorBoundary) {
+    return modules.route.ErrorBoundary;
+  }
+
+  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
+    const candidate = modules.layouts[index]!.ErrorBoundary;
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return modules.root.ErrorBoundary ?? null;
+}
+
+function resolveNotFoundBoundary(modules: RouteModuleBundle): ComponentType | null {
+  if (modules.route.NotFound) {
+    return modules.route.NotFound;
+  }
+
+  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
+    const candidate = modules.layouts[index]!.NotFound;
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return modules.root.NotFound ?? null;
+}
+
+export function createPageAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement {
+  const Leaf = modules.route.default;
+  return createRouteTree(modules, <Leaf />, payload);
+}
+
+export function createLoadingAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement | null {
+  const Loading = modules.route.Loading;
+  if (!Loading) {
+    return null;
+  }
+
+  return createRouteTree(modules, <Loading />, payload);
+}
+
+export function createErrorAppTree(
+  modules: RouteModuleBundle,
+  payload: RenderPayload,
+  error: unknown,
+): ReactElement | null {
+  const Boundary = resolveErrorBoundary(modules);
+  if (!Boundary) {
+    return null;
+  }
+
+  const boundaryPayload: RenderPayload = {
+    ...payload,
+    error: {
+      message: error instanceof Error ? error.message : String(error),
+    },
+  };
+
+  return createRouteTree(modules, <Boundary error={error} />, boundaryPayload);
+}
+
+export function createNotFoundAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement | null {
+  const Boundary = resolveNotFoundBoundary(modules);
+  if (!Boundary) {
+    return null;
+  }
+
+  return createRouteTree(modules, <Boundary />, payload);
 }

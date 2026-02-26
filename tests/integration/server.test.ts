@@ -189,6 +189,77 @@ This route is **native markdown**.`,
     expect(await logoHead.text()).toBe("");
   });
 
+  it("streams transition endpoint chunks for page, error, and not-found states", async () => {
+    const runtimeImport = "react-bun-ssr/route";
+    const cwd = await writeFixture({
+      "app/root.tsx": `import { Outlet } from "${runtimeImport}";
+      export default function Root(){ return <div><Outlet /></div>; }
+      export function NotFound(){ return <h1>missing</h1>; }`,
+      "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
+      "app/routes/deferred.tsx": `import { defer } from "${runtimeImport}";
+      export function loader(){ return defer({ slow: Promise.resolve("done") }); }
+      export default function Deferred(){ return <h1>deferred</h1>; }`,
+      "app/routes/boom.tsx": `export function loader(){ throw new Error("boom"); }
+      export function ErrorBoundary(){ return <h1>errored</h1>; }
+      export default function Boom(){ return <h1>boom</h1>; }`,
+    });
+
+    const server = createServer(
+      {
+        appDir: path.join(cwd, "app"),
+        mode: "development",
+      },
+      {
+        dev: true,
+        devAssets: {
+          index: { script: "/__rbssr/client/route__index.js", css: [] },
+          deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
+          boom: { script: "/__rbssr/client/route__boom.js", css: [] },
+        },
+      },
+    );
+
+    const deferredTransition = await server.fetch(
+      new Request("http://localhost/__rbssr/transition?to=/deferred"),
+    );
+    expect(deferredTransition.status).toBe(200);
+    expect(deferredTransition.headers.get("content-type")).toContain("application/x-ndjson");
+
+    const deferredLines = (await deferredTransition.text())
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as { type: string; [key: string]: unknown });
+    expect(deferredLines[0]?.type).toBe("initial");
+    expect(deferredLines[0]?.kind).toBe("page");
+    expect((deferredLines[0]?.payload as { routeId?: string })?.routeId).toBe("deferred");
+    expect(deferredLines.some(line => line.type === "deferred")).toBe(true);
+
+    const errorTransition = await server.fetch(
+      new Request("http://localhost/__rbssr/transition?to=/boom"),
+    );
+    const errorLines = (await errorTransition.text())
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as { type: string; [key: string]: unknown });
+    expect(errorLines[0]?.type).toBe("initial");
+    expect(errorLines[0]?.kind).toBe("error");
+    expect(errorLines[0]?.status).toBe(500);
+
+    const notFoundTransition = await server.fetch(
+      new Request("http://localhost/__rbssr/transition?to=/missing"),
+    );
+    const notFoundLines = (await notFoundTransition.text())
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as { type: string; [key: string]: unknown });
+    expect(notFoundLines[0]?.type).toBe("initial");
+    expect(notFoundLines[0]?.kind).toBe("not_found");
+    expect(notFoundLines[0]?.status).toBe(404);
+  });
+
   it("applies configured headers and lets config override defaults", async () => {
     const runtimeImport = "react-bun-ssr/route";
     const cwd = await writeFixture({

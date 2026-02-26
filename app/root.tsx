@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet } from 'react-bun-ssr/route';
+import { Link, Outlet } from 'react-bun-ssr/route';
 import { initDatadogRum } from './lib/datadog-rum';
 import styles from './root.module.css';
 
@@ -11,7 +11,7 @@ export default function RootLayout() {
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
-        <a className={styles.brand} href="/docs/getting-started/introduction">
+        <Link className={styles.brand} to="/docs/getting-started/introduction">
           <img
             className={styles.brandLogo}
             src="/logo.svg"
@@ -20,10 +20,10 @@ export default function RootLayout() {
             height={28}
           />
           <span>react-bun-ssr</span>
-        </a>
+        </Link>
         <nav className={styles.topnav}>
-          <a href="/docs/getting-started/introduction">Docs</a>
-          <a href="/docs/api-reference/overview">API</a>
+          <Link to="/docs/getting-started/introduction">Docs</Link>
+          <Link to="/docs/api-reference/overview">API</Link>
           <a href="https://github.com/gaudiauj/react-bun-ssr">GitHub</a>
         </nav>
       </header>
@@ -58,7 +58,7 @@ export function NotFound() {
         <h1>404</h1>
         <p>Documentation page not found.</p>
         <p>
-          <a href="/docs/getting-started/introduction">Go to introduction</a>
+          <Link to="/docs/getting-started/introduction">Go to introduction</Link>
         </p>
       </section>
     </main>

@@ -152,6 +152,14 @@ const SYMBOL_DETAILS: Record<
     description: "Page route module contract including component and optional route lifecycle exports.",
     links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
   },
+  Router: {
+    description: "Programmatic navigation contract returned by `useRouter`.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  RouterNavigateOptions: {
+    description: "Options accepted by `router.push()` and `router.replace()`.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
   startHttpServer: {
     description: "Starts Bun HTTP server for configured framework runtime.",
     links: [{ label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" }],
@@ -162,6 +170,10 @@ const SYMBOL_DETAILS: Record<
   },
   useParams: {
     description: "Returns dynamic route params for the current matched route.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  useRouter: {
+    description: "Returns a Next.js-style router object for programmatic client transitions.",
     links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
   },
   useRequestUrl: {

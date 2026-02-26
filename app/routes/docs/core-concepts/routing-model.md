@@ -43,3 +43,68 @@ Use `.md` for native markdown routes, or a `.tsx` route module when you need JSX
 ## API routes
 
 Place handlers in `app/routes/api/**/*.ts` and export method-named functions (`GET`, `POST`, ...).
+
+## Client-side transitions with `Link`
+
+Use `Link` from `react-bun-ssr/route` for internal navigation.
+
+```tsx
+import { Link } from "react-bun-ssr/route";
+
+export default function Home() {
+  return <Link to="/docs/core-concepts/loaders">Read loaders guide</Link>;
+}
+```
+
+Behavior:
+
+- no full document reload for same-origin links
+- shared layout UI stays mounted
+- route data is fetched through framework transition streams
+- route `<head>` tags are reconciled after navigation
+
+`<a>` elements still do normal browser navigation. For client transitions, use `Link`.
+
+## Programmatic navigation with `useRouter`
+
+Use `useRouter` when you need imperative navigation from event handlers.
+
+```tsx
+import { useRouter } from "react-bun-ssr/route";
+
+export default function ActionsPanel() {
+  const router = useRouter();
+
+  return (
+    <div>
+      <button onClick={() => router.push("/docs/core-concepts/loaders")}>
+        Go to loaders
+      </button>
+      <button onClick={() => router.replace("/docs/core-concepts/actions")}>
+        Replace with actions
+      </button>
+      <button onClick={() => router.prefetch("/docs/rendering/ssr-hydration")}>
+        Prefetch SSR docs
+      </button>
+      <button onClick={() => router.back()}>Back</button>
+      <button onClick={() => router.forward()}>Forward</button>
+      <button onClick={() => router.refresh()}>Refresh page</button>
+    </div>
+  );
+}
+```
+
+Methods:
+
+- `router.push(href, { scroll })`
+- `router.replace(href, { scroll })`
+- `router.prefetch(href)`
+- `router.back()`
+- `router.forward()`
+- `router.refresh()`
+
+Compatibility note:
+
+- `Link` transitions and `router.push`/`router.replace` prefer the browser Navigation API when available.
+- `back`, `forward`, and `refresh` also use the Navigation API when available.
+- Browsers without Navigation API support automatically fall back to `history`/`location` APIs.

@@ -1,4 +1,5 @@
 import type { FrameworkConfig, RedirectResult } from "./types";
+import { defer as deferValue } from "./deferred";
 
 export function json(data: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
@@ -26,6 +27,8 @@ export function redirect(
 export function defineConfig(config: FrameworkConfig): FrameworkConfig {
   return config;
 }
+
+export const defer = deferValue;
 
 export function isRedirectResult(value: unknown): value is RedirectResult {
   return Boolean(

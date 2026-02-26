@@ -13,4 +13,10 @@ The API reference pages under `/docs/api/*` are generated from TypeScript export
 - `framework/runtime/index.ts`
 - `framework/runtime/route-api.ts`
 
+Each exported symbol now includes:
+
+- purpose-oriented description
+- direct links to concept pages with usage examples
+- generated TypeScript signature and source path
+
 Generation is deterministic and CI checks for stale artifacts.

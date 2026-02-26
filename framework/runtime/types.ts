@@ -17,9 +17,19 @@ export interface ActionContext extends RequestContext {
   json?: unknown;
 }
 
+export interface DeferredToken {
+  __rbssrDeferred: string;
+}
+
+export interface DeferredLoaderResult<T extends Record<string, unknown> = Record<string, unknown>> {
+  __rbssrType: "defer";
+  data: T;
+}
+
 export type LoaderResult =
   | Response
   | RedirectResult
+  | DeferredLoaderResult<Record<string, unknown>>
   | Record<string, unknown>
   | string
   | number

@@ -6,6 +6,11 @@ interface ApiSymbolDoc {
   kind: string;
   signature: string;
   sourcePath: string;
+  description?: string;
+  links?: Array<{
+    label: string;
+    href: string;
+  }>;
 }
 
 interface ApiDocFile {
@@ -37,6 +42,137 @@ interface ApiEntrypoint {
 
 const ROOT = process.cwd();
 const OUT_DIR = path.join(ROOT, "app/routes/docs/api");
+
+const SYMBOL_DETAILS: Record<
+  string,
+  {
+    description: string;
+    links?: Array<{ label: string; href: string }>;
+  }
+> = {
+  Action: {
+    description: "Route action function signature for handling mutating HTTP requests.",
+    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+  },
+  ActionContext: {
+    description: "Context object passed to actions with request metadata and parsed body helpers.",
+    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+  },
+  ActionResult: {
+    description: "Allowed return union for actions, including data, redirects, and `Response` values.",
+    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+  },
+  ApiRouteModule: {
+    description: "Contract for API route modules exporting method handlers like `GET` and `POST`.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  BuildManifest: {
+    description: "Production manifest describing built route assets used for SSR document injection.",
+    links: [{ label: "Build artifacts", href: "/docs/tooling/build-artifacts" }],
+  },
+  BuildRouteAsset: {
+    description: "Per-route client asset metadata (entry script and CSS files).",
+    links: [{ label: "Build artifacts", href: "/docs/tooling/build-artifacts" }],
+  },
+  createServer: {
+    description: "Creates the runtime request handler used by Bun server entrypoints.",
+    links: [
+      { label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" },
+      { label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" },
+    ],
+  },
+  defer: {
+    description: "Marks loader return data as deferred so promise-backed keys can stream progressively.",
+    links: [
+      { label: "Loaders and data flow", href: "/docs/core-concepts/loaders" },
+      { label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" },
+    ],
+  },
+  DeferredLoaderResult: {
+    description: "Typed wrapper returned by `defer()` for loaders with immediate and deferred values.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  DeferredToken: {
+    description: "Serialized payload token used internally to revive deferred values during hydration.",
+    links: [{ label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" }],
+  },
+  defineConfig: {
+    description: "Helper for authoring typed `rbssr.config.ts` configuration.",
+    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+  },
+  FrameworkConfig: {
+    description: "Main framework configuration surface for paths, server mode, and response headers.",
+    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+  },
+  json: {
+    description: "Creates a JSON `Response` with a default UTF-8 content-type.",
+    links: [{ label: "API reference overview", href: "/docs/api-reference/overview" }],
+  },
+  Loader: {
+    description: "Route loader function signature for GET/HEAD data requests.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  LoaderContext: {
+    description: "Context object passed to loaders with URL, params, cookies, and mutable locals.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  LoaderResult: {
+    description: "Allowed return union for loaders, including plain data, redirects, deferred data, and `Response`.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  Middleware: {
+    description: "Middleware function contract executed around page and API handlers.",
+    links: [{ label: "Middleware chain", href: "/docs/core-concepts/middleware" }],
+  },
+  Outlet: {
+    description: "Renders the next nested route element inside root/layout route modules.",
+    links: [{ label: "Nested layouts and route groups", href: "/docs/core-concepts/layouts-and-groups" }],
+  },
+  Params: {
+    description: "Dynamic URL params object shape exposed to loaders, actions, and hooks.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  redirect: {
+    description: "Returns a framework redirect descriptor consumed by loader/action runtime flow.",
+    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+  },
+  RedirectResult: {
+    description: "Redirect descriptor shape with destination and HTTP redirect status.",
+    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+  },
+  RequestContext: {
+    description: "Base request context shared by middleware, loaders, actions, and API handlers.",
+    links: [{ label: "Middleware chain", href: "/docs/core-concepts/middleware" }],
+  },
+  ResponseHeaderRule: {
+    description: "Path-based response header rule used by `FrameworkConfig.headers`.",
+    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+  },
+  RouteModule: {
+    description: "Page route module contract including component and optional route lifecycle exports.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  startHttpServer: {
+    description: "Starts Bun HTTP server for configured framework runtime.",
+    links: [{ label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" }],
+  },
+  useLoaderData: {
+    description: "Reads loader data in route components, including deferred values as promises.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  useParams: {
+    description: "Returns dynamic route params for the current matched route.",
+    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+  },
+  useRequestUrl: {
+    description: "Returns the current request URL object in route components.",
+    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+  },
+  useRouteError: {
+    description: "Reads error values inside `ErrorBoundary` route components.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
+};
 
 function normalizeSignature(signature: string): string {
   return signature.replace(/\s+/g, " ").trim();
@@ -70,13 +206,11 @@ function symbolSignature(checker: ts.TypeChecker, symbol: ts.Symbol): string {
   }
 
   if (symbol.flags & ts.SymbolFlags.Interface) {
-    const line = declaration.getText().split(/\r?\n/)[0] ?? "";
-    return normalizeSignature(line);
+    return declaration.getText();
   }
 
   if (symbol.flags & ts.SymbolFlags.TypeAlias) {
-    const line = declaration.getText().split(/\r?\n/)[0] ?? "";
-    return normalizeSignature(line);
+    return declaration.getText();
   }
 
   return normalizeSignature(`${symbol.getName()}: ${checker.typeToString(type)}`);
@@ -106,6 +240,8 @@ function collectModuleExportDocs(
       kind: symbolKind(symbol),
       signature: symbolSignature(checker, symbol),
       sourcePath,
+      description: SYMBOL_DETAILS[symbol.getName()]?.description,
+      links: SYMBOL_DETAILS[symbol.getName()]?.links,
     };
   });
 
@@ -122,9 +258,15 @@ function docMarkdown(file: ApiDocFile): string {
       : "";
 
   const blocks = file.symbols
-    .map(
-      symbol => `## ${symbol.name}\n\n- Kind: ${symbol.kind}\n- Source: \`${symbol.sourcePath}\`\n\n\`\`\`ts\n${symbol.signature}\n\`\`\``,
-    )
+    .map(symbol => {
+      const descriptionLine = symbol.description
+        ? `- Description: ${symbol.description}\n`
+        : "";
+      const linksLine = symbol.links && symbol.links.length > 0
+        ? `- Learn more: ${symbol.links.map(link => `[${link.label}](${link.href})`).join(", ")}\n`
+        : "";
+      return `## ${symbol.name}\n\n- Kind: ${symbol.kind}\n- Source: \`${symbol.sourcePath}\`\n${descriptionLine}${linksLine}\n\`\`\`ts\n${symbol.signature}\n\`\`\``;
+    })
     .join("\n\n");
 
   return `---
@@ -154,6 +296,38 @@ function buildApiDocs(): Record<string, string> {
       description: "Public runtime exports from the root package entrypoint.",
       section: "API Reference",
       order: 2,
+      intro:
+        "Import from `react-bun-ssr` for framework runtime APIs (`createServer`, `startHttpServer`), config helpers, and shared route contracts.",
+      examples: [
+        {
+          title: "Typed config with response headers",
+          code: `import { defineConfig } from "react-bun-ssr";
+
+export default defineConfig({
+  port: 3000,
+  headers: [
+    {
+      source: "/api/**",
+      headers: {
+        "x-frame-options": "DENY",
+      },
+    },
+  ],
+});`,
+        },
+        {
+          title: "Runtime JSON and redirect helpers",
+          code: `import { json, redirect } from "react-bun-ssr";
+
+export function GET() {
+  return json({ ok: true });
+}
+
+export function POST() {
+  return redirect("/docs/core-concepts/actions");
+}`,
+        },
+      ],
     },
     {
       slug: "react-bun-ssr-route",
@@ -199,6 +373,35 @@ export const middleware: Middleware = async (ctx, next) => {
   }
   return next();
 };`,
+        },
+        {
+          title: "Deferred loader data",
+          code: `import { Suspense, use } from "react";
+import { defer, useLoaderData, type Loader } from "react-bun-ssr/route";
+
+export const loader: Loader = () => {
+  return defer({
+    title: "Dashboard",
+    stats: Promise.resolve({ users: 42 }),
+  });
+};
+
+function Stats(props: { stats: Promise<{ users: number }> }) {
+  const value = use(props.stats);
+  return <p>Users: {value.users}</p>;
+}
+
+export default function DashboardPage() {
+  const data = useLoaderData<{ title: string; stats: Promise<{ users: number }> }>();
+  return (
+    <>
+      <h1>{data.title}</h1>
+      <Suspense fallback={<p>Loading stats…</p>}>
+        <Stats stats={data.stats} />
+      </Suspense>
+    </>
+  );
+}`,
         },
       ],
     },

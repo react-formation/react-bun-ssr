@@ -47,6 +47,29 @@ describe("createServer integration", () => {
       "app/routes/guide.md": `# Markdown Guide
 
 This route is **native markdown**.`,
+      "app/routes/deferred.tsx": `import { Suspense, use } from "react";
+      import { defer, useLoaderData } from "${runtimeImport}";
+      export function loader(){
+        return defer({
+          fast: "ready",
+          slow: Promise.resolve("slow-value"),
+        });
+      }
+      function SlowValue(props: { value: Promise<string> }) {
+        const value = use(props.value);
+        return <p>{value}</p>;
+      }
+      export default function DeferredRoute(){
+        const data = useLoaderData<{ fast: string; slow: Promise<string> }>();
+        return (
+          <section>
+            <h1>{data.fast}</h1>
+            <Suspense fallback={<p>loading...</p>}>
+              <SlowValue value={data.slow} />
+            </Suspense>
+          </section>
+        );
+      }`,
       "app/routes/api/hello.ts": `export function GET(){ return Response.json({ ok: true }); }`,
     });
 
@@ -63,6 +86,7 @@ This route is **native markdown**.`,
           error: { script: "/__rbssr/client/route__error.js", css: [] },
           styled: { script: "/__rbssr/client/route__styled.js", css: [] },
           guide: { script: "/__rbssr/client/route__guide.js", css: [] },
+          deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
         },
       },
     );
@@ -115,6 +139,13 @@ This route is **native markdown**.`,
     const markdownHtml = await markdownResponse.text();
     expect(markdownHtml).toContain("Markdown Guide");
     expect(markdownHtml).toContain("native markdown");
+
+    const deferredResponse = await server.fetch(new Request("http://localhost/deferred"));
+    expect(deferredResponse.status).toBe(200);
+    const deferredHtml = await deferredResponse.text();
+    expect(deferredHtml).toContain("slow-value");
+    expect(deferredHtml).toContain("__rbssrDeferred");
+    expect(deferredHtml).toContain("__RBSSR_DEFERRED__.resolve");
   });
 
   it("applies production static cache headers", async () => {

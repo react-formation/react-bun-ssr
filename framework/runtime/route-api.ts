@@ -2,6 +2,8 @@ export type {
   Action,
   ActionContext,
   ActionResult,
+  DeferredLoaderResult,
+  DeferredToken,
   Loader,
   LoaderContext,
   LoaderResult,
@@ -11,5 +13,5 @@ export type {
   RequestContext,
 } from "./types";
 
-export { json, redirect } from "./helpers";
+export { defer, json, redirect } from "./helpers";
 export { Outlet, useLoaderData, useParams, useRequestUrl, useRouteError } from "./tree";

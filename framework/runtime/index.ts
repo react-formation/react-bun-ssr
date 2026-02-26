@@ -5,6 +5,8 @@ export type {
   ApiRouteModule,
   BuildManifest,
   BuildRouteAsset,
+  DeferredLoaderResult,
+  DeferredToken,
   FrameworkConfig,
   Loader,
   LoaderContext,
@@ -18,5 +20,5 @@ export type {
 } from "./types";
 
 export { createServer, startHttpServer } from "./server";
-export { json, redirect, defineConfig } from "./helpers";
+export { defer, json, redirect, defineConfig } from "./helpers";
 export { Outlet, useLoaderData, useParams, useRequestUrl, useRouteError } from "./tree";

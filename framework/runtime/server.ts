@@ -1,5 +1,11 @@
 import path from "node:path";
+import { createElement } from "react";
 import { createBunRouteAdapter, type BunRouteAdapter } from "./bun-route-adapter";
+import {
+  isDeferredLoaderResult,
+  prepareDeferredPayload,
+  type DeferredSettleEntry,
+} from "./deferred";
 import { statPath } from "./io";
 import type {
   ActionContext,
@@ -22,11 +28,11 @@ import {
   loadRouteModules,
 } from "./module-loader";
 import {
-  collectHeadMarkup,
-  renderDocument,
-  renderErrorApp,
-  renderNotFoundApp,
-  renderPageApp,
+  collectHeadElements,
+  createErrorAppTree,
+  createNotFoundAppTree,
+  createPageAppTree,
+  renderDocumentStream,
 } from "./render";
 import { runMiddlewareChain } from "./middleware";
 import {
@@ -51,8 +57,8 @@ function isResponse(value: unknown): value is Response {
   return value instanceof Response;
 }
 
-function toHtmlResponse(html: string, status: number): Response {
-  return new Response(html, {
+function toHtmlStreamResponse(stream: ReadableStream<Uint8Array>, status: number): Response {
+  return new Response(stream, {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
@@ -513,21 +519,24 @@ export function createServer(
         route: fallbackRoute,
       };
 
-      const markup = renderNotFoundApp(modules, payload) ?? "<main><h1>404</h1><p>Page not found.</p></main>";
-      const head = collectHeadMarkup(modules, payload);
-
-      const html = renderDocument({
-        appMarkup: markup,
+      const appTree = createNotFoundAppTree(modules, payload) ?? createElement(
+        "main",
+        null,
+        createElement("h1", null, "404"),
+        createElement("p", null, "Page not found."),
+      );
+      const stream = await renderDocumentStream({
+        appTree,
         payload,
         assets: {
           script: undefined,
           css: [],
           devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
         },
-        headMarkup: head,
+        headElements: collectHeadElements(modules, payload),
       });
 
-      return finalize(toHtmlResponse(html, 404), "html");
+      return finalize(toHtmlStreamResponse(stream, 404), "html");
     }
 
     const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
@@ -562,7 +571,9 @@ export function createServer(
         requestContext,
         async () => {
           const method = request.method.toUpperCase();
-          let data: unknown = null;
+          let dataForRender: unknown = null;
+          let dataForPayload: unknown = null;
+          let deferredSettleEntries: DeferredSettleEntry[] = [];
 
           if (isMutatingMethod(method)) {
             if (!routeModules.route.action) {
@@ -585,7 +596,12 @@ export function createServer(
               return toRedirectResponse(actionResult.location, actionResult.status);
             }
 
-            data = actionResult;
+            if (isDeferredLoaderResult(actionResult)) {
+              return new Response("defer() is only supported in route loaders", { status: 500 });
+            }
+
+            dataForRender = actionResult;
+            dataForPayload = actionResult;
           } else {
             if (routeModules.route.loader) {
               const loaderCtx: LoaderContext = requestContext;
@@ -599,90 +615,103 @@ export function createServer(
                 return toRedirectResponse(loaderResult.location, loaderResult.status);
               }
 
-              data = loaderResult;
+              if (isDeferredLoaderResult(loaderResult)) {
+                const prepared = prepareDeferredPayload(pageMatch.route.id, loaderResult);
+                dataForRender = prepared.dataForRender;
+                dataForPayload = prepared.dataForPayload;
+                deferredSettleEntries = prepared.settleEntries;
+              } else {
+                dataForRender = loaderResult;
+                dataForPayload = loaderResult;
+              }
             }
           }
 
-          const payload = {
+          const renderPayload = {
             routeId: pageMatch.route.id,
-            data,
+            data: dataForRender,
             params: pageMatch.params,
             url: url.toString(),
           };
 
-          const headMarkup = collectHeadMarkup(routeModules, payload);
+          const clientPayload = {
+            ...renderPayload,
+            data: dataForPayload,
+          };
 
-          let appMarkup: string;
+          let appTree: ReturnType<typeof createPageAppTree>;
           try {
-            appMarkup = renderPageApp(routeModules, payload);
+            appTree = createPageAppTree(routeModules, renderPayload);
           } catch (error) {
-            const boundaryMarkup = renderErrorApp(routeModules, payload, error);
-            if (boundaryMarkup) {
+            const boundaryTree = createErrorAppTree(routeModules, renderPayload, error);
+            if (boundaryTree) {
               const errorPayload = {
-                ...payload,
+                ...renderPayload,
                 error: {
                   message: sanitizeErrorMessage(error, !dev),
                 },
               };
-              const errorHead = collectHeadMarkup(routeModules, errorPayload);
-              const html = renderDocument({
-                appMarkup: boundaryMarkup,
-                payload: errorPayload,
+              const stream = await renderDocumentStream({
+                appTree: boundaryTree,
+                payload: {
+                  ...clientPayload,
+                  error: errorPayload.error,
+                },
                 assets: {
                   script: routeAssets?.script,
                   css: routeAssets?.css ?? [],
                   devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
                 },
-                headMarkup: errorHead,
+                headElements: collectHeadElements(routeModules, errorPayload),
               });
-              return toHtmlResponse(html, 500);
+              return toHtmlStreamResponse(stream, 500);
             }
 
             const message = sanitizeErrorMessage(error, !dev);
             return new Response(message, { status: 500 });
           }
 
-          const html = renderDocument({
-            appMarkup,
-            payload,
+          const stream = await renderDocumentStream({
+            appTree,
+            payload: clientPayload,
             assets: {
               script: routeAssets?.script,
               css: routeAssets?.css ?? [],
               devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
             },
-            headMarkup,
+            headElements: collectHeadElements(routeModules, renderPayload),
+            deferredSettleEntries,
           });
 
-          return toHtmlResponse(html, 200);
+          return toHtmlStreamResponse(stream, 200);
         },
       );
     } catch (error) {
-      const payload = {
+      const renderPayload = {
         routeId: pageMatch.route.id,
         data: null,
         params: pageMatch.params,
         url: url.toString(),
       };
-      const boundaryMarkup = renderErrorApp(routeModules, payload, error);
-      if (boundaryMarkup) {
+      const boundaryTree = createErrorAppTree(routeModules, renderPayload, error);
+      if (boundaryTree) {
         const errorPayload = {
-          ...payload,
+          ...renderPayload,
           error: {
             message: sanitizeErrorMessage(error, !dev),
           },
         };
-        const errorHead = collectHeadMarkup(routeModules, errorPayload);
-        const html = renderDocument({
-          appMarkup: boundaryMarkup,
+        const stream = await renderDocumentStream({
+          appTree: boundaryTree,
           payload: errorPayload,
           assets: {
             script: routeAssets?.script,
             css: routeAssets?.css ?? [],
             devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
           },
-          headMarkup: errorHead,
+          headElements: collectHeadElements(routeModules, errorPayload),
         });
-        return finalize(toHtmlResponse(html, 500), "html");
+        return finalize(toHtmlStreamResponse(stream, 500), "html");
       }
 
       return finalize(new Response(sanitizeErrorMessage(error, !dev), { status: 500 }), "html");

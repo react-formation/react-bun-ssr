@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Outlet, useRequestUrl } from 'react-bun-ssr/route';
+import { Link, Outlet, useRequestUrl } from 'react-bun-ssr/route';
 import { sidebar } from './_sidebar';
 import searchIndexData from './search-index.json';
 import styles from './_layout.module.css';
@@ -146,15 +146,15 @@ export default function DocsLayoutRoute() {
           {query ? (
             <div className={styles.results}>
               {results.map((result) => (
-                <a
+                <Link
                   key={result.item.id}
-                  href={result.item.url}
+                  to={result.item.url}
                   className={`${styles.resultItem} search-result-item`}
                   onClick={() => setMenuOpen(false)}
                 >
                   <strong>{result.item.title}</strong>
                   <span>{result.item.excerpt}</span>
-                </a>
+                </Link>
               ))}
               {results.length === 0 ? <p className={styles.muted}>No result.</p> : null}
             </div>
@@ -168,14 +168,14 @@ export default function DocsLayoutRoute() {
                   const href = `/docs/${item.slug}`;
                   const active = item.slug === currentSlug;
                   return (
-                    <a
+                    <Link
                       key={item.slug}
-                      href={href}
+                      to={href}
                       aria-current={active ? 'page' : undefined}
                       onClick={() => setMenuOpen(false)}
                     >
                       {item.title}
-                    </a>
+                    </Link>
                   );
                 })}
               </section>
@@ -188,12 +188,12 @@ export default function DocsLayoutRoute() {
         <Outlet />
         <footer className={styles.pagination}>
           {prev ? (
-            <a href={`/docs/${prev.slug}`}>Previous: {prev.title}</a>
+            <Link to={`/docs/${prev.slug}`}>Previous: {prev.title}</Link>
           ) : (
             <span />
           )}
           {next ? (
-            <a href={`/docs/${next.slug}`}>Next: {next.title}</a>
+            <Link to={`/docs/${next.slug}`}>Next: {next.title}</Link>
           ) : (
             <span />
           )}

@@ -22,15 +22,6 @@ function decodeHtml(value: string): string {
     .replace(/&amp;/g, "&");
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function highlightWithRegex(
   source: string,
   regex: RegExp,
@@ -45,16 +36,16 @@ function highlightWithRegex(
     const index = match.index;
 
     if (index > cursor) {
-      html += escapeHtml(source.slice(cursor, index));
+      html += Bun.escapeHTML(source.slice(cursor, index));
     }
 
-    html += `<span class="token ${classify(value)}">${escapeHtml(value)}</span>`;
+    html += `<span class="token ${classify(value)}">${Bun.escapeHTML(value)}</span>`;
     cursor = index + value.length;
     match = regex.exec(source);
   }
 
   if (cursor < source.length) {
-    html += escapeHtml(source.slice(cursor));
+    html += Bun.escapeHTML(source.slice(cursor));
   }
 
   return html;
@@ -96,7 +87,7 @@ function highlightCode(source: string, language: string): string {
     });
   }
 
-  return escapeHtml(source);
+  return Bun.escapeHTML(source);
 }
 
 function applySyntaxHighlight(html: string): string {
@@ -105,7 +96,7 @@ function applySyntaxHighlight(html: string): string {
     (_match, language: string, rawCode: string) => {
       const code = decodeHtml(rawCode);
       const highlighted = highlightCode(code, language);
-      return `<pre><code class="language-${escapeHtml(language)}">${highlighted}</code></pre>`;
+      return `<pre><code class="language-${Bun.escapeHTML(language)}">${highlighted}</code></pre>`;
     },
   );
 }

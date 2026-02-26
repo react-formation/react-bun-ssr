@@ -225,6 +225,31 @@ export interface FrameworkConfig {
 json(data: unknown, init?: ResponseInit): Response
 ```
 
+## Link
+
+- Kind: function
+- Source: `framework/runtime/link.tsx`
+
+```ts
+Link(props: LinkProps): Element
+```
+
+## LinkProps
+
+- Kind: interface
+- Source: `framework/runtime/link.tsx`
+
+```ts
+export interface LinkProps
+  extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+  to: string;
+  replace?: boolean;
+  scroll?: boolean;
+  prefetch?: "intent" | "none";
+  onNavigate?: (info: NavigateInfo) => void;
+}
+```
+
 ## Loader
 
 - Kind: type
@@ -369,6 +394,7 @@ export interface ResponseHeaderRule {
 ```ts
 export interface RouteModule {
   default: ComponentType;
+  Loading?: ComponentType;
   loader?: Loader;
   action?: Action;
   middleware?: Middleware | Middleware[];
@@ -376,6 +402,37 @@ export interface RouteModule {
   meta?: MetaValue;
   ErrorBoundary?: ComponentType<{ error: unknown }>;
   NotFound?: ComponentType;
+}
+```
+
+## Router
+
+- Kind: interface
+- Source: `framework/runtime/router.ts`
+- Description: Programmatic navigation contract returned by `useRouter`.
+- Learn more: [Routing model](/docs/core-concepts/routing-model)
+
+```ts
+export interface Router {
+  push(href: string, options?: RouterNavigateOptions): void;
+  replace(href: string, options?: RouterNavigateOptions): void;
+  prefetch(href: string): void;
+  back(): void;
+  forward(): void;
+  refresh(): void;
+}
+```
+
+## RouterNavigateOptions
+
+- Kind: interface
+- Source: `framework/runtime/router.ts`
+- Description: Options accepted by `router.push()` and `router.replace()`.
+- Learn more: [Routing model](/docs/core-concepts/routing-model)
+
+```ts
+export interface RouterNavigateOptions {
+  scroll?: boolean;
 }
 ```
 
@@ -432,4 +489,15 @@ useRequestUrl(): URL
 
 ```ts
 useRouteError(): unknown
+```
+
+## useRouter
+
+- Kind: function
+- Source: `framework/runtime/router.ts`
+- Description: Returns a Next.js-style router object for programmatic client transitions.
+- Learn more: [Routing model](/docs/core-concepts/routing-model)
+
+```ts
+useRouter(): Router
 ```

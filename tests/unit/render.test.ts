@@ -18,6 +18,11 @@ describe("renderDocument dev reload", () => {
         devVersion: 2,
       },
       headMarkup: "",
+      routerSnapshot: {
+        pages: [],
+        assets: {},
+        devVersion: 2,
+      },
     });
 
     expect(html).toContain("new EventSource('/__rbssr/events')");
@@ -43,6 +48,10 @@ describe("renderDocument dev reload", () => {
         css: ["/client/route__index.css"],
       },
       headElements: [createElement("title", { key: "t" }, "Title")],
+      routerSnapshot: {
+        pages: [],
+        assets: {},
+      },
       deferredSettleEntries: [
         {
           id: "index:delayed:1",

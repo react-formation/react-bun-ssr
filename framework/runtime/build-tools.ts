@@ -45,7 +45,7 @@ function buildClientEntrySource(options: {
   const rootImport = toImportPath(generatedDir, rootModulePath);
   const routeImport = toImportPath(generatedDir, route.filePath);
 
-  imports.push(`import { hydrateRoute } from "${runtimeImport}";`);
+  imports.push(`import { hydrateInitialRoute, registerRouteModules } from "${runtimeImport}";`);
 
   imports.push(`import RootDefault from "${rootImport}";`);
   imports.push(`import * as RootModule from "${rootImport}";`);
@@ -70,7 +70,8 @@ const modules = {
   route: { ...RouteModule, default: RouteDefault },
 };
 
-hydrateRoute(modules);
+registerRouteModules(${JSON.stringify(route.id)}, modules);
+hydrateInitialRoute(${JSON.stringify(route.id)});
 `;
 }
 
@@ -152,7 +153,7 @@ export async function bundleClientEntries(options: {
     outdir: outDir,
     target: "browser",
     format: "esm",
-    splitting: false,
+    splitting: true,
     sourcemap: dev ? "inline" : "external",
     minify: !dev,
     naming: dev ? "[name].[ext]" : "[name]-[hash].[ext]",

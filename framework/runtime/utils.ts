@@ -85,7 +85,7 @@ export function sanitizeErrorMessage(error: unknown, production: boolean): strin
     if (error instanceof Error) {
       return error.message;
     }
-    return String(error);
+    return Bun.inspect(error);
   }
   return "Internal Server Error";
 }
@@ -108,8 +108,9 @@ export function toPosixPath(value: string): string {
 }
 
 export function toFileImportUrl(filePath: string): string {
-  const resolved = path.resolve(filePath).replace(/\\/g, "/");
-  const withLeadingSlash = resolved.startsWith("/") ? resolved : `/${resolved}`;
-  const encoded = encodeURI(withLeadingSlash).replace(/#/g, "%23").replace(/\?/g, "%3F");
-  return `file://${encoded}`;
+  return Bun.pathToFileURL(path.resolve(filePath)).toString();
+}
+
+export function fromFileUrl(value: string | URL): string {
+  return Bun.fileURLToPath(value);
 }

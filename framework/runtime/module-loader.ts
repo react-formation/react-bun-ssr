@@ -24,7 +24,11 @@ function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   const component = value.default;
 
   if (typeof component !== "function") {
-    throw new Error(`Route module ${filePath} must export a default React component`);
+    const exportKeys = value && typeof value === "object" ? Object.keys(value) : [];
+    throw new Error(
+      `Route module ${filePath} must export a default React component. `
+      + `Received exports: ${Bun.inspect(exportKeys)}`,
+    );
   }
 
   return {
@@ -80,13 +84,18 @@ async function buildServerModule(filePath: string, cacheBustKey?: string): Promi
     });
 
     if (!buildResult.success) {
-      const messages = buildResult.logs.map(log => log.message).join("\n");
+      const messages = buildResult.logs
+        .map(log => `${log.message}\n${Bun.inspect(log)}`)
+        .join("\n");
       throw new Error(`Server module build failed for ${absoluteFilePath}\n${messages}`);
     }
 
     const outputPath = buildResult.outputs.find(output => output.path.endsWith(".js"))?.path;
     if (!outputPath) {
-      throw new Error(`Server module build produced no JavaScript output for ${absoluteFilePath}`);
+      throw new Error(
+        `Server module build produced no JavaScript output for ${absoluteFilePath}\n`
+        + `outputs: ${Bun.inspect(buildResult.outputs.map(output => output.path))}`,
+      );
     }
 
     return outputPath;

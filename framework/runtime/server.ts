@@ -10,12 +10,20 @@ import { statPath } from "./io";
 import type {
   ActionContext,
   BuildRouteAsset,
+  ClientRouteSnapshot,
+  ClientRouterSnapshot,
   FrameworkConfig,
   LoaderContext,
+  PageRouteDefinition,
+  RouteManifest,
   RequestContext,
   ResolvedConfig,
   RouteModule,
   ServerRuntimeOptions,
+  TransitionChunk,
+  TransitionDeferredChunk,
+  TransitionInitialChunk,
+  TransitionRedirectChunk,
 } from "./types";
 import { resolveConfig } from "./config";
 import { isRedirectResult, json } from "./helpers";
@@ -28,22 +36,27 @@ import {
   loadRouteModules,
 } from "./module-loader";
 import {
+  collectHeadMarkup,
   collectHeadElements,
-  createErrorAppTree,
-  createNotFoundAppTree,
-  createPageAppTree,
+  createManagedHeadMarkup,
   renderDocumentStream,
 } from "./render";
 import { runMiddlewareChain } from "./middleware";
+import {
+  createErrorAppTree,
+  createNotFoundAppTree,
+  createPageAppTree,
+} from "./tree";
 import {
   ensureWithin,
   isMutatingMethod,
   normalizeSlashes,
   parseCookieHeader,
   sanitizeErrorMessage,
+  stableHash,
 } from "./utils";
 
-type ResponseKind = "static" | "html" | "api" | "internal-dev";
+type ResponseKind = "static" | "html" | "api" | "internal-dev" | "internal-transition";
 
 const HASHED_CLIENT_CHUNK_RE = /^\/client\/.+-[A-Za-z0-9]{6,}\.(?:js|css)$/;
 const STATIC_IMMUTABLE_CACHE = "public, max-age=31536000, immutable";
@@ -74,7 +87,7 @@ function applyFrameworkDefaultHeaders(options: {
 }): void {
   const { headers, dev, kind, pathname } = options;
 
-  if (kind === "internal-dev") {
+  if (kind === "internal-dev" || kind === "internal-transition") {
     if (!headers.has("cache-control")) {
       headers.set("cache-control", "no-store");
     }
@@ -237,6 +250,122 @@ function resolveRouteAssets(
   return manifest.routes[routeId] ?? null;
 }
 
+function resolveAllRouteAssets(options: {
+  dev: boolean;
+  runtimeOptions: ServerRuntimeOptions;
+}): Record<string, BuildRouteAsset> {
+  if (options.dev) {
+    return options.runtimeOptions.getDevAssets?.() ?? options.runtimeOptions.devAssets ?? {};
+  }
+
+  return options.runtimeOptions.buildManifest?.routes ?? {};
+}
+
+function toClientRouteSnapshots(routes: PageRouteDefinition[]): ClientRouteSnapshot[] {
+  return routes.map(route => ({
+    id: route.id,
+    routePath: route.routePath,
+    segments: route.segments,
+    score: route.score,
+  }));
+}
+
+function createRouterSnapshot(options: {
+  manifest: RouteManifest;
+  routeAssets: Record<string, BuildRouteAsset>;
+  devVersion?: number;
+}): ClientRouterSnapshot {
+  return {
+    pages: toClientRouteSnapshots(options.manifest.pages),
+    assets: options.routeAssets,
+    devVersion: options.devVersion,
+  };
+}
+
+function toTransitionStreamResponse(
+  stream: ReadableStream<Uint8Array>,
+  baseHeaders?: HeadersInit,
+): Response {
+  const headers = new Headers(baseHeaders);
+  headers.set("content-type", "application/x-ndjson; charset=utf-8");
+  if (!headers.has("cache-control")) {
+    headers.set("cache-control", "no-store");
+  }
+
+  return new Response(stream, {
+    headers,
+  });
+}
+
+function toTransitionChunkLine(chunk: TransitionChunk): Uint8Array {
+  return new TextEncoder().encode(`${JSON.stringify(chunk)}\n`);
+}
+
+function isRedirectStatus(status: number): boolean {
+  return status >= 300 && status < 400;
+}
+
+function toRedirectChunk(location: string, status: number): TransitionRedirectChunk {
+  return {
+    type: "redirect",
+    location,
+    status,
+  };
+}
+
+function createTransitionStream(options: {
+  initialChunk?: TransitionInitialChunk;
+  redirectChunk?: TransitionRedirectChunk;
+  deferredSettleEntries?: DeferredSettleEntry[];
+  sanitizeDeferredError: (message: string) => string;
+}): ReadableStream<Uint8Array> {
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        if (options.redirectChunk) {
+          controller.enqueue(toTransitionChunkLine(options.redirectChunk));
+          controller.close();
+          return;
+        }
+
+        if (options.initialChunk) {
+          controller.enqueue(toTransitionChunkLine(options.initialChunk));
+        }
+
+        const settleEntries = options.deferredSettleEntries ?? [];
+        if (settleEntries.length === 0) {
+          controller.close();
+          return;
+        }
+
+        await Promise.all(
+          settleEntries.map(async entry => {
+            const settled = await entry.settled;
+            const chunk: TransitionDeferredChunk = settled.ok
+              ? {
+                  type: "deferred",
+                  id: entry.id,
+                  ok: true,
+                  value: settled.value,
+                }
+              : {
+                  type: "deferred",
+                  id: entry.id,
+                  ok: false,
+                  error: options.sanitizeDeferredError(settled.error),
+                };
+            controller.enqueue(toTransitionChunkLine(chunk));
+          }),
+        );
+
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+}
+
 function createDevReloadEventStream(options: {
   getVersion: () => number;
   subscribe?: (listener: (version: number) => void) => (() => void) | void;
@@ -350,9 +479,10 @@ export function createServer(
     }
 
     const reloadVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : 0;
+    const routesHash = stableHash(normalizeSlashes(activeConfig.routesDir));
     const projectionRootDir = dev
-      ? path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", `dev-v${reloadVersion}`)
-      : path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", "prod");
+      ? path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", `dev-${routesHash}-v${reloadVersion}`)
+      : path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", "prod", routesHash);
 
     const buildAdapterPromise = createBunRouteAdapter({
       routesDir: activeConfig.routesDir,
@@ -441,6 +571,217 @@ export function createServer(
 
     const routeAdapter = await getRouteAdapter(activeConfig);
     const cacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? Date.now()) : undefined;
+    const routeAssetsById = resolveAllRouteAssets({
+      dev,
+      runtimeOptions,
+    });
+    const routerSnapshot = createRouterSnapshot({
+      manifest: routeAdapter.manifest,
+      routeAssets: routeAssetsById,
+      devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+    });
+
+    if (request.method.toUpperCase() === "GET" && url.pathname === "/__rbssr/transition") {
+      const toParam = url.searchParams.get("to");
+      if (!toParam) {
+        return finalize(new Response("Missing required `to` query parameter.", { status: 400 }), "internal-transition");
+      }
+
+      let targetUrl: URL;
+      try {
+        targetUrl = new URL(toParam, url);
+      } catch {
+        return finalize(new Response("Invalid `to` URL.", { status: 400 }), "internal-transition");
+      }
+
+      if (targetUrl.origin !== url.origin) {
+        return finalize(new Response("Cross-origin transitions are not allowed.", { status: 400 }), "internal-transition");
+      }
+
+      const transitionPageMatch = routeAdapter.matchPage(targetUrl.pathname);
+      if (!transitionPageMatch) {
+        const rootModule = await loadRootOnlyModule(activeConfig.rootModule, cacheBustKey);
+        const fallbackRoute: RouteModule = {
+          default: () => null,
+          NotFound: rootModule.NotFound,
+        };
+        const payload = {
+          routeId: "__not_found__",
+          data: null,
+          params: {},
+          url: targetUrl.toString(),
+        };
+        const modules = {
+          root: rootModule,
+          layouts: [],
+          route: fallbackRoute,
+        };
+        const initialChunk: TransitionInitialChunk = {
+          type: "initial",
+          kind: "not_found",
+          status: 404,
+          payload,
+          head: createManagedHeadMarkup({
+            headMarkup: collectHeadMarkup(modules, payload),
+            assets: {
+              script: undefined,
+              css: [],
+              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+            },
+          }),
+          redirected: false,
+        };
+        const stream = createTransitionStream({
+          initialChunk,
+          sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+        });
+        return finalize(toTransitionStreamResponse(stream), "internal-transition");
+      }
+
+      const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
+        loadRouteModules({
+          rootFilePath: activeConfig.rootModule,
+          layoutFiles: transitionPageMatch.route.layoutFiles,
+          routeFilePath: transitionPageMatch.route.filePath,
+          cacheBustKey,
+        }),
+        loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
+        loadNestedMiddleware(transitionPageMatch.route.middlewareFiles, cacheBustKey),
+      ]);
+      const moduleMiddleware = extractRouteMiddleware(routeModules.route);
+      const routeAssets = routeAssetsById[transitionPageMatch.route.id] ?? null;
+      const transitionRequest = new Request(targetUrl.toString(), {
+        method: "GET",
+        headers: request.headers,
+      });
+
+      const requestContext: RequestContext = {
+        request: transitionRequest,
+        url: targetUrl,
+        params: transitionPageMatch.params,
+        cookies: parseCookieHeader(request.headers.get("cookie")),
+        locals: {},
+      };
+
+      let transitionInitialChunk: TransitionInitialChunk | undefined;
+      let deferredSettleEntries: DeferredSettleEntry[] = [];
+
+      let middlewareResponse: Response;
+      try {
+        middlewareResponse = await runMiddlewareChain(
+          [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
+          requestContext,
+          async () => {
+            let dataForRender: unknown = null;
+            let dataForPayload: unknown = null;
+
+            if (routeModules.route.loader) {
+              const loaderCtx: LoaderContext = requestContext;
+              const loaderResult = await routeModules.route.loader(loaderCtx);
+
+              if (isResponse(loaderResult)) {
+                return loaderResult;
+              }
+
+              if (isRedirectResult(loaderResult)) {
+                return toRedirectResponse(loaderResult.location, loaderResult.status);
+              }
+
+              if (isDeferredLoaderResult(loaderResult)) {
+                const prepared = prepareDeferredPayload(transitionPageMatch.route.id, loaderResult);
+                dataForRender = prepared.dataForRender;
+                dataForPayload = prepared.dataForPayload;
+                deferredSettleEntries = prepared.settleEntries;
+              } else {
+                dataForRender = loaderResult;
+                dataForPayload = loaderResult;
+              }
+            }
+
+            const renderPayload = {
+              routeId: transitionPageMatch.route.id,
+              data: dataForRender,
+              params: transitionPageMatch.params,
+              url: targetUrl.toString(),
+            };
+            const payload = {
+              ...renderPayload,
+              data: dataForPayload,
+            };
+            transitionInitialChunk = {
+              type: "initial",
+              kind: "page",
+              status: 200,
+              payload,
+              head: createManagedHeadMarkup({
+                headMarkup: collectHeadMarkup(routeModules, renderPayload),
+                assets: {
+                  script: routeAssets?.script,
+                  css: routeAssets?.css ?? [],
+                  devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+                },
+              }),
+              redirected: false,
+            };
+
+            return new Response(null, { status: 204 });
+          },
+        );
+      } catch (error) {
+        const renderPayload = {
+          routeId: transitionPageMatch.route.id,
+          data: null,
+          params: transitionPageMatch.params,
+          url: targetUrl.toString(),
+          error: {
+            message: sanitizeErrorMessage(error, !dev),
+          },
+        };
+        const initialChunk: TransitionInitialChunk = {
+          type: "initial",
+          kind: "error",
+          status: 500,
+          payload: renderPayload,
+          head: createManagedHeadMarkup({
+            headMarkup: collectHeadMarkup(routeModules, renderPayload),
+            assets: {
+              script: routeAssets?.script,
+              css: routeAssets?.css ?? [],
+              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+            },
+          }),
+          redirected: false,
+        };
+        const stream = createTransitionStream({
+          initialChunk,
+          sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+        });
+        return finalize(toTransitionStreamResponse(stream), "internal-transition");
+      }
+
+      const redirectLocation = middlewareResponse.headers.get("location");
+      if (redirectLocation && isRedirectStatus(middlewareResponse.status)) {
+        const stream = createTransitionStream({
+          redirectChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
+          sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+        });
+        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
+      }
+
+      if (!transitionInitialChunk) {
+        return finalize(
+          new Response("Transition fallback required for non-streamable response.", { status: 409 }),
+          "internal-transition",
+        );
+      }
+
+      const stream = createTransitionStream({
+        initialChunk: transitionInitialChunk,
+        deferredSettleEntries,
+        sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+      });
+      return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
+    }
 
     const apiMatch = routeAdapter.matchApi(url.pathname);
     if (apiMatch) {
@@ -534,6 +875,7 @@ export function createServer(
           devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
         },
         headElements: collectHeadElements(modules, payload),
+        routerSnapshot,
       });
 
       return finalize(toHtmlStreamResponse(stream, 404), "html");
@@ -559,10 +901,7 @@ export function createServer(
       locals: {},
     };
 
-    const routeAssets = resolveRouteAssets(pageMatch.route.id, {
-      dev,
-      runtimeOptions,
-    });
+    const routeAssets = routeAssetsById[pageMatch.route.id] ?? null;
 
     let response: Response;
     try {
@@ -663,6 +1002,7 @@ export function createServer(
                   devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
                 },
                 headElements: collectHeadElements(routeModules, errorPayload),
+                routerSnapshot,
               });
               return toHtmlStreamResponse(stream, 500);
             }
@@ -680,6 +1020,7 @@ export function createServer(
               devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
             },
             headElements: collectHeadElements(routeModules, renderPayload),
+            routerSnapshot,
             deferredSettleEntries,
           });
 
@@ -710,6 +1051,7 @@ export function createServer(
             devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
           },
           headElements: collectHeadElements(routeModules, errorPayload),
+          routerSnapshot,
         });
         return finalize(toHtmlStreamResponse(stream, 500), "html");
       }

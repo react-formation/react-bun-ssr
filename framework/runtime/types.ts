@@ -69,6 +69,7 @@ export type MetaValue = Record<string, string> | MetaFn;
 
 export interface RouteModule {
   default: ComponentType;
+  Loading?: ComponentType;
   loader?: Loader;
   action?: Action;
   middleware?: Middleware | Middleware[];
@@ -188,6 +189,44 @@ export interface RenderPayload {
     message: string;
   };
 }
+
+export interface ClientRouteSnapshot {
+  id: string;
+  routePath: string;
+  segments: RouteSegment[];
+  score: number;
+}
+
+export interface ClientRouterSnapshot {
+  pages: ClientRouteSnapshot[];
+  assets: Record<string, BuildRouteAsset>;
+  devVersion?: number;
+}
+
+export interface TransitionInitialChunk {
+  type: "initial";
+  kind: "page" | "not_found" | "error";
+  status: number;
+  payload: RenderPayload;
+  head: string;
+  redirected: boolean;
+}
+
+export interface TransitionDeferredChunk {
+  type: "deferred";
+  id: string;
+  ok: boolean;
+  value?: unknown;
+  error?: string;
+}
+
+export interface TransitionRedirectChunk {
+  type: "redirect";
+  location: string;
+  status: number;
+}
+
+export type TransitionChunk = TransitionInitialChunk | TransitionDeferredChunk | TransitionRedirectChunk;
 
 export interface RouteModuleBundle {
   root: RouteModule;

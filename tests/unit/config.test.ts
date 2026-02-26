@@ -1,5 +1,15 @@
-import { describe, expect, it } from "bun:test";
-import { resolveConfig } from "../../framework/runtime/config";
+import path from "node:path";
+import { afterAll, describe, expect, it } from "bun:test";
+import { loadUserConfig, resolveConfig } from "../../framework/runtime/config";
+import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
+
+const tempDirs: string[] = [];
+
+afterAll(async () => {
+  for (const dir of tempDirs.splice(0, tempDirs.length)) {
+    await removePath(dir);
+  }
+});
 
 describe("resolveConfig response header rules", () => {
   it("compiles glob sources to matchers", () => {
@@ -48,5 +58,21 @@ describe("resolveConfig response header rules", () => {
     expect(() => resolveConfig({
       headers: [{ source: "/api/**", headers: { "x-test": "" } }],
     })).toThrow("headers[0].headers.x-test");
+  });
+
+  it("loads config from cwd paths containing spaces and special characters", async () => {
+    const root = await makeTempDir("rbssr config #");
+    tempDirs.push(root);
+
+    const nestedCwd = path.join(root, "dir with spaces #");
+    await ensureDir(nestedCwd);
+    await Bun.write(
+      path.join(nestedCwd, "rbssr.config.ts"),
+      "export default { host: '127.0.0.1', port: 4123 };",
+    );
+
+    const loaded = await loadUserConfig(nestedCwd);
+    expect(loaded.host).toBe("127.0.0.1");
+    expect(loaded.port).toBe(4123);
   });
 });

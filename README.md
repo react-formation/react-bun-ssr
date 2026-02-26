@@ -2,6 +2,8 @@
 
 `react-bun-ssr` is a TypeScript-first SSR React framework built for Bun.
 
+Documentation: https://react-bun-ssr.fly.dev/docs/getting-started/introduction
+
 This repository contains both:
 - The framework implementation (`framework/**`, `bin/**`).
 - The official documentation site built with the framework itself (`app/**`).

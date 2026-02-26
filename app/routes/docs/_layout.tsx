@@ -119,67 +119,69 @@ export default function DocsLayoutRoute() {
         >
           Close
         </button>
-        <label className={styles.searchLabel} htmlFor="docs-search">
-          Search docs
-        </label>
-        <input
-          id="docs-search"
-          className={styles.searchInput}
-          placeholder="Search title, headings, keywords"
-          value={query}
-          onChange={(event) => setQuery(event.currentTarget.value)}
-        />
-        <select
-          className={styles.searchSelect}
-          value={sectionFilter}
-          onChange={(event) => setSectionFilter(event.currentTarget.value)}
-        >
-          <option value="all">All sections</option>
-          {sections.map((section) => (
-            <option key={section} value={section}>
-              {section}
-            </option>
-          ))}
-        </select>
-
-        {query ? (
-          <div className={styles.results}>
-            {results.map((result) => (
-              <a
-                key={result.item.id}
-                href={result.item.url}
-                className={`${styles.resultItem} search-result-item`}
-                onClick={() => setMenuOpen(false)}
-              >
-                <strong>{result.item.title}</strong>
-                <span>{result.item.excerpt}</span>
-              </a>
+        <div className={styles.sidebarBody}>
+          <label className={styles.searchLabel} htmlFor="docs-search">
+            Search docs
+          </label>
+          <input
+            id="docs-search"
+            className={styles.searchInput}
+            placeholder="Search title, headings, keywords"
+            value={query}
+            onChange={(event) => setQuery(event.currentTarget.value)}
+          />
+          <select
+            className={styles.searchSelect}
+            value={sectionFilter}
+            onChange={(event) => setSectionFilter(event.currentTarget.value)}
+          >
+            <option value="all">All sections</option>
+            {sections.map((section) => (
+              <option key={section} value={section}>
+                {section}
+              </option>
             ))}
-            {results.length === 0 ? <p className={styles.muted}>No result.</p> : null}
-          </div>
-        ) : null}
+          </select>
 
-        <nav className={styles.nav}>
-          {sidebarData.map((section) => (
-            <section key={section.section}>
-              <h3>{section.section}</h3>
-              {section.items.map((item) => {
-                const href = `/docs/${item.slug}`;
-                const active = item.slug === currentSlug;
-                return (
-                  <a
-                    key={item.slug}
-                    href={href}
-                    aria-current={active ? 'page' : undefined}
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    {item.title}
-                  </a>
-                );
-              })}
-            </section>
-          ))}
-        </nav>
+          {query ? (
+            <div className={styles.results}>
+              {results.map((result) => (
+                <a
+                  key={result.item.id}
+                  href={result.item.url}
+                  className={`${styles.resultItem} search-result-item`}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <strong>{result.item.title}</strong>
+                  <span>{result.item.excerpt}</span>
+                </a>
+              ))}
+              {results.length === 0 ? <p className={styles.muted}>No result.</p> : null}
+            </div>
+          ) : null}
+
+          <nav className={styles.nav}>
+            {sidebarData.map((section) => (
+              <section key={section.section}>
+                <h3>{section.section}</h3>
+                {section.items.map((item) => {
+                  const href = `/docs/${item.slug}`;
+                  const active = item.slug === currentSlug;
+                  return (
+                    <a
+                      key={item.slug}
+                      href={href}
+                      aria-current={active ? 'page' : undefined}
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {item.title}
+                    </a>
+                  );
+                })}
+              </section>
+            ))}
+          </nav>
+        </div>
       </aside>
 
       <article className={styles.content}>

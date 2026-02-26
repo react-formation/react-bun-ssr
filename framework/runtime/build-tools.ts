@@ -84,28 +84,26 @@ export async function generateClientEntries(options: {
 
   const runtimeClientFile = path.resolve(config.cwd, "framework/runtime/client-runtime.tsx");
 
-  const entries: ClientEntryFile[] = [];
+  return Promise.all(
+    manifest.pages.map(async route => {
+      const entryName = `route__${route.id}.tsx`;
+      const entryFilePath = path.join(generatedDir, entryName);
+      const source = buildClientEntrySource({
+        generatedDir,
+        route,
+        rootModulePath: config.rootModule,
+        runtimeClientFile,
+      });
 
-  for (const route of manifest.pages) {
-    const entryName = `route__${route.id}.tsx`;
-    const entryFilePath = path.join(generatedDir, entryName);
-    const source = buildClientEntrySource({
-      generatedDir,
-      route,
-      rootModulePath: config.rootModule,
-      runtimeClientFile,
-    });
+      await writeTextIfChanged(entryFilePath, source);
 
-    await writeTextIfChanged(entryFilePath, source);
-
-    entries.push({
-      routeId: route.id,
-      entryFilePath,
-      route,
-    });
-  }
-
-  return entries;
+      return {
+        routeId: route.id,
+        entryFilePath,
+        route,
+      };
+    }),
+  );
 }
 
 async function mapBuildOutputsByPrefix(options: {
@@ -184,17 +182,19 @@ export async function copyDirRecursive(sourceDir: string, destinationDir: string
   await ensureDir(destinationDir);
 
   const entries = await glob("**/*", { cwd: sourceDir });
-  for (const entry of entries) {
-    const from = path.join(sourceDir, entry);
-    const to = path.join(destinationDir, entry);
-    const fileStat = await statPath(from);
-    if (!fileStat?.isFile()) {
-      continue;
-    }
+  await Promise.all(
+    entries.map(async entry => {
+      const from = path.join(sourceDir, entry);
+      const to = path.join(destinationDir, entry);
+      const fileStat = await statPath(from);
+      if (!fileStat?.isFile()) {
+        return;
+      }
 
-    await ensureDir(path.dirname(to));
-    await Bun.write(to, Bun.file(from));
-  }
+      await ensureDir(path.dirname(to));
+      await Bun.write(to, Bun.file(from));
+    }),
+  );
 }
 
 export function createBuildManifest(routeAssets: Record<string, BuildRouteAsset>): BuildManifest {
@@ -210,15 +210,16 @@ export async function discoverFileSignature(rootDir: string): Promise<string> {
     .filter(file => !normalizeSlashes(file).includes("/node_modules/"))
     .sort();
 
-  const signatureBits: string[] = [];
-  for (const filePath of files) {
-    const fileStat = await statPath(filePath);
-    if (!fileStat?.isFile()) {
-      continue;
-    }
-    const contentHash = stableHash(await Bun.file(filePath).bytes());
-    signatureBits.push(`${normalizeSlashes(filePath)}:${contentHash}`);
-  }
+  const signatureBits = (await Promise.all(
+    files.map(async filePath => {
+      const fileStat = await statPath(filePath);
+      if (!fileStat?.isFile()) {
+        return null;
+      }
+      const contentHash = stableHash(await Bun.file(filePath).bytes());
+      return `${normalizeSlashes(filePath)}:${contentHash}`;
+    }),
+  )).filter((value): value is string => Boolean(value));
 
   return stableHash(signatureBits.join("|"));
 }

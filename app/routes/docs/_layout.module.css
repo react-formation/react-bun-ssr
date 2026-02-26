@@ -12,13 +12,23 @@
   position: sticky;
   top: 78px;
   align-self: start;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
   box-shadow: var(--shadow-sm);
   padding: 1rem;
   max-height: calc(100vh - 105px);
+  overflow: hidden;
+}
+
+.sidebarBody {
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .isOpen {}
@@ -238,12 +248,14 @@
     right: 10px;
     bottom: 10px;
     z-index: 30;
-    max-height: none;
+    height: calc(100dvh - 82px);
+    max-height: calc(100dvh - 82px);
+    overflow: hidden;
     box-shadow: var(--shadow-md);
   }
 
   .sidebar.isOpen {
-    display: block;
+    display: flex;
   }
 
   .sidebarBackdrop {
@@ -264,6 +276,11 @@
     background: #fff;
     padding: 0.35rem 0.55rem;
     font: inherit;
+  }
+
+  .nav {
+    min-height: 0;
+    padding-bottom: 0.25rem;
   }
 
   .content {

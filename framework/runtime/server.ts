@@ -459,8 +459,10 @@ export function createServer(
         locals: {},
       };
 
-      const globalMiddleware = await loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey);
-      const routeMiddleware = await loadNestedMiddleware(apiMatch.route.middlewareFiles, cacheBustKey);
+      const [globalMiddleware, routeMiddleware] = await Promise.all([
+        loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
+        loadNestedMiddleware(apiMatch.route.middlewareFiles, cacheBustKey),
+      ]);
       const allMiddleware = [...globalMiddleware, ...routeMiddleware];
 
       let response: Response;
@@ -528,15 +530,16 @@ export function createServer(
       return finalize(toHtmlResponse(html, 404), "html");
     }
 
-    const routeModules = await loadRouteModules({
-      rootFilePath: activeConfig.rootModule,
-      layoutFiles: pageMatch.route.layoutFiles,
-      routeFilePath: pageMatch.route.filePath,
-      cacheBustKey,
-    });
-
-    const globalMiddleware = await loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey);
-    const nestedMiddleware = await loadNestedMiddleware(pageMatch.route.middlewareFiles, cacheBustKey);
+    const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
+      loadRouteModules({
+        rootFilePath: activeConfig.rootModule,
+        layoutFiles: pageMatch.route.layoutFiles,
+        routeFilePath: pageMatch.route.filePath,
+        cacheBustKey,
+      }),
+      loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
+      loadNestedMiddleware(pageMatch.route.middlewareFiles, cacheBustKey),
+    ]);
     const moduleMiddleware = extractRouteMiddleware(routeModules.route);
 
     const requestContext: RequestContext = {

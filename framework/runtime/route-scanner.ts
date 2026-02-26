@@ -130,7 +130,7 @@ export async function scanRoutes(
   const layoutByDir = new Map<string, string>();
   const middlewareByDir = new Map<string, string>();
 
-  const pageRoutes: PageRouteDefinition[] = [];
+  const pageRouteTasks: Array<Promise<PageRouteDefinition>> = [];
   const apiRoutes: ApiRouteDefinition[] = [];
 
   for (const absoluteFilePath of allFiles) {
@@ -203,12 +203,12 @@ export async function scanRoutes(
     const shape = toUrlShape(withoutExt);
     const ancestors = getAncestorDirs(relativeDir);
     const routeFilePath = MD_FILE_RE.test(fileName)
-      ? await compileMarkdownRouteModule({
+      ? compileMarkdownRouteModule({
           routesDir,
           sourceFilePath: absoluteFilePath,
           generatedMarkdownRootDir: options.generatedMarkdownRootDir,
         })
-      : absoluteFilePath;
+      : Promise.resolve(absoluteFilePath);
 
     const layoutFiles = ancestors
       .map(dir => layoutByDir.get(dir))
@@ -218,22 +218,25 @@ export async function scanRoutes(
       .map(dir => middlewareByDir.get(dir))
       .filter((value): value is string => Boolean(value));
 
-    pageRoutes.push({
-      type: "page",
-      id: toRouteId(withoutExt),
-      filePath: routeFilePath,
-      routePath: shape.routePath,
-      segments: shape.segments,
-      score: getRouteScore(shape.segments),
-      layoutFiles,
-      middlewareFiles,
-      directory: relativeDir,
-    });
+    pageRouteTasks.push(routeFilePath.then((resolvedRouteFilePath) => {
+      return {
+        type: "page",
+        id: toRouteId(withoutExt),
+        filePath: resolvedRouteFilePath,
+        routePath: shape.routePath,
+        segments: shape.segments,
+        score: getRouteScore(shape.segments),
+        layoutFiles,
+        middlewareFiles,
+        directory: relativeDir,
+      };
+    }));
   }
+
+  const pageRoutes = await Promise.all(pageRouteTasks);
 
   return {
     pages: sortRoutes(pageRoutes),
     api: sortRoutes(apiRoutes),
   };
 }
-

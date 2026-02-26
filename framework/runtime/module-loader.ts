@@ -117,14 +117,13 @@ export async function loadRouteModules(options: {
   routeFilePath: string;
   cacheBustKey?: string;
 }): Promise<RouteModuleBundle> {
-  const root = await loadRouteModule(options.rootFilePath, options.cacheBustKey);
-
-  const layouts: RouteModule[] = [];
-  for (const layoutFilePath of options.layoutFiles) {
-    layouts.push(await loadRouteModule(layoutFilePath, options.cacheBustKey));
-  }
-
-  const route = await loadRouteModule(options.routeFilePath, options.cacheBustKey);
+  const [root, layouts, route] = await Promise.all([
+    loadRouteModule(options.rootFilePath, options.cacheBustKey),
+    Promise.all(
+      options.layoutFiles.map(layoutFilePath => loadRouteModule(layoutFilePath, options.cacheBustKey)),
+    ),
+    loadRouteModule(options.routeFilePath, options.cacheBustKey),
+  ]);
 
   return {
     root,
@@ -169,14 +168,15 @@ export async function loadNestedMiddleware(
   middlewareFilePaths: string[],
   cacheBustKey?: string,
 ): Promise<Middleware[]> {
-  const result: Middleware[] = [];
+  const rawModules = await Promise.all(
+    middlewareFilePaths.map(middlewareFilePath => {
+      return importModule<Record<string, unknown>>(middlewareFilePath, cacheBustKey);
+    }),
+  );
 
-  for (const middlewareFilePath of middlewareFilePaths) {
-    const raw = await importModule<Record<string, unknown>>(middlewareFilePath, cacheBustKey);
-    result.push(...normalizeMiddlewareExport(raw.default), ...normalizeMiddlewareExport(raw.middleware));
-  }
-
-  return result;
+  return rawModules.flatMap((raw) => {
+    return [...normalizeMiddlewareExport(raw.default), ...normalizeMiddlewareExport(raw.middleware)];
+  });
 }
 
 export function extractRouteMiddleware(module: RouteModule): Middleware[] {

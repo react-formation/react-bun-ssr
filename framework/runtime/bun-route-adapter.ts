@@ -87,6 +87,7 @@ async function writeProjectionRoutes<T extends PageRouteDefinition | ApiRouteDef
 
   const byProjectedFilePath = new Map<string, T>();
   const collisionMap = new Map<string, T>();
+  const writes: Array<{ projectedFilePath: string; source: string }> = [];
 
   for (const route of routes) {
     const relativeFilePath = normalizeSlashes(toRouterRelativePath(route.routePath, extension));
@@ -101,11 +102,19 @@ async function writeProjectionRoutes<T extends PageRouteDefinition | ApiRouteDef
     }
 
     collisionMap.set(projectedKey, route);
-
-    await ensureDir(path.dirname(projectedFilePath));
-    await writeTextIfChanged(projectedFilePath, toSource(projectedFilePath, route.filePath));
+    writes.push({
+      projectedFilePath,
+      source: toSource(projectedFilePath, route.filePath),
+    });
     byProjectedFilePath.set(projectedKey, route);
   }
+
+  await Promise.all(
+    writes.map(async ({ projectedFilePath, source }) => {
+      await ensureDir(path.dirname(projectedFilePath));
+      await writeTextIfChanged(projectedFilePath, source);
+    }),
+  );
 
   return byProjectedFilePath;
 }
@@ -150,21 +159,22 @@ export async function createBunRouteAdapter(options: {
   const pagesProjectionDir = path.join(options.projectionRootDir, "pages");
   const apiProjectionDir = path.join(options.projectionRootDir, "api");
 
-  const pageRouteByProjectedPath = await writeProjectionRoutes({
-    routes: manifest.pages,
-    outDir: pagesProjectionDir,
-    extension: PAGE_STUB_EXT,
-    toSource: toPageStubSource,
-    routeTypeLabel: "page",
-  });
-
-  const apiRouteByProjectedPath = await writeProjectionRoutes({
-    routes: manifest.api,
-    outDir: apiProjectionDir,
-    extension: API_STUB_EXT,
-    toSource: toApiStubSource,
-    routeTypeLabel: "api",
-  });
+  const [pageRouteByProjectedPath, apiRouteByProjectedPath] = await Promise.all([
+    writeProjectionRoutes({
+      routes: manifest.pages,
+      outDir: pagesProjectionDir,
+      extension: PAGE_STUB_EXT,
+      toSource: toPageStubSource,
+      routeTypeLabel: "page",
+    }),
+    writeProjectionRoutes({
+      routes: manifest.api,
+      outDir: apiProjectionDir,
+      extension: API_STUB_EXT,
+      toSource: toApiStubSource,
+      routeTypeLabel: "api",
+    }),
+  ]);
 
   const pageRouter = new Bun.FileSystemRouter({
     style: "nextjs",

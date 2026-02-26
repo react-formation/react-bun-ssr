@@ -76,8 +76,10 @@ export async function runBuild(cwd = process.cwd()): Promise<void> {
   const distClientDir = path.join(resolved.distDir, "client");
   const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
 
-  await ensureCleanDirectory(resolved.distDir);
-  await ensureCleanDirectory(generatedDir);
+  await Promise.all([
+    ensureCleanDirectory(resolved.distDir),
+    ensureCleanDirectory(generatedDir),
+  ]);
 
   const routeManifest = await buildRouteManifest(resolved);
   const entries = await generateClientEntries({
@@ -114,9 +116,11 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   const docsSourceDir = path.resolve(cwd, "docs");
   const docsSnapshotDir = path.join(serverSnapshotsRoot, "docs");
 
-  await ensureDir(generatedDir);
-  await ensureDir(devClientDir);
-  await ensureCleanDirectory(serverSnapshotsRoot);
+  await Promise.all([
+    ensureDir(generatedDir),
+    ensureDir(devClientDir),
+    ensureCleanDirectory(serverSnapshotsRoot),
+  ]);
 
   let routeAssets: Record<string, BuildRouteAsset> = {};
   let signature = "";
@@ -152,14 +156,19 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
     signature = nextSignature;
 
     const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
-    await ensureCleanDirectory(snapshotDir);
-    await copyDirRecursive(resolved.appDir, snapshotDir);
-    if (await existsPath(docsSourceDir)) {
-      await ensureCleanDirectory(docsSnapshotDir);
-      await copyDirRecursive(docsSourceDir, docsSnapshotDir);
-    } else {
-      await removePath(docsSnapshotDir);
-    }
+    const hasDocsSourceDir = await existsPath(docsSourceDir);
+    await Promise.all([
+      (async () => {
+        await ensureCleanDirectory(snapshotDir);
+        await copyDirRecursive(resolved.appDir, snapshotDir);
+      })(),
+      hasDocsSourceDir
+        ? (async () => {
+            await ensureCleanDirectory(docsSnapshotDir);
+            await copyDirRecursive(docsSourceDir, docsSnapshotDir);
+          })()
+        : removePath(docsSnapshotDir),
+    ]);
 
     const snapshotConfig: ResolvedConfig = {
       ...resolved,
@@ -196,9 +205,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
         return bNum - aNum;
       })
       .slice(3);
-    for (const stale of staleVersions) {
-      await removePath(path.join(serverSnapshotsRoot, stale));
-    }
+    await Promise.all(staleVersions.map(stale => removePath(path.join(serverSnapshotsRoot, stale))));
 
     version += 1;
     notifyReload();

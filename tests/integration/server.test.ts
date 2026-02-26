@@ -189,6 +189,26 @@ This route is **native markdown**.`,
     expect(await logoHead.text()).toBe("");
   });
 
+  it("renders routes in production when server bytecode is disabled", async () => {
+    const runtimeImport = "react-bun-ssr/route";
+    const cwd = await writeFixture({
+      "app/root.tsx": `import { Outlet } from "${runtimeImport}";
+      export default function Root(){ return <div><Outlet /></div>; }`,
+      "app/routes/index.tsx": `export default function Index(){ return <h1>prod-no-bytecode</h1>; }`,
+    });
+
+    const server = createServer({
+      appDir: path.join(cwd, "app"),
+      distDir: path.join(cwd, "dist"),
+      mode: "production",
+      serverBytecode: false,
+    });
+
+    const response = await server.fetch(new Request("http://localhost/"));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("prod-no-bytecode");
+  });
+
   it("streams transition endpoint chunks for page, error, and not-found states", async () => {
     const runtimeImport = "react-bun-ssr/route";
     const cwd = await writeFixture({

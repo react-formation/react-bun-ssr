@@ -101,7 +101,7 @@ const SYMBOL_DETAILS: Record<
     links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
   },
   FrameworkConfig: {
-    description: "Main framework configuration surface for paths, server mode, and response headers.",
+    description: "Main framework configuration surface for paths, server mode, response headers, and server bytecode behavior.",
     links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
   },
   json: {

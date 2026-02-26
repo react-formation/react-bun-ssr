@@ -112,6 +112,7 @@ export interface FrameworkConfig {
   host?: string;
   port?: number;
   mode?: "development" | "production";
+  serverBytecode?: boolean;
   headers?: ResponseHeaderRule[];
 }
 
@@ -126,6 +127,7 @@ export interface ResolvedConfig {
   host: string;
   port: number;
   mode: "development" | "production";
+  serverBytecode: boolean;
   headerRules: ResolvedResponseHeaderRule[];
 }
 

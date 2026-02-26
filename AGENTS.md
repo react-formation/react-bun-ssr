@@ -21,7 +21,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Environment assumptions
 
-- Bun `>= 1.3.9`.
+- Bun `>= 1.3.10`.
 - If `bun` is not on PATH in non-interactive shells, use:
   - `export PATH="$HOME/.bun/bin:$PATH"`
 

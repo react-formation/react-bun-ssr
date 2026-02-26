@@ -196,7 +196,7 @@ defineConfig(config: FrameworkConfig): FrameworkConfig
 
 - Kind: interface
 - Source: `framework/runtime/types.ts`
-- Description: Main framework configuration surface for paths, server mode, and response headers.
+- Description: Main framework configuration surface for paths, server mode, response headers, and server bytecode behavior.
 - Learn more: [Environment configuration](/docs/deployment/environment)
 
 ```ts
@@ -210,6 +210,7 @@ export interface FrameworkConfig {
   host?: string;
   port?: number;
   mode?: "development" | "production";
+  serverBytecode?: boolean;
   headers?: ResponseHeaderRule[];
 }
 ```

@@ -224,9 +224,12 @@ async function parseActionBody(request: Request): Promise<Pick<ActionContext, "f
 
 async function loadRootOnlyModule(
   rootModulePath: string,
-  cacheBustKey?: string,
+  options: {
+    cacheBustKey?: string;
+    serverBytecode: boolean;
+  },
 ): Promise<RouteModule> {
-  return loadRouteModule(rootModulePath, cacheBustKey);
+  return loadRouteModule(rootModulePath, options);
 }
 
 function resolveRouteAssets(
@@ -600,7 +603,10 @@ export function createServer(
 
       const transitionPageMatch = routeAdapter.matchPage(targetUrl.pathname);
       if (!transitionPageMatch) {
-        const rootModule = await loadRootOnlyModule(activeConfig.rootModule, cacheBustKey);
+        const rootModule = await loadRootOnlyModule(activeConfig.rootModule, {
+          cacheBustKey,
+          serverBytecode: activeConfig.serverBytecode,
+        });
         const fallbackRoute: RouteModule = {
           default: () => null,
           NotFound: rootModule.NotFound,
@@ -644,6 +650,7 @@ export function createServer(
           layoutFiles: transitionPageMatch.route.layoutFiles,
           routeFilePath: transitionPageMatch.route.filePath,
           cacheBustKey,
+          serverBytecode: activeConfig.serverBytecode,
         }),
         loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
         loadNestedMiddleware(transitionPageMatch.route.middlewareFiles, cacheBustKey),
@@ -841,7 +848,10 @@ export function createServer(
     const pageMatch = routeAdapter.matchPage(url.pathname);
 
     if (!pageMatch) {
-      const rootModule = await loadRootOnlyModule(activeConfig.rootModule, cacheBustKey);
+      const rootModule = await loadRootOnlyModule(activeConfig.rootModule, {
+        cacheBustKey,
+        serverBytecode: activeConfig.serverBytecode,
+      });
       const fallbackRoute: RouteModule = {
         default: () => null,
         NotFound: rootModule.NotFound,
@@ -887,6 +897,7 @@ export function createServer(
         layoutFiles: pageMatch.route.layoutFiles,
         routeFilePath: pageMatch.route.filePath,
         cacheBustKey,
+        serverBytecode: activeConfig.serverBytecode,
       }),
       loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
       loadNestedMiddleware(pageMatch.route.middlewareFiles, cacheBustKey),

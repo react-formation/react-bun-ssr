@@ -101,6 +101,8 @@ export function resolveConfig(config: FrameworkConfig = {}, cwd = process.cwd())
   const rootModule = path.resolve(appDir, config.rootModule ?? "root.tsx");
   const middlewareFile = path.resolve(appDir, config.middlewareFile ?? "middleware.ts");
   const distDir = path.resolve(cwd, config.distDir ?? "dist");
+  const mode = config.mode ?? (process.env.NODE_ENV === "production" ? "production" : "development");
+  const serverBytecode = config.serverBytecode ?? mode === "production";
   const headerRules = toHeaderRules(config);
 
   return {
@@ -113,7 +115,8 @@ export function resolveConfig(config: FrameworkConfig = {}, cwd = process.cwd())
     distDir,
     host: config.host ?? "0.0.0.0",
     port: config.port ?? 3000,
-    mode: config.mode ?? (process.env.NODE_ENV === "production" ? "production" : "development"),
+    mode,
+    serverBytecode,
     headerRules,
   };
 }

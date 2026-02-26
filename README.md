@@ -22,7 +22,7 @@ This repository contains both:
 
 ## Requirements
 
-- Bun `>= 1.3.9`
+- Bun `>= 1.3.10`
 - macOS/Linux (or equivalent Bun-supported environment)
 
 ## Runtime API policy

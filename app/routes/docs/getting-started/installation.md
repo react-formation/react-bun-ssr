@@ -8,7 +8,7 @@ tags: install,cli
 
 # Installation
 
-Use Bun `>=1.3.9`.
+Use Bun `>=1.3.10`.
 
 ## Install dependencies
 

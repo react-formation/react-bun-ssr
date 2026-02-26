@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.3.9 AS builder
+FROM oven/bun:1.3.10 AS builder
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -9,7 +9,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run docs:build
 
-FROM oven/bun:1.3.9 AS runtime
+FROM oven/bun:1.3.10 AS runtime
 WORKDIR /app
 
 COPY package.json bun.lock ./

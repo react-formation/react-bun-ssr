@@ -47,6 +47,24 @@ export default defineConfig({
 
 Rules are evaluated top-to-bottom, and later matching rules override earlier ones.
 
+## Server bytecode toggle
+
+Server route module bundling uses Bun bytecode by default in production.
+You can disable it explicitly:
+
+```ts
+import { defineConfig } from "react-bun-ssr";
+
+export default defineConfig({
+  serverBytecode: false,
+});
+```
+
+Defaults:
+
+- `mode: "production"` => `serverBytecode: true`
+- `mode: "development"` => `serverBytecode: false`
+
 ## Default static cache behavior
 
 In production:

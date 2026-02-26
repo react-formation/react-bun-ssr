@@ -12,6 +12,13 @@ afterAll(async () => {
 });
 
 describe("resolveConfig response header rules", () => {
+  it("resolves serverBytecode by mode and explicit overrides", () => {
+    expect(resolveConfig({ mode: "production" }).serverBytecode).toBe(true);
+    expect(resolveConfig({ mode: "development" }).serverBytecode).toBe(false);
+    expect(resolveConfig({ mode: "production", serverBytecode: false }).serverBytecode).toBe(false);
+    expect(resolveConfig({ mode: "development", serverBytecode: true }).serverBytecode).toBe(true);
+  });
+
   it("compiles glob sources to matchers", () => {
     const resolved = resolveConfig({
       headers: [

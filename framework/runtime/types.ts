@@ -254,7 +254,17 @@ export interface TransitionRedirectChunk {
   status: number;
 }
 
-export type TransitionChunk = TransitionInitialChunk | TransitionDeferredChunk | TransitionRedirectChunk;
+export interface TransitionDocumentChunk {
+  type: "document";
+  location: string;
+  status: number;
+}
+
+export type TransitionChunk =
+  | TransitionInitialChunk
+  | TransitionDeferredChunk
+  | TransitionRedirectChunk
+  | TransitionDocumentChunk;
 
 export interface RouteModuleBundle {
   root: RouteModule;
@@ -274,6 +284,7 @@ export interface ServerRuntimeOptions {
   devAssets?: Record<string, BuildRouteAsset>;
   getDevAssets?: () => Record<string, BuildRouteAsset>;
   reloadVersion?: () => number;
+  routeManifestVersion?: () => number;
   subscribeReload?: (listener: (version: number) => void) => (() => void) | void;
   resolvePaths?: () => Partial<ResolvedConfig>;
   onBeforeRequest?: () => Promise<void>;

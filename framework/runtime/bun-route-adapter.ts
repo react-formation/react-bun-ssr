@@ -1,5 +1,6 @@
 import path from "node:path";
-import { ensureCleanDir, ensureDir, writeTextIfChanged } from "./io";
+import { ensureDir, glob, removePath, writeTextIfChanged } from "./io";
+import { matchRouteBySegments } from "./matcher";
 import { scanRoutes } from "./route-scanner";
 import type {
   ApiRouteDefinition,
@@ -116,17 +117,30 @@ async function writeProjectionRoutes<T extends PageRouteDefinition | ApiRouteDef
     }),
   );
 
+  const expectedPaths = new Set(writes.map(({ projectedFilePath }) => path.resolve(projectedFilePath)));
+  const existingPaths = new Set(await glob(`**/*${extension}`, {
+    cwd: outDir,
+    absolute: true,
+  }));
+
+  await Promise.all(
+    [...existingPaths]
+      .filter((projectedFilePath) => !expectedPaths.has(path.resolve(projectedFilePath)))
+      .map((projectedFilePath) => removePath(projectedFilePath)),
+  );
+
   return byProjectedFilePath;
 }
 
 function toRouteMatch<T extends PageRouteDefinition | ApiRouteDefinition>(
+  orderedRoutes: T[],
   routeByProjectedPath: Map<string, T>,
   pathname: string,
   router: Bun.FileSystemRouter,
 ): RouteMatch<T> | null {
   const matched = router.match(pathname);
   if (!matched) {
-    return null;
+    return matchRouteBySegments(orderedRoutes, pathname);
   }
 
   const matchedSource = normalizeRouteKey(
@@ -136,7 +150,7 @@ function toRouteMatch<T extends PageRouteDefinition | ApiRouteDefinition>(
   );
   const route = routeByProjectedPath.get(matchedSource);
   if (!route) {
-    return null;
+    return matchRouteBySegments(orderedRoutes, pathname);
   }
 
   return {
@@ -153,8 +167,7 @@ export async function createBunRouteAdapter(options: {
   const manifest = await scanRoutes(options.routesDir, {
     generatedMarkdownRootDir: options.generatedMarkdownRootDir,
   });
-
-  await ensureCleanDir(options.projectionRootDir);
+  await ensureDir(options.projectionRootDir);
 
   const pagesProjectionDir = path.join(options.projectionRootDir, "pages");
   const apiProjectionDir = path.join(options.projectionRootDir, "api");
@@ -191,10 +204,10 @@ export async function createBunRouteAdapter(options: {
   return {
     manifest,
     matchPage(pathname) {
-      return toRouteMatch(pageRouteByProjectedPath, pathname, pageRouter);
+      return toRouteMatch(manifest.pages, pageRouteByProjectedPath, pathname, pageRouter);
     },
     matchApi(pathname) {
-      return toRouteMatch(apiRouteByProjectedPath, pathname, apiRouter);
+      return toRouteMatch(manifest.api, apiRouteByProjectedPath, pathname, apiRouter);
     },
   };
 }

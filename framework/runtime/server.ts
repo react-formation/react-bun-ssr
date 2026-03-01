@@ -28,6 +28,7 @@ import type {
   ServerRuntimeOptions,
   TransitionChunk,
   TransitionDeferredChunk,
+  TransitionDocumentChunk,
   TransitionInitialChunk,
   TransitionRedirectChunk,
 } from "./types";
@@ -330,6 +331,7 @@ async function loadRootOnlyModule(
   options: {
     cacheBustKey?: string;
     serverBytecode: boolean;
+    devSourceImports?: boolean;
   },
 ): Promise<RouteModule> {
   return loadRouteModule(rootModulePath, options);
@@ -436,17 +438,25 @@ function toRedirectChunk(location: string, status: number): TransitionRedirectCh
   };
 }
 
+function toDocumentChunk(location: string, status: number): TransitionDocumentChunk {
+  return {
+    type: "document",
+    location,
+    status,
+  };
+}
+
 function createTransitionStream(options: {
   initialChunk?: TransitionInitialChunk;
-  redirectChunk?: TransitionRedirectChunk;
+  controlChunk?: TransitionRedirectChunk | TransitionDocumentChunk;
   deferredSettleEntries?: DeferredSettleEntry[];
   sanitizeDeferredError: (message: string) => string;
 }): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        if (options.redirectChunk) {
-          controller.enqueue(toTransitionChunkLine(options.redirectChunk));
+        if (options.controlChunk) {
+          controller.enqueue(toTransitionChunkLine(options.controlChunk));
           controller.close();
           return;
         }
@@ -489,74 +499,6 @@ function createTransitionStream(options: {
   });
 }
 
-function createDevReloadEventStream(options: {
-  getVersion: () => number;
-  subscribe?: (listener: (version: number) => void) => (() => void) | void;
-}): Response {
-  const encoder = new TextEncoder();
-  let interval: ReturnType<typeof setInterval> | undefined;
-  let unsubscribe: (() => void) | void;
-  let cleanup: (() => void) | undefined;
-
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      let closed = false;
-
-      cleanup = (): void => {
-        if (closed) {
-          return;
-        }
-        closed = true;
-        if (interval) {
-          clearInterval(interval);
-          interval = undefined;
-        }
-        if (typeof unsubscribe === "function") {
-          unsubscribe();
-          unsubscribe = undefined;
-        }
-      };
-
-      const sendChunk = (chunk: string): void => {
-        if (closed) {
-          return;
-        }
-        try {
-          controller.enqueue(encoder.encode(chunk));
-        } catch {
-          cleanup?.();
-        }
-      };
-
-      const sendReload = (version: number): void => {
-        sendChunk(`event: reload\ndata: ${version}\n\n`);
-      };
-
-      sendChunk(": connected\n\n");
-      sendReload(options.getVersion());
-
-      unsubscribe = options.subscribe?.(nextVersion => {
-        sendReload(nextVersion);
-      });
-
-      interval = setInterval(() => {
-        sendChunk(": ping\n\n");
-      }, 15_000);
-    },
-    cancel() {
-      cleanup?.();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      connection: "keep-alive",
-    },
-  });
-}
-
 export function createServer(
   config: FrameworkConfig = {},
   runtimeOptions: ServerRuntimeOptions = {},
@@ -569,8 +511,10 @@ export function createServer(
   const pendingAdapterCache = new Map<string, Promise<BunRouteAdapter>>();
 
   const getAdapterKey = (activeConfig: ResolvedConfig): string => {
-    const reloadVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : 0;
-    return `${normalizeSlashes(activeConfig.routesDir)}|${dev ? "dev" : "prod"}|${reloadVersion}`;
+    const routeVersion = dev
+      ? runtimeOptions.routeManifestVersion?.() ?? runtimeOptions.reloadVersion?.() ?? 0
+      : 0;
+    return `${normalizeSlashes(activeConfig.routesDir)}|${dev ? "dev" : "prod"}|${routeVersion}`;
   };
 
   const trimAdapterCache = (): void => {
@@ -601,10 +545,9 @@ export function createServer(
       return pending;
     }
 
-    const reloadVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : 0;
     const routesHash = stableHash(normalizeSlashes(activeConfig.routesDir));
     const projectionRootDir = dev
-      ? path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", `dev-${routesHash}-v${reloadVersion}`)
+      ? path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", `dev-${routesHash}`)
       : path.resolve(activeConfig.cwd, ".rbssr/generated/router-projection", "prod", routesHash);
 
     const buildAdapterPromise = createBunRouteAdapter({
@@ -626,8 +569,6 @@ export function createServer(
   };
 
   const fetchHandler = async (request: Request): Promise<Response> => {
-    await runtimeOptions.onBeforeRequest?.();
-
     const runtimePaths = runtimeOptions.resolvePaths?.() ?? {};
     const activeConfig: ResolvedConfig = {
       ...resolvedConfig,
@@ -646,13 +587,6 @@ export function createServer(
         config: activeConfig,
       });
     };
-
-    if (dev && url.pathname === "/__rbssr/events") {
-      return finalize(createDevReloadEventStream({
-        getVersion: () => runtimeOptions.reloadVersion?.() ?? 0,
-        subscribe: runtimeOptions.subscribeReload,
-      }), "internal-dev");
-    }
 
     if (dev && url.pathname === "/__rbssr/version") {
       const version = runtimeOptions.reloadVersion?.() ?? 0;
@@ -692,8 +626,20 @@ export function createServer(
       return finalize(publicResponse, "static");
     }
 
+    await runtimeOptions.onBeforeRequest?.();
+
     const routeAdapter = await getRouteAdapter(activeConfig);
-    const cacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? Date.now()) : undefined;
+    const devCacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? 0) : undefined;
+    const routeModuleLoadOptions = {
+      cacheBustKey: devCacheBustKey,
+      serverBytecode: activeConfig.serverBytecode,
+      devSourceImports: false,
+    };
+    const requestModuleLoadOptions = {
+      cacheBustKey: undefined,
+      serverBytecode: activeConfig.serverBytecode,
+      devSourceImports: dev,
+    };
     const routeAssetsById = resolveAllRouteAssets({
       dev,
       runtimeOptions,
@@ -728,8 +674,7 @@ export function createServer(
       const transitionPageMatch = routeAdapter.matchPage(targetUrl.pathname);
       if (!transitionPageMatch) {
         const rootModule = await loadRootOnlyModule(activeConfig.rootModule, {
-          cacheBustKey,
-          serverBytecode: activeConfig.serverBytecode,
+          ...routeModuleLoadOptions,
         });
         const fallbackRoute: RouteModule = {
           default: () => null,
@@ -769,11 +714,10 @@ export function createServer(
           rootFilePath: activeConfig.rootModule,
           layoutFiles: transitionPageMatch.route.layoutFiles,
           routeFilePath: transitionPageMatch.route.filePath,
-          cacheBustKey,
-          serverBytecode: activeConfig.serverBytecode,
+          ...routeModuleLoadOptions,
         }),
-        loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
-        loadNestedMiddleware(transitionPageMatch.route.middlewareFiles, cacheBustKey),
+        loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
+        loadNestedMiddleware(transitionPageMatch.route.middlewareFiles, requestModuleLoadOptions),
       ]);
       const moduleMiddleware = extractRouteMiddleware(routeModules.route);
       const routeAssets = routeAssetsById[transitionPageMatch.route.id] ?? null;
@@ -862,7 +806,7 @@ export function createServer(
           const location = redirectResponse.headers.get("location");
           if (location) {
             const stream = createTransitionStream({
-              redirectChunk: toRedirectChunk(location, redirectResponse.status),
+              controlChunk: toRedirectChunk(location, redirectResponse.status),
               sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
             });
             return finalize(toTransitionStreamResponse(stream, redirectResponse.headers), "internal-transition");
@@ -952,17 +896,18 @@ export function createServer(
       const redirectLocation = middlewareResponse.headers.get("location");
       if (redirectLocation && isRedirectStatus(middlewareResponse.status)) {
         const stream = createTransitionStream({
-          redirectChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
+          controlChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
           sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
         });
         return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
       }
 
       if (!transitionInitialChunk) {
-        return finalize(
-          new Response("Transition fallback required for non-streamable response.", { status: 409 }),
-          "internal-transition",
-        );
+        const stream = createTransitionStream({
+          controlChunk: toDocumentChunk(targetUrl.toString(), middlewareResponse.status),
+          sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+        });
+        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
       }
 
       const stream = createTransitionStream({
@@ -975,7 +920,7 @@ export function createServer(
 
     const apiMatch = routeAdapter.matchApi(url.pathname);
     if (apiMatch) {
-      const apiModule = await loadApiRouteModule(apiMatch.route.filePath, cacheBustKey);
+      const apiModule = await loadApiRouteModule(apiMatch.route.filePath, requestModuleLoadOptions);
       const methodHandler = getMethodHandler(apiModule as Record<string, unknown>, request.method);
 
       if (typeof methodHandler !== "function") {
@@ -997,8 +942,8 @@ export function createServer(
       };
 
       const [globalMiddleware, routeMiddleware] = await Promise.all([
-        loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
-        loadNestedMiddleware(apiMatch.route.middlewareFiles, cacheBustKey),
+        loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
+        loadNestedMiddleware(apiMatch.route.middlewareFiles, requestModuleLoadOptions),
       ]);
       const allMiddleware = [...globalMiddleware, ...routeMiddleware];
       let apiPhase: RouteErrorPhase = "middleware";
@@ -1062,8 +1007,7 @@ export function createServer(
 
     if (!pageMatch) {
       const rootModule = await loadRootOnlyModule(activeConfig.rootModule, {
-        cacheBustKey,
-        serverBytecode: activeConfig.serverBytecode,
+        ...routeModuleLoadOptions,
       });
       const fallbackRoute: RouteModule = {
         default: () => null,
@@ -1105,11 +1049,10 @@ export function createServer(
         rootFilePath: activeConfig.rootModule,
         layoutFiles: pageMatch.route.layoutFiles,
         routeFilePath: pageMatch.route.filePath,
-        cacheBustKey,
-        serverBytecode: activeConfig.serverBytecode,
+        ...routeModuleLoadOptions,
       }),
-      loadGlobalMiddleware(activeConfig.middlewareFile, cacheBustKey),
-      loadNestedMiddleware(pageMatch.route.middlewareFiles, cacheBustKey),
+      loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
+      loadNestedMiddleware(pageMatch.route.middlewareFiles, requestModuleLoadOptions),
     ]);
     const moduleMiddleware = extractRouteMiddleware(routeModules.route);
 

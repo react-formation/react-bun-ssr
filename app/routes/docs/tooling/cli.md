@@ -24,7 +24,7 @@ rbssr start
 ## What they do
 
 - `init` scaffolds a new app in the current directory.
-- `dev` starts the Bun dev server with generated snapshots and client bundles.
+- `dev` starts the Bun dev launcher, hot child, WebSocket reload channel, and browser bundle watch.
 - `build` creates `dist/`.
 - `start` runs the built app in production mode.
 

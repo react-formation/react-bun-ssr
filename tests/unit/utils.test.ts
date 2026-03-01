@@ -20,6 +20,10 @@ describe("runtime utils", () => {
     expect(sanitizeErrorMessage(new Error("boom"), false)).toBe("boom");
   });
 
+  it("keeps string values unchanged in development mode", () => {
+    expect(sanitizeErrorMessage("boom", false)).toBe("boom");
+  });
+
   it("formats non-Error development values via Bun.inspect", () => {
     const circular: { self?: unknown; label: string } = { label: "x" };
     circular.self = circular;

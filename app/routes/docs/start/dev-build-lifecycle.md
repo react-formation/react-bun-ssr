@@ -1,7 +1,7 @@
 ---
 title: Dev and Build Lifecycle
 navTitle: Dev/Build Lifecycle
-description: See how dev snapshots, generated client entries, builds, and production startup differ across rbssr commands.
+description: See how Bun hot reload, generated client entries, builds, and production startup differ across rbssr commands.
 section: Start
 order: 5
 kind: reference
@@ -10,7 +10,7 @@ tags: dev,build,preview,lifecycle
 
 # Dev and Build Lifecycle
 
-The framework has two major operating modes: development with rebuildable snapshots, and production with immutable build output.
+The framework has two major operating modes: development with Bun-driven hot reload, and production with immutable build output.
 
 ## Command model
 
@@ -22,12 +22,13 @@ bun run start
 
 ## Development
 
-`bun run dev` does more than watch route files.
+`bun run dev` now splits work between a launcher process, a Bun hot child, and a long-lived browser bundle watch.
 
-- It mirrors server modules into `.rbssr/dev/server-snapshots`.
-- It regenerates client entries under `.rbssr/generated/client-entries`.
-- It rebuilds route assets only when the file signature changes.
-- It serves client bundles from `/.rbssr/dev/client`.
+- The launcher writes `.rbssr/generated/dev/entry.ts` and starts `bun --hot`.
+- The hot child keeps SSR in the framework `fetch()` path.
+- Generated client entries stay in `.rbssr/generated/client-entries` and are only regenerated when route topology changes.
+- Browser bundles are built by one long-lived `bun build --watch` process and served from `/__rbssr/client/*`.
+- Browser reloads use `/__rbssr/ws` instead of the old event stream.
 
 ## Production build
 
@@ -43,9 +44,9 @@ bun run start
 
 ## Rules
 
-- Dev mode is optimized for rebuild correctness, not production parity at the file-path level.
+- Dev mode is optimized around Bun hot reload and incremental browser rebuilds, not snapshot mirroring.
 - Production mode expects the build manifest and built assets to exist.
-- File changes outside `app/` that are imported by route modules must still be mirrored into dev snapshots.
+- Production build and production start stay separate from the dev runtime.
 
 ## Related APIs
 

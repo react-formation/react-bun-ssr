@@ -112,24 +112,11 @@ function resolveGeneratedRoot(routesDir: string, generatedMarkdownRootDir?: stri
     return path.resolve(appRoutesMatch[1]!, ".rbssr", "generated", "markdown-routes");
   }
 
-  const snapshotRoutesMatch = normalizedRoutesDir.match(
-    /^(.*)\/\.rbssr\/dev\/server-snapshots\/v\d+\/routes$/,
-  );
-  if (snapshotRoutesMatch) {
-    return path.resolve(snapshotRoutesMatch[1]!, ".rbssr", "generated", "markdown-routes");
-  }
-
   return path.resolve(routesDir, "..", ".rbssr", "generated", "markdown-routes");
 }
 
 function toRouteGroupKey(routesDir: string): string {
-  const normalized = normalizeSlashes(path.resolve(routesDir));
-  const canonical = normalized.replace(
-    /\/\.rbssr\/dev\/server-snapshots\/v\d+\/routes$/,
-    "/.rbssr/dev/server-snapshots/routes",
-  );
-
-  return stableHash(`${MARKDOWN_WRAPPER_VERSION}\0${canonical}`);
+  return stableHash(`${MARKDOWN_WRAPPER_VERSION}\0${normalizeSlashes(path.resolve(routesDir))}`);
 }
 
 function parseFrontmatter(raw: string): {

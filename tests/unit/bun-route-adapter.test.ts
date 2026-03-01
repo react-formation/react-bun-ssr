@@ -24,6 +24,14 @@ async function withFixture(files: Record<string, string>): Promise<string> {
   return root;
 }
 
+function createAdapterDirs(root: string, label: string) {
+  const suffix = Bun.randomUUIDv7();
+  return {
+    generatedMarkdownRootDir: path.join(root, ".rbssr/generated/markdown-routes", `${label}-${suffix}`),
+    projectionRootDir: path.join(root, ".rbssr/generated/router-projection", `${label}-${suffix}`),
+  };
+}
+
 describe("createBunRouteAdapter", () => {
   it("matches page and api routes with strict parity semantics", async () => {
     const root = await withFixture({
@@ -38,11 +46,11 @@ describe("createBunRouteAdapter", () => {
       "app/routes/users/_middleware.ts": "export const middleware = async (ctx,next)=>next();",
     });
     const routesDir = path.join(root, "app/routes");
+    const adapterDirs = createAdapterDirs(root, "match");
 
     const adapter = await createBunRouteAdapter({
       routesDir,
-      generatedMarkdownRootDir: path.join(root, ".rbssr/generated/markdown-routes"),
-      projectionRootDir: path.join(root, ".rbssr/generated/router-projection/test"),
+      ...adapterDirs,
     });
 
     expect(adapter.manifest.pages.some(route => route.routePath === "/about")).toBe(true);
@@ -75,13 +83,13 @@ describe("createBunRouteAdapter", () => {
       "app/routes/guide.mdx": "# Not supported",
     });
     const routesDir = path.join(root, "app/routes");
+    const adapterDirs = createAdapterDirs(root, "mdx");
 
     let message = "";
     try {
       await createBunRouteAdapter({
         routesDir,
-        generatedMarkdownRootDir: path.join(root, ".rbssr/generated/markdown-routes"),
-        projectionRootDir: path.join(root, ".rbssr/generated/router-projection/test"),
+        ...adapterDirs,
       });
     } catch (error) {
       message = error instanceof Error ? error.message : String(error);
@@ -96,13 +104,13 @@ describe("createBunRouteAdapter", () => {
       "app/routes/(group)/about.tsx": "export default function Route(){return null}",
     });
     const routesDir = path.join(root, "app/routes");
+    const adapterDirs = createAdapterDirs(root, "collision");
 
     let message = "";
     try {
       await createBunRouteAdapter({
         routesDir,
-        generatedMarkdownRootDir: path.join(root, ".rbssr/generated/markdown-routes"),
-        projectionRootDir: path.join(root, ".rbssr/generated/router-projection/test"),
+        ...adapterDirs,
       });
     } catch (error) {
       message = error instanceof Error ? error.message : String(error);

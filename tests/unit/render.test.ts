@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderDocument, renderDocumentStream } from "../../framework/runtime/render";
 
 describe("renderDocument dev reload", () => {
-  it("uses SSE endpoint instead of polling version endpoint", () => {
+  it("uses the dev websocket endpoint instead of the old event stream", () => {
     const html = renderDocument({
       appMarkup: "<main>ok</main>",
       payload: {
@@ -25,8 +25,10 @@ describe("renderDocument dev reload", () => {
       },
     });
 
-    expect(html).toContain("new EventSource('/__rbssr/events')");
+    expect(html).toContain("new WebSocket");
+    expect(html).toContain("/__rbssr/ws");
     expect(html).not.toContain("/__rbssr/version");
+    expect(html).not.toContain("EventSource('/__rbssr/events')");
     expect(html).toContain("/__rbssr/client/route__index.js?v=2");
   });
 

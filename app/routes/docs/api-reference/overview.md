@@ -26,4 +26,6 @@ Recent additions in `react-bun-ssr/route` include:
 - `Link` for client-side transitions
 - `useRouter` for programmatic navigation
 - `Loading` route export support (typed in `RouteModule`)
+- `routeError`, `notFound`, and `isRouteErrorResponse` for TanStack-style caught errors
+- route lifecycle hooks via `RouteCatchContext` and `RouteErrorContext`
 - deferred transition chunk types used by the runtime protocol

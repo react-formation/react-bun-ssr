@@ -5,17 +5,19 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { Params, RenderPayload, RouteModuleBundle } from "./types";
+import type { Params, RenderPayload, RouteErrorResponse, RouteModuleBundle } from "./types";
 
 interface RuntimeState {
   data: unknown;
   params: Params;
   url: URL;
   error?: unknown;
+  reset: () => void;
 }
 
 const RuntimeContext = createContext<RuntimeState | null>(null);
 const OutletContext = createContext<ReactNode>(null);
+const NOOP_RESET = () => undefined;
 
 function useRuntimeState(): RuntimeState {
   const state = useContext(RuntimeContext);
@@ -53,12 +55,17 @@ export function createRouteTree(
   modules: RouteModuleBundle,
   leafElement: ReactElement,
   payload: RenderPayload,
+  options: {
+    error?: unknown;
+    reset?: () => void;
+  } = {},
 ): ReactElement {
   const runtimeState: RuntimeState = {
     data: payload.data,
     params: payload.params,
     url: new URL(payload.url),
-    error: payload.error,
+    error: options.error ?? payload.error,
+    reset: options.reset ?? NOOP_RESET,
   };
 
   let current: ReactNode = leafElement;
@@ -82,7 +89,41 @@ export function createRouteTree(
   return <RuntimeContext.Provider value={runtimeState}>{tree}</RuntimeContext.Provider>;
 }
 
-function resolveErrorBoundary(modules: RouteModuleBundle): ComponentType<{ error: unknown }> | null {
+function resolveCatchBoundary(
+  modules: RouteModuleBundle,
+): ComponentType<{ error: RouteErrorResponse; reset: () => void }> | null {
+  if (modules.route.CatchBoundary) {
+    return modules.route.CatchBoundary;
+  }
+
+  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
+    const candidate = modules.layouts[index]!.CatchBoundary;
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return modules.root.CatchBoundary ?? null;
+}
+
+function resolveErrorComponent(
+  modules: RouteModuleBundle,
+): ComponentType<{ error: unknown; reset: () => void }> | null {
+  if (modules.route.ErrorComponent) {
+    return modules.route.ErrorComponent;
+  }
+
+  for (let index = modules.layouts.length - 1; index >= 0; index -= 1) {
+    const candidate = modules.layouts[index]!.ErrorComponent;
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return modules.root.ErrorComponent ?? null;
+}
+
+function resolveLegacyErrorBoundary(modules: RouteModuleBundle): ComponentType<{ error: unknown }> | null {
   if (modules.route.ErrorBoundary) {
     return modules.route.ErrorBoundary;
   }
@@ -130,20 +171,68 @@ export function createErrorAppTree(
   modules: RouteModuleBundle,
   payload: RenderPayload,
   error: unknown,
+  options: {
+    reset?: () => void;
+  } = {},
 ): ReactElement | null {
-  const Boundary = resolveErrorBoundary(modules);
-  if (!Boundary) {
-    return null;
-  }
+  const reset = options.reset ?? NOOP_RESET;
 
   const boundaryPayload: RenderPayload = {
     ...payload,
-    error: {
+    error: payload.error ?? {
       message: error instanceof Error ? error.message : String(error),
     },
   };
 
-  return createRouteTree(modules, <Boundary error={error} />, boundaryPayload);
+  const ErrorComponent = resolveErrorComponent(modules);
+  if (ErrorComponent) {
+    return createRouteTree(modules, <ErrorComponent error={error} reset={reset} />, boundaryPayload, {
+      error,
+      reset,
+    });
+  }
+
+  const LegacyBoundary = resolveLegacyErrorBoundary(modules);
+  if (!LegacyBoundary) {
+    return null;
+  }
+
+  return createRouteTree(modules, <LegacyBoundary error={error} />, boundaryPayload, {
+    error,
+    reset,
+  });
+}
+
+export function createCatchAppTree(
+  modules: RouteModuleBundle,
+  payload: RenderPayload,
+  routeError: RouteErrorResponse,
+  options: {
+    reset?: () => void;
+  } = {},
+): ReactElement | null {
+  const reset = options.reset ?? NOOP_RESET;
+  const catchPayload: RenderPayload = {
+    ...payload,
+    error: payload.error ?? routeError,
+  };
+
+  if (routeError.status === 404) {
+    const notFoundTree = createNotFoundAppTree(modules, catchPayload);
+    if (notFoundTree) {
+      return notFoundTree;
+    }
+  }
+
+  const CatchBoundary = resolveCatchBoundary(modules);
+  if (CatchBoundary) {
+    return createRouteTree(modules, <CatchBoundary error={routeError} reset={reset} />, catchPayload, {
+      error: routeError,
+      reset,
+    });
+  }
+
+  return createErrorAppTree(modules, catchPayload, routeError, { reset });
 }
 
 export function createNotFoundAppTree(modules: RouteModuleBundle, payload: RenderPayload): ReactElement | null {

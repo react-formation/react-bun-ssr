@@ -13,11 +13,13 @@ import {
   RBSSR_ROUTER_SCRIPT_ID,
 } from "./runtime-constants";
 import {
+  createCatchAppTree,
   createErrorAppTree,
   createLoadingAppTree,
   createNotFoundAppTree,
   createPageAppTree,
 } from "./tree";
+import { isRouteErrorResponse } from "./route-errors";
 import type {
   ClientRouteSnapshot,
   ClientRouterSnapshot,
@@ -51,7 +53,7 @@ interface NavigateResult {
   from: string;
   to: string;
   status: number;
-  kind: "page" | "not_found" | "error";
+  kind: "page" | "not_found" | "catch" | "error";
   redirected: boolean;
   prefetched: boolean;
 }
@@ -834,8 +836,14 @@ async function renderTransitionInitial(
       tree = createErrorAppTree(
         modules,
         revivedPayload,
-        new Error(revivedPayload.error?.message ?? "Route render error"),
+        new Error(messageFromPayloadError(revivedPayload.error)),
       );
+    } else if (chunk.kind === "catch") {
+      if (!isRouteErrorResponse(revivedPayload.error)) {
+        throw new Error("Transition catch payload is missing a valid route error.");
+      }
+
+      tree = createCatchAppTree(modules, revivedPayload, revivedPayload.error);
     } else {
       tree = createPageAppTree(modules, revivedPayload);
     }
@@ -882,6 +890,23 @@ function isInternalUrl(url: URL): boolean {
 
 function hardNavigate(url: URL): void {
   window.location.assign(url.toString());
+}
+
+function messageFromPayloadError(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return "Route render error";
+  }
+
+  const candidate = value as { message?: unknown };
+  if (typeof candidate.message === "string" && candidate.message.trim().length > 0) {
+    return candidate.message;
+  }
+
+  return "Route render error";
 }
 
 async function navigateToInternal(
@@ -1272,7 +1297,9 @@ export function hydrateInitialRoute(routeId: string): void {
   }
 
   const appTree = payload.error
-    ? createErrorAppTree(modules, payload, new Error(payload.error.message))
+    ? isRouteErrorResponse(payload.error)
+      ? createCatchAppTree(modules, payload, payload.error)
+      : createErrorAppTree(modules, payload, new Error(messageFromPayloadError(payload.error)))
     : createPageAppTree(modules, payload);
   if (!appTree) {
     throw new Error("Failed to create initial app tree.");

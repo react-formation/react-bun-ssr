@@ -14,7 +14,6 @@ const BUILD_OPTIMIZE_IMPORTS = [
   'react-bun-ssr/route',
   'react',
   'react-dom',
-  '@datadog/browser-rum-react',
 ];
 const SERVER_BUILD_EXTERNAL = [
   'react',
@@ -71,10 +70,10 @@ export async function importModule<T>(
 function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   const rawValue = moduleValue as Record<string, unknown>;
   const value =
-    rawValue
-      && typeof rawValue.default === 'object'
-      && rawValue.default !== null
-      && 'default' in (rawValue.default as Record<string, unknown>)
+    rawValue &&
+    typeof rawValue.default === 'object' &&
+    rawValue.default !== null &&
+    'default' in (rawValue.default as Record<string, unknown>)
       ? (rawValue.default as Partial<RouteModule>)
       : (rawValue as Partial<RouteModule>);
   const component = value.default;

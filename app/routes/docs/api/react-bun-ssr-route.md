@@ -162,6 +162,17 @@ export interface DeferredToken {
 }
 ```
 
+## isRouteErrorResponse
+
+- Kind: function
+- Source: `framework/runtime/route-errors.ts`
+- Description: Type guard for narrowing unknown errors to framework caught route errors.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+isRouteErrorResponse(value: unknown): value is RouteErrorResponse
+```
+
 ## json
 
 - Kind: function
@@ -253,6 +264,17 @@ export type Middleware = (
 ) => Promise<Response> | Response;
 ```
 
+## notFound
+
+- Kind: function
+- Source: `framework/runtime/route-errors.ts`
+- Description: Throws a typed caught 404 route error for nearest not-found/catch boundary handling.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+notFound(data?: unknown): never
+```
+
 ## Outlet
 
 - Kind: function
@@ -315,6 +337,66 @@ export interface RequestContext {
   params: Params;
   cookies: Map<string, string>;
   locals: Record<string, unknown>;
+}
+```
+
+## RouteCatchContext
+
+- Kind: interface
+- Source: `framework/runtime/types.ts`
+- Description: Context passed to `onCatch` lifecycle hooks when a typed caught route error is handled.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+export interface RouteCatchContext extends Omit<RouteErrorContext, "error"> {
+  error: RouteErrorResponse;
+}
+```
+
+## routeError
+
+- Kind: function
+- Source: `framework/runtime/route-errors.ts`
+- Description: Throws a typed caught route error with status/data for TanStack-style catch-boundary flows.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+routeError(status: number, data?: unknown, init?: { statusText?: string | undefined; headers?: HeadersInit | undefined; }): never
+```
+
+## RouteErrorContext
+
+- Kind: interface
+- Source: `framework/runtime/types.ts`
+- Description: Context passed to `onError` lifecycle hooks for uncaught route failures.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+export interface RouteErrorContext {
+  error: unknown;
+  phase: RouteErrorPhase;
+  routeId: string;
+  request: Request;
+  url: URL;
+  params: Params;
+  dev: boolean;
+}
+```
+
+## RouteErrorResponse
+
+- Kind: interface
+- Source: `framework/runtime/types.ts`
+- Description: Serializable caught route-error shape used by catch boundaries and transition payloads.
+- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+
+```ts
+export interface RouteErrorResponse {
+  type: "route_error";
+  status: number;
+  statusText: string;
+  data?: unknown;
+  headers?: Record<string, string>;
 }
 ```
 

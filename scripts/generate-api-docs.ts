@@ -132,6 +132,10 @@ const SYMBOL_DETAILS: Record<
     description: "Dynamic URL params object shape exposed to loaders, actions, and hooks.",
     links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
   },
+  notFound: {
+    description: "Throws a typed caught 404 route error for nearest not-found/catch boundary handling.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
   redirect: {
     description: "Returns a framework redirect descriptor consumed by loader/action runtime flow.",
     links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
@@ -143,6 +147,26 @@ const SYMBOL_DETAILS: Record<
   RequestContext: {
     description: "Base request context shared by middleware, loaders, actions, and API handlers.",
     links: [{ label: "Middleware chain", href: "/docs/core-concepts/middleware" }],
+  },
+  routeError: {
+    description: "Throws a typed caught route error with status/data for TanStack-style catch-boundary flows.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
+  RouteCatchContext: {
+    description: "Context passed to `onCatch` lifecycle hooks when a typed caught route error is handled.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
+  RouteErrorContext: {
+    description: "Context passed to `onError` lifecycle hooks for uncaught route failures.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
+  RouteErrorResponse: {
+    description: "Serializable caught route-error shape used by catch boundaries and transition payloads.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+  },
+  isRouteErrorResponse: {
+    description: "Type guard for narrowing unknown errors to framework caught route errors.",
+    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
   },
   ResponseHeaderRule: {
     description: "Path-based response header rule used by `FrameworkConfig.headers`.",

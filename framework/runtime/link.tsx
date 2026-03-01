@@ -9,7 +9,7 @@ interface NavigateInfo {
   from: string;
   to: string;
   status: number;
-  kind: "page" | "not_found" | "error";
+  kind: "page" | "not_found" | "catch" | "error";
   redirected: boolean;
   prefetched: boolean;
 }

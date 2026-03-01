@@ -43,3 +43,5 @@ export default function CreateRoute() {
 ## Typical pattern
 
 Return `redirect("/next")` after successful mutation.
+
+You can also throw caught errors from actions with `routeError(...)` or `notFound(...)` to render `CatchBoundary`/`NotFound` without crashing the app shell.

@@ -17,8 +17,13 @@ import type {
   PageRouteDefinition,
   RouteManifest,
   RequestContext,
+  RouteCatchContext,
+  RouteErrorContext,
+  RouteErrorPhase,
+  RouteErrorResponse,
   ResolvedConfig,
   RouteModule,
+  RouteModuleBundle,
   ServerRuntimeOptions,
   TransitionChunk,
   TransitionDeferredChunk,
@@ -43,10 +48,16 @@ import {
 } from "./render";
 import { runMiddlewareChain } from "./middleware";
 import {
+  createCatchAppTree,
   createErrorAppTree,
   createNotFoundAppTree,
   createPageAppTree,
 } from "./tree";
+import {
+  sanitizeRouteErrorResponse,
+  toRouteErrorHttpResponse,
+  toRouteErrorResponse,
+} from "./route-errors";
 import {
   ensureWithin,
   isMutatingMethod,
@@ -68,6 +79,97 @@ function toRedirectResponse(location: string, status = 302): Response {
 
 function isResponse(value: unknown): value is Response {
   return value instanceof Response;
+}
+
+function resolveThrownRedirect(error: unknown): Response | null {
+  if (!(error instanceof Response)) {
+    return null;
+  }
+
+  const location = error.headers.get("location");
+  if (location && isRedirectStatus(error.status)) {
+    return Response.redirect(location, error.status);
+  }
+
+  return null;
+}
+
+function getLifecycleModules(modules: RouteModuleBundle): RouteModule[] {
+  return [
+    modules.route,
+    ...[...modules.layouts].reverse(),
+    modules.root,
+  ];
+}
+
+function toRouteErrorContextBase(options: {
+  requestContext: RequestContext;
+  routeId: string;
+  phase: RouteErrorPhase;
+  dev: boolean;
+}): Omit<RouteErrorContext, "error"> {
+  return {
+    request: options.requestContext.request,
+    url: options.requestContext.url,
+    params: options.requestContext.params,
+    routeId: options.routeId,
+    phase: options.phase,
+    dev: options.dev,
+  };
+}
+
+async function notifyErrorHooks(options: {
+  modules: RouteModuleBundle;
+  context: RouteErrorContext;
+}): Promise<void> {
+  const targets = getLifecycleModules(options.modules);
+  for (const moduleValue of targets) {
+    if (typeof moduleValue.onError !== "function") {
+      continue;
+    }
+
+    try {
+      await moduleValue.onError(options.context);
+    } catch (hookError) {
+      // eslint-disable-next-line no-console
+      console.warn("[rbssr] route onError hook failed", Bun.inspect(hookError));
+    }
+  }
+}
+
+async function notifyCatchHooks(options: {
+  modules: RouteModuleBundle;
+  context: RouteCatchContext;
+}): Promise<void> {
+  const targets = getLifecycleModules(options.modules);
+  for (const moduleValue of targets) {
+    if (typeof moduleValue.onCatch !== "function") {
+      continue;
+    }
+
+    try {
+      await moduleValue.onCatch(options.context);
+    } catch (hookError) {
+      // eslint-disable-next-line no-console
+      console.warn("[rbssr] route onCatch hook failed", Bun.inspect(hookError));
+    }
+  }
+}
+
+function toUncaughtErrorPayload(
+  error: unknown,
+  production: boolean,
+): { message: string } {
+  return {
+    message: sanitizeErrorMessage(error, production),
+  };
+}
+
+function toCaughtErrorPayload(
+  routeErrorResponse: RouteErrorResponse,
+  production: boolean,
+): RouteErrorResponse {
+  return sanitizeRouteErrorResponse(routeErrorResponse, production);
 }
 
 function toHtmlStreamResponse(stream: ReadableStream<Uint8Array>, status: number): Response {
@@ -672,6 +774,7 @@ export function createServer(
 
       let transitionInitialChunk: TransitionInitialChunk | undefined;
       let deferredSettleEntries: DeferredSettleEntry[] = [];
+      let transitionPhase: RouteErrorPhase = "middleware";
 
       let middlewareResponse: Response;
       try {
@@ -683,6 +786,7 @@ export function createServer(
             let dataForPayload: unknown = null;
 
             if (routeModules.route.loader) {
+              transitionPhase = "loader";
               const loaderCtx: LoaderContext = requestContext;
               const loaderResult = await routeModules.route.loader(loaderCtx);
 
@@ -735,14 +839,75 @@ export function createServer(
           },
         );
       } catch (error) {
+        const redirectResponse = resolveThrownRedirect(error);
+        if (redirectResponse) {
+          const location = redirectResponse.headers.get("location");
+          if (location) {
+            const stream = createTransitionStream({
+              redirectChunk: toRedirectChunk(location, redirectResponse.status),
+              sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+            });
+            return finalize(toTransitionStreamResponse(stream, redirectResponse.headers), "internal-transition");
+          }
+        }
+
+        const contextBase = toRouteErrorContextBase({
+          requestContext,
+          routeId: transitionPageMatch.route.id,
+          phase: transitionPhase,
+          dev,
+        });
+        const caught = toRouteErrorResponse(error);
+        if (caught) {
+          const payload = {
+            routeId: transitionPageMatch.route.id,
+            data: null,
+            params: transitionPageMatch.params,
+            url: targetUrl.toString(),
+            error: toCaughtErrorPayload(caught, !dev),
+          };
+          await notifyCatchHooks({
+            modules: routeModules,
+            context: {
+              ...contextBase,
+              error: caught,
+            },
+          });
+          const initialChunk: TransitionInitialChunk = {
+            type: "initial",
+            kind: "catch",
+            status: caught.status,
+            payload,
+            head: createManagedHeadMarkup({
+              headMarkup: collectHeadMarkup(routeModules, payload),
+              assets: {
+                script: routeAssets?.script,
+                css: routeAssets?.css ?? [],
+                devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+              },
+            }),
+            redirected: false,
+          };
+          const stream = createTransitionStream({
+            initialChunk,
+            sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+          });
+          return finalize(toTransitionStreamResponse(stream), "internal-transition");
+        }
+
+        await notifyErrorHooks({
+          modules: routeModules,
+          context: {
+            ...contextBase,
+            error,
+          },
+        });
         const renderPayload = {
           routeId: transitionPageMatch.route.id,
           data: null,
           params: transitionPageMatch.params,
           url: targetUrl.toString(),
-          error: {
-            message: sanitizeErrorMessage(error, !dev),
-          },
+          error: toUncaughtErrorPayload(error, !dev),
         };
         const initialChunk: TransitionInitialChunk = {
           type: "initial",
@@ -818,10 +983,12 @@ export function createServer(
         loadNestedMiddleware(apiMatch.route.middlewareFiles, cacheBustKey),
       ]);
       const allMiddleware = [...globalMiddleware, ...routeMiddleware];
+      let apiPhase: RouteErrorPhase = "middleware";
 
       let response: Response;
       try {
         response = await runMiddlewareChain(allMiddleware, requestContext, async () => {
+          apiPhase = "api";
           const result = await (methodHandler as (ctx: RequestContext) => unknown)(requestContext);
 
           if (isResponse(result)) {
@@ -835,6 +1002,34 @@ export function createServer(
           return json(result);
         });
       } catch (error) {
+        const redirectResponse = resolveThrownRedirect(error);
+        if (redirectResponse) {
+          return finalize(redirectResponse, "api");
+        }
+
+        const caught = toRouteErrorResponse(error);
+        if (caught) {
+          return finalize(toRouteErrorHttpResponse(toCaughtErrorPayload(caught, !dev)), "api");
+        }
+
+        const apiErrorHook = (apiModule as Record<string, unknown>).onError;
+        if (typeof apiErrorHook === "function") {
+          try {
+            await (apiErrorHook as (ctx: RouteErrorContext) => void | Promise<void>)({
+              error,
+              request: requestContext.request,
+              url: requestContext.url,
+              params: requestContext.params,
+              routeId: apiMatch.route.id,
+              phase: apiPhase,
+              dev,
+            });
+          } catch (hookError) {
+            // eslint-disable-next-line no-console
+            console.warn("[rbssr] api onError hook failed", Bun.inspect(hookError));
+          }
+        }
+
         return finalize(json(
           {
             error: sanitizeErrorMessage(error, !dev),
@@ -913,6 +1108,113 @@ export function createServer(
     };
 
     const routeAssets = routeAssetsById[pageMatch.route.id] ?? null;
+    let pagePhase: RouteErrorPhase = "middleware";
+
+    const renderFailureDocument = async (
+      failure: unknown,
+      phase: RouteErrorPhase,
+    ): Promise<Response> => {
+      const contextBase = toRouteErrorContextBase({
+        requestContext,
+        routeId: pageMatch.route.id,
+        phase,
+        dev,
+      });
+      const caught = toRouteErrorResponse(failure);
+      if (caught) {
+        const serializedCatch = toCaughtErrorPayload(caught, !dev);
+        await notifyCatchHooks({
+          modules: routeModules,
+          context: {
+            ...contextBase,
+            error: caught,
+          },
+        });
+
+        const basePayload = {
+          routeId: pageMatch.route.id,
+          data: null,
+          params: pageMatch.params,
+          url: url.toString(),
+        };
+        const catchPayload = {
+          ...basePayload,
+          error: serializedCatch,
+        };
+
+        if (serializedCatch.status === 404) {
+          const notFoundTree = createNotFoundAppTree(routeModules, catchPayload);
+          if (notFoundTree) {
+            const stream = await renderDocumentStream({
+              appTree: notFoundTree,
+              payload: catchPayload,
+              assets: {
+                script: routeAssets?.script,
+                css: routeAssets?.css ?? [],
+                devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+              },
+              headElements: collectHeadElements(routeModules, catchPayload),
+              routerSnapshot,
+            });
+            return toHtmlStreamResponse(stream, 404);
+          }
+        }
+
+        const catchTree = createCatchAppTree(routeModules, catchPayload, serializedCatch);
+        if (catchTree) {
+          const stream = await renderDocumentStream({
+            appTree: catchTree,
+            payload: catchPayload,
+            assets: {
+              script: routeAssets?.script,
+              css: routeAssets?.css ?? [],
+              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+            },
+            headElements: collectHeadElements(routeModules, catchPayload),
+            routerSnapshot,
+          });
+          return toHtmlStreamResponse(stream, serializedCatch.status);
+        }
+
+        return toRouteErrorHttpResponse(serializedCatch);
+      }
+
+      await notifyErrorHooks({
+        modules: routeModules,
+        context: {
+          ...contextBase,
+          error: failure,
+        },
+      });
+
+      const renderPayload = {
+        routeId: pageMatch.route.id,
+        data: null,
+        params: pageMatch.params,
+        url: url.toString(),
+      };
+      const errorPayload = {
+        ...renderPayload,
+        error: toUncaughtErrorPayload(failure, !dev),
+      };
+      const boundaryTree = createErrorAppTree(routeModules, errorPayload, failure);
+      if (boundaryTree) {
+        const stream = await renderDocumentStream({
+          appTree: boundaryTree,
+          payload: errorPayload,
+          assets: {
+            script: routeAssets?.script,
+            css: routeAssets?.css ?? [],
+            devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+          },
+          headElements: collectHeadElements(routeModules, errorPayload),
+          routerSnapshot,
+        });
+        return toHtmlStreamResponse(stream, 500);
+      }
+
+      return new Response(sanitizeErrorMessage(failure, !dev), { status: 500 });
+    };
 
     let response: Response;
     try {
@@ -930,6 +1232,7 @@ export function createServer(
               return new Response("Method Not Allowed", { status: 405 });
             }
 
+            pagePhase = "action";
             const body = await parseActionBody(request.clone());
             const actionCtx: ActionContext = {
               ...requestContext,
@@ -954,6 +1257,7 @@ export function createServer(
             dataForPayload = actionResult;
           } else {
             if (routeModules.route.loader) {
+              pagePhase = "loader";
               const loaderCtx: LoaderContext = requestContext;
               const loaderResult = await routeModules.route.loader(loaderCtx);
 
@@ -991,35 +1295,11 @@ export function createServer(
 
           let appTree: ReturnType<typeof createPageAppTree>;
           try {
+            pagePhase = "render";
             appTree = createPageAppTree(routeModules, renderPayload);
           } catch (error) {
-            const boundaryTree = createErrorAppTree(routeModules, renderPayload, error);
-            if (boundaryTree) {
-              const errorPayload = {
-                ...renderPayload,
-                error: {
-                  message: sanitizeErrorMessage(error, !dev),
-                },
-              };
-              const stream = await renderDocumentStream({
-                appTree: boundaryTree,
-                payload: {
-                  ...clientPayload,
-                  error: errorPayload.error,
-                },
-                assets: {
-                  script: routeAssets?.script,
-                  css: routeAssets?.css ?? [],
-                  devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-                },
-                headElements: collectHeadElements(routeModules, errorPayload),
-                routerSnapshot,
-              });
-              return toHtmlStreamResponse(stream, 500);
-            }
-
-            const message = sanitizeErrorMessage(error, !dev);
-            return new Response(message, { status: 500 });
+            const fallbackResponse = await renderFailureDocument(error, pagePhase);
+            return fallbackResponse;
           }
 
           const stream = await renderDocumentStream({
@@ -1039,35 +1319,13 @@ export function createServer(
         },
       );
     } catch (error) {
-      const renderPayload = {
-        routeId: pageMatch.route.id,
-        data: null,
-        params: pageMatch.params,
-        url: url.toString(),
-      };
-      const boundaryTree = createErrorAppTree(routeModules, renderPayload, error);
-      if (boundaryTree) {
-        const errorPayload = {
-          ...renderPayload,
-          error: {
-            message: sanitizeErrorMessage(error, !dev),
-          },
-        };
-        const stream = await renderDocumentStream({
-          appTree: boundaryTree,
-          payload: errorPayload,
-          assets: {
-            script: routeAssets?.script,
-            css: routeAssets?.css ?? [],
-            devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-          },
-          headElements: collectHeadElements(routeModules, errorPayload),
-          routerSnapshot,
-        });
-        return finalize(toHtmlStreamResponse(stream, 500), "html");
+      const redirectResponse = resolveThrownRedirect(error);
+      if (redirectResponse) {
+        return finalize(redirectResponse, "html");
       }
 
-      return finalize(new Response(sanitizeErrorMessage(error, !dev), { status: 500 }), "html");
+      const fallbackResponse = await renderFailureDocument(error, pagePhase);
+      return finalize(fallbackResponse, "html");
     }
 
     return finalize(response, "html");

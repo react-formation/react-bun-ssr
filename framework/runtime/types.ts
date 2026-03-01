@@ -67,6 +67,30 @@ export type MetaFn = (ctx: {
 
 export type MetaValue = Record<string, string> | MetaFn;
 
+export interface RouteErrorResponse {
+  type: "route_error";
+  status: number;
+  statusText: string;
+  data?: unknown;
+  headers?: Record<string, string>;
+}
+
+export type RouteErrorPhase = "loader" | "action" | "render" | "middleware" | "transition" | "api";
+
+export interface RouteErrorContext {
+  error: unknown;
+  phase: RouteErrorPhase;
+  routeId: string;
+  request: Request;
+  url: URL;
+  params: Params;
+  dev: boolean;
+}
+
+export interface RouteCatchContext extends Omit<RouteErrorContext, "error"> {
+  error: RouteErrorResponse;
+}
+
 export interface RouteModule {
   default: ComponentType;
   Loading?: ComponentType;
@@ -75,6 +99,10 @@ export interface RouteModule {
   middleware?: Middleware | Middleware[];
   head?: HeadFn;
   meta?: MetaValue;
+  ErrorComponent?: ComponentType<{ error: unknown; reset: () => void }>;
+  CatchBoundary?: ComponentType<{ error: RouteErrorResponse; reset: () => void }>;
+  onError?: (ctx: RouteErrorContext) => void | Promise<void>;
+  onCatch?: (ctx: RouteCatchContext) => void | Promise<void>;
   ErrorBoundary?: ComponentType<{ error: unknown }>;
   NotFound?: ComponentType;
 }
@@ -187,9 +215,7 @@ export interface RenderPayload {
   data: unknown;
   params: Params;
   url: string;
-  error?: {
-    message: string;
-  };
+  error?: unknown;
 }
 
 export interface ClientRouteSnapshot {
@@ -207,7 +233,7 @@ export interface ClientRouterSnapshot {
 
 export interface TransitionInitialChunk {
   type: "initial";
-  kind: "page" | "not_found" | "error";
+  kind: "page" | "not_found" | "catch" | "error";
   status: number;
   payload: RenderPayload;
   head: string;

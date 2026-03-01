@@ -27,10 +27,22 @@ async function writeFixture(files: Record<string, string>): Promise<string> {
 describe("createServer integration", () => {
   it("renders SSR HTML with loader data", async () => {
     const runtimeImport = "react-bun-ssr/route";
+    (globalThis as { __rbssrOnCatchOrder?: string[] }).__rbssrOnCatchOrder = [];
+    (globalThis as { __rbssrOnErrorOrder?: string[] }).__rbssrOnErrorOrder = [];
     const cwd = await writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
       export default function Root(){ return <div><Outlet /></div>; }
-      export function NotFound(){ return <h1>missing</h1>; }`,
+      export function NotFound(){ return <h1>missing</h1>; }
+      export function onCatch(){
+        const g = globalThis as { __rbssrOnCatchOrder?: string[] };
+        g.__rbssrOnCatchOrder ??= [];
+        g.__rbssrOnCatchOrder.push("root");
+      }
+      export function onError(){
+        const g = globalThis as { __rbssrOnErrorOrder?: string[] };
+        g.__rbssrOnErrorOrder ??= [];
+        g.__rbssrOnErrorOrder.push("root");
+      }`,
       "app/routes/index.tsx": `import { useLoaderData } from "${runtimeImport}";
       export function loader(){ return { message: "SSR works" }; }
       export default function Index(){ const data = useLoaderData<{ message: string }>(); return <h1>{data.message}</h1>; }`,
@@ -39,8 +51,29 @@ describe("createServer integration", () => {
       export default function Submit(){ return <div>submit</div>; }`,
       "app/routes/error.tsx": `import { useRouteError } from "${runtimeImport}";
       export function loader(){ throw new Error("loader boom"); }
+      export function onError(){
+        const g = globalThis as { __rbssrOnErrorOrder?: string[] };
+        g.__rbssrOnErrorOrder ??= [];
+        g.__rbssrOnErrorOrder.push("route");
+      }
       export function ErrorBoundary(){ const err = useRouteError(); return <p>boundary:{String((err as { message?: string })?.message ?? err)}</p>; }
       export default function ErrorRoute(){ return <div>never</div>; }`,
+      "app/routes/caught.tsx": `import { routeError, isRouteErrorResponse, useRouteError } from "${runtimeImport}";
+      export function loader(){ return routeError(418, { reason: "teapot" }); }
+      export function onCatch(){
+        const g = globalThis as { __rbssrOnCatchOrder?: string[] };
+        g.__rbssrOnCatchOrder ??= [];
+        g.__rbssrOnCatchOrder.push("route");
+      }
+      export function CatchBoundary(){
+        const err = useRouteError();
+        return <p>caught:{isRouteErrorResponse(err) ? err.status : "unknown"}</p>;
+      }
+      export default function CaughtRoute(){ return <div>never</div>; }`,
+      "app/routes/missing-caught.tsx": `import { notFound } from "${runtimeImport}";
+      export function loader(){ return notFound({ slug: "missing-caught" }); }
+      export function NotFound(){ return <h1>module-notfound</h1>; }
+      export default function MissingCaught(){ return <div>never</div>; }`,
       "app/routes/styled.tsx": `import styles from "./styled.module.css";
       export default function Styled(){ return <div className={styles.hero}>styled-route</div>; }`,
       "app/routes/styled.module.css": `.hero { color: red; }`,
@@ -84,6 +117,8 @@ This route is **native markdown**.`,
           index: { script: "/__rbssr/client/route__index.js", css: [] },
           submit: { script: "/__rbssr/client/route__submit.js", css: [] },
           error: { script: "/__rbssr/client/route__error.js", css: [] },
+          caught: { script: "/__rbssr/client/route__caught.js", css: [] },
+          missing_caught: { script: "/__rbssr/client/route__missing_caught.js", css: [] },
           styled: { script: "/__rbssr/client/route__styled.js", css: [] },
           guide: { script: "/__rbssr/client/route__guide.js", css: [] },
           deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
@@ -126,6 +161,18 @@ This route is **native markdown**.`,
     const boundaryHtml = await boundaryResponse.text();
     expect(boundaryHtml).toContain("boundary:");
     expect(boundaryHtml).toContain("loader boom");
+    expect((globalThis as { __rbssrOnErrorOrder?: string[] }).__rbssrOnErrorOrder).toEqual(["route", "root"]);
+
+    const caughtResponse = await server.fetch(new Request("http://localhost/caught"));
+    expect(caughtResponse.status).toBe(418);
+    const caughtHtml = await caughtResponse.text();
+    expect(caughtHtml).toContain("caught:");
+    expect(caughtHtml).toContain("418");
+    expect((globalThis as { __rbssrOnCatchOrder?: string[] }).__rbssrOnCatchOrder).toEqual(["route", "root"]);
+
+    const missingCaughtResponse = await server.fetch(new Request("http://localhost/missing-caught"));
+    expect(missingCaughtResponse.status).toBe(404);
+    expect(await missingCaughtResponse.text()).toContain("module-notfound");
 
     const styledResponse = await server.fetch(new Request("http://localhost/styled"));
     expect(styledResponse.status).toBe(200);
@@ -209,7 +256,7 @@ This route is **native markdown**.`,
     expect(await response.text()).toContain("prod-no-bytecode");
   });
 
-  it("streams transition endpoint chunks for page, error, and not-found states", async () => {
+  it("streams transition endpoint chunks for page, catch, error, and not-found states", async () => {
     const runtimeImport = "react-bun-ssr/route";
     const cwd = await writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
@@ -219,6 +266,10 @@ This route is **native markdown**.`,
       "app/routes/deferred.tsx": `import { defer } from "${runtimeImport}";
       export function loader(){ return defer({ slow: Promise.resolve("done") }); }
       export default function Deferred(){ return <h1>deferred</h1>; }`,
+      "app/routes/caught.tsx": `import { routeError } from "${runtimeImport}";
+      export function loader(){ return routeError(418, { reason: "teapot" }); }
+      export function CatchBoundary(){ return <h1>caught-boundary</h1>; }
+      export default function Caught(){ return <h1>caught</h1>; }`,
       "app/routes/boom.tsx": `export function loader(){ throw new Error("boom"); }
       export function ErrorBoundary(){ return <h1>errored</h1>; }
       export default function Boom(){ return <h1>boom</h1>; }`,
@@ -234,6 +285,7 @@ This route is **native markdown**.`,
         devAssets: {
           index: { script: "/__rbssr/client/route__index.js", css: [] },
           deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
+          caught: { script: "/__rbssr/client/route__caught.js", css: [] },
           boom: { script: "/__rbssr/client/route__boom.js", css: [] },
         },
       },
@@ -254,6 +306,18 @@ This route is **native markdown**.`,
     expect(deferredLines[0]?.kind).toBe("page");
     expect((deferredLines[0]?.payload as { routeId?: string })?.routeId).toBe("deferred");
     expect(deferredLines.some(line => line.type === "deferred")).toBe(true);
+
+    const caughtTransition = await server.fetch(
+      new Request("http://localhost/__rbssr/transition?to=/caught"),
+    );
+    const caughtLines = (await caughtTransition.text())
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as { type: string; [key: string]: unknown });
+    expect(caughtLines[0]?.type).toBe("initial");
+    expect(caughtLines[0]?.kind).toBe("catch");
+    expect(caughtLines[0]?.status).toBe(418);
 
     const errorTransition = await server.fetch(
       new Request("http://localhost/__rbssr/transition?to=/boom"),

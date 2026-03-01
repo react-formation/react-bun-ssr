@@ -37,6 +37,8 @@ export default function PostRoute() {
 
 - `Response` is passed through.
 - `redirect()` result becomes an HTTP redirect.
+- `routeError(status, data?)` throws a typed caught error for `CatchBoundary` / `NotFound` flows.
+- `notFound(data?)` throws a typed caught 404.
 - Plain values are serialized into the SSR payload and read with `useLoaderData()`.
 - `defer({...})` enables streaming deferred keys with `Suspense` + `use()`.
 

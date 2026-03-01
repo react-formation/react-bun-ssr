@@ -1,7 +1,7 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import { toAbsoluteUrl } from "../../app/lib/site.ts";
-import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
+import { ensureDir, existsPath, makeTempDir, removePath } from "../../framework/runtime/io";
 import { createServer } from "../../framework/runtime/server";
 
 const tmpDirs: string[] = [];
@@ -20,6 +20,29 @@ async function writeFixture(files: Record<string, string>): Promise<string> {
     const fullPath = path.join(root, relativePath);
     await ensureDir(path.dirname(fullPath));
     await Bun.write(fullPath, content);
+  }
+
+  const repoRoot = path.resolve(import.meta.dir, "../..");
+  const nodeModulesDir = path.join(root, "node_modules");
+  await ensureDir(nodeModulesDir);
+  for (const [target, linkPath] of [
+    [repoRoot, path.join(nodeModulesDir, "react-bun-ssr")],
+    [path.join(repoRoot, "node_modules", "react"), path.join(nodeModulesDir, "react")],
+    [path.join(repoRoot, "node_modules", "react-dom"), path.join(nodeModulesDir, "react-dom")],
+  ] as const) {
+    if (await existsPath(linkPath)) {
+      continue;
+    }
+
+    const result = Bun.spawnSync({
+      cmd: ["ln", "-s", target, linkPath],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (result.exitCode !== 0) {
+      const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
+      throw new Error(`Failed to create symlink ${linkPath} -> ${target}: ${stderr || result.exitCode}`);
+    }
   }
 
   return root;

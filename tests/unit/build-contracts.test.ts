@@ -44,9 +44,9 @@ describe("build contracts", () => {
     expect(source).toContain('import RootDefault');
     expect(source).toContain('import Layout0Default');
     expect(source).toContain('import RouteDefault');
-    expect(source).toContain('layouts: [{');
-    expect(source).toContain('Loading: Layout0Module.Loading');
-    expect(source).toContain('CatchBoundary: RouteModule.CatchBoundary');
+    expect(source).toContain('projectClientModule');
+    expect(source).toContain('layouts: [projectClientModule(Layout0Default, Layout0Module)]');
+    expect(source).toContain('route: projectClientModule(RouteDefault, RouteModule)');
     expect(source).not.toContain('{ ...Layout0Module, default: Layout0Default }');
     expect(source).not.toContain('{ ...RouteModule, default: RouteDefault }');
   });

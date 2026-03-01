@@ -8,7 +8,7 @@ kind: overview
 tags: bun,ssr,react,overview
 ---
 
-# Overview
+# Overview 
 
 `react-bun-ssr` is a Bun-native SSR React framework for teams that want React ergonomics without leaving Bun's runtime, bundler, and server model.
 

@@ -24,7 +24,7 @@ class DeferredErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }
 > {
-  state = {
+  override state = {
     error: null as Error | null,
   };
 
@@ -32,7 +32,7 @@ class DeferredErrorBoundary extends Component<
     return { error };
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return <p id="deferred-rejected">{this.state.error.message}</p>;
     }

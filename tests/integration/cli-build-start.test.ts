@@ -1,24 +1,11 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import { runBuild, runInit, runStart } from "../../framework/cli/commands";
-import { ensureDir, existsPath, readText } from "../../framework/runtime/io";
+import { existsPath, readText } from "../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
-
-function linkDirectory(target: string, linkPath: string): void {
-  const result = Bun.spawnSync({
-    cmd: ["ln", "-s", target, linkPath],
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  if (result.exitCode !== 0) {
-    const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
-    throw new Error(`Failed to create symlink ${linkPath} -> ${target}: ${stderr || result.exitCode}`);
-  }
-}
 
 afterEach(async () => {
   await tempDirs.cleanup();
@@ -53,12 +40,6 @@ describe("CLI build/start contracts", () => {
       "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
       "app/public/logo.txt": "logo",
     }, "rbssr-cli-build");
-
-    const nodeModulesDir = path.join(root, "node_modules");
-    await ensureDir(nodeModulesDir);
-    linkDirectory(process.cwd(), path.join(nodeModulesDir, "react-bun-ssr"));
-    linkDirectory(path.join(process.cwd(), "node_modules", "react"), path.join(nodeModulesDir, "react"));
-    linkDirectory(path.join(process.cwd(), "node_modules", "react-dom"), path.join(nodeModulesDir, "react-dom"));
 
     await runBuild(root);
 

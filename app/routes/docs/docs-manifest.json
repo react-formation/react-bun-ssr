@@ -226,7 +226,7 @@
     "slug": "start/dev-build-lifecycle",
     "title": "Dev and Build Lifecycle",
     "navTitle": "Dev/Build Lifecycle",
-    "description": "See how dev snapshots, generated client entries, builds, and production startup differ across rbssr commands.",
+    "description": "See how Bun hot reload, generated client entries, builds, and production startup differ across rbssr commands.",
     "section": "Start",
     "kind": "reference",
     "order": 5,

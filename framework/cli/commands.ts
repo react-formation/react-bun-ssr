@@ -1,28 +1,22 @@
-import { watch, type FSWatcher } from "node:fs";
 import path from "node:path";
 import {
   buildRouteManifest,
   bundleClientEntries,
   copyDirRecursive,
   createBuildManifest,
-  discoverFileSignature,
   ensureCleanDirectory,
   generateClientEntries,
 } from "../runtime/build-tools";
 import { loadUserConfig, resolveConfig } from "../runtime/config";
-import { ensureDir, existsPath, removePath, statPath, writeText } from "../runtime/io";
-import { createServer } from "../runtime/server";
-import type { BuildRouteAsset, FrameworkConfig, ResolvedConfig } from "../runtime/types";
+import { ensureDir, existsPath, writeText, writeTextIfChanged } from "../runtime/io";
+import type { FrameworkConfig, ResolvedConfig } from "../runtime/types";
 import {
-  createDevSnapshotTargets,
-  createDevSnapshotConfig,
+  createDevHotEntrypointSource,
   createProductionServerEntrypointSource,
   createTestCommands,
   createTypecheckCommand,
-  listStaleSnapshotVersions,
   parseFlags,
-  readProjectEntries,
-  shouldUseRequestTimeRebuildCheck,
+  RBSSR_DEV_RESTART_EXIT_CODE,
 } from "./internal";
 import { scaffoldApp } from "./scaffold";
 
@@ -43,49 +37,6 @@ async function writeProductionServerEntrypoint(options: { distDir: string }): Pr
 
   const serverEntryPath = path.join(serverDir, "server.mjs");
   await writeText(serverEntryPath, createProductionServerEntrypointSource());
-}
-
-async function copySnapshotTarget(options: {
-  sourcePath: string;
-  snapshotPath: string;
-  isDirectory: boolean;
-  isFile: boolean;
-}): Promise<void> {
-  if (options.isDirectory) {
-    await copyDirRecursive(options.sourcePath, options.snapshotPath);
-    return;
-  }
-
-  if (!options.isFile) {
-    return;
-  }
-
-  await ensureDir(path.dirname(options.snapshotPath));
-  await Bun.write(options.snapshotPath, Bun.file(options.sourcePath));
-}
-
-async function mirrorSnapshotSources(cwd: string, snapshotRoot: string): Promise<string[]> {
-  const targets = createDevSnapshotTargets(cwd, snapshotRoot, await readProjectEntries(cwd));
-  await Promise.all(targets.map(copySnapshotTarget));
-  return targets.map(target => target.sourcePath);
-}
-
-async function watchSourceRoot(
-  sourcePath: string,
-  onChange: () => void,
-): Promise<FSWatcher | null> {
-  const sourceStat = await statPath(sourcePath);
-  if (!sourceStat) {
-    return null;
-  }
-
-  try {
-    return sourceStat.isDirectory()
-      ? watch(sourcePath, { recursive: true }, onChange)
-      : watch(sourcePath, onChange);
-  } catch {
-    return null;
-  }
 }
 
 export async function runInit(args: string[], cwd = process.cwd()): Promise<void> {
@@ -135,187 +86,64 @@ export async function runBuild(cwd = process.cwd()): Promise<void> {
 }
 
 export async function runDev(cwd = process.cwd()): Promise<void> {
-  const { userConfig, resolved } = await getConfig(cwd);
-  const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
-  const devClientDir = path.resolve(cwd, ".rbssr/dev/client");
-  const serverSnapshotsRoot = path.resolve(cwd, ".rbssr/dev/server-snapshots");
+  await getConfig(cwd);
 
-  await Promise.all([
-    ensureDir(generatedDir),
-    ensureDir(devClientDir),
-    ensureCleanDirectory(serverSnapshotsRoot),
-  ]);
+  const generatedDevDir = path.resolve(cwd, ".rbssr/generated/dev");
+  const generatedEntryPath = path.join(generatedDevDir, "entry.ts");
+  await ensureDir(generatedDevDir);
+  await writeTextIfChanged(generatedEntryPath, createDevHotEntrypointSource({
+    cwd,
+    runtimeModulePath: path.resolve(import.meta.dir, "dev-runtime.ts"),
+  }));
 
-  let routeAssets: Record<string, BuildRouteAsset> = {};
-  let signature = "";
-  let version = 0;
-  let currentRuntimePaths: Partial<ResolvedConfig> = {};
-  let sourceDirty = true;
-  const reloadListeners = new Set<(nextVersion: number) => void>();
-  const watchedRoots = createDevSnapshotTargets(cwd, serverSnapshotsRoot, await readProjectEntries(cwd))
-    .map(target => target.sourcePath);
+  let activeChild: Bun.Subprocess<"inherit", "inherit", "inherit"> | null = null;
+  let shuttingDown = false;
 
-  const getSourceSignature = async (): Promise<string> => {
-    const signatures = await Promise.all(
-      watchedRoots.map(root => discoverFileSignature(root)),
-    );
-    return signatures.join(":");
-  };
-
-  const notifyReload = (): void => {
-    for (const listener of reloadListeners) {
-      listener(version);
-    }
-  };
-
-  const rebuildIfNeeded = async (force = false): Promise<void> => {
-    if (!force && !sourceDirty) {
-      return;
-    }
-
-    const nextSignature = await getSourceSignature();
-    if (!force && nextSignature === signature) {
-      sourceDirty = false;
-      return;
-    }
-
-    sourceDirty = false;
-    signature = nextSignature;
-
-    const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
-    await ensureCleanDirectory(snapshotDir);
-    await mirrorSnapshotSources(cwd, snapshotDir);
-
-    const snapshotConfig = createDevSnapshotConfig(resolved, snapshotDir);
-
-    const manifest = await buildRouteManifest(snapshotConfig);
-    const entries = await generateClientEntries({
-      config: snapshotConfig,
-      manifest,
-      generatedDir,
-    });
-
-    await ensureCleanDirectory(devClientDir);
-
-    routeAssets = await bundleClientEntries({
-      entries,
-      outDir: devClientDir,
-      dev: true,
-      publicPrefix: "/__rbssr/client/",
-    });
-
-    currentRuntimePaths = {
-      appDir: snapshotConfig.appDir,
-      routesDir: snapshotConfig.routesDir,
-      rootModule: snapshotConfig.rootModule,
-      middlewareFile: snapshotConfig.middlewareFile,
-    };
-
-    const staleVersions = listStaleSnapshotVersions(await readProjectEntries(serverSnapshotsRoot));
-    await Promise.all(staleVersions.map(stale => removePath(path.join(serverSnapshotsRoot, stale))));
-
-    version += 1;
-    notifyReload();
-    log(`rebuilt client assets (version ${version})`);
-  };
-
-  let rebuildQueue: Promise<void> = Promise.resolve();
-  const enqueueRebuild = (force = false): Promise<void> => {
-    const task = rebuildQueue.then(() => rebuildIfNeeded(force));
-    rebuildQueue = task.catch(error => {
-      // eslint-disable-next-line no-console
-      console.error("[rbssr] rebuild failed", error);
-    });
-    return task;
-  };
-
-  await enqueueRebuild(true);
-
-  let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
-  const scheduleRebuild = (): void => {
-    if (rebuildTimer) {
-      clearTimeout(rebuildTimer);
-    }
-
-    rebuildTimer = setTimeout(() => {
-      rebuildTimer = undefined;
-      void enqueueRebuild(false);
-    }, 75);
-  };
-
-  const watchers: FSWatcher[] = [];
-  for (const root of watchedRoots) {
-    const watcher = await watchSourceRoot(root, () => {
-      sourceDirty = true;
-      scheduleRebuild();
-    });
-    if (watcher) {
-      watchers.push(watcher);
-    } else {
-      log(`recursive file watching unavailable for ${root}; relying on request-time rebuild checks`);
-    }
-  }
-
-  const useRequestTimeRebuildCheck = shouldUseRequestTimeRebuildCheck(watchedRoots.length, watchers.length);
-
-  const cleanup = (): void => {
-    if (rebuildTimer) {
-      clearTimeout(rebuildTimer);
-      rebuildTimer = undefined;
-    }
-    for (const watcher of watchers) {
-      watcher.close();
-    }
+  const forwardSignal = (signal: NodeJS.Signals): void => {
+    shuttingDown = true;
+    activeChild?.kill(signal);
   };
 
   process.once("SIGINT", () => {
-    cleanup();
-    process.exit(0);
+    forwardSignal("SIGINT");
   });
 
   process.once("SIGTERM", () => {
-    cleanup();
-    process.exit(0);
+    forwardSignal("SIGTERM");
   });
 
-  const server = createServer(
-    {
-      ...userConfig,
-      mode: "development",
-    },
-    {
-      dev: true,
-      getDevAssets: () => routeAssets,
-      reloadVersion: () => version,
-      subscribeReload: listener => {
-        reloadListeners.add(listener);
-        return () => {
-          reloadListeners.delete(listener);
-        };
+  while (true) {
+    activeChild = Bun.spawn({
+      cmd: ["bun", "--hot", generatedEntryPath],
+      cwd,
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+      env: {
+        ...process.env,
+        RBSSR_DEV_LAUNCHER: "1",
+        RBSSR_DEV_CHILD: "1",
       },
-      resolvePaths: () => currentRuntimePaths,
-      onBeforeRequest: () => {
-        if (!sourceDirty && !useRequestTimeRebuildCheck) {
-          return Promise.resolve();
-        }
+    });
 
-        if (useRequestTimeRebuildCheck) {
-          sourceDirty = true;
-        }
+    const exitCode = await activeChild.exited;
+    activeChild = null;
 
-        return enqueueRebuild(false);
-      },
-    },
-  );
+    if (shuttingDown) {
+      return;
+    }
 
-  const bunServer = Bun.serve({
-    hostname: resolved.host,
-    port: resolved.port,
-    fetch: server.fetch,
-    development: true,
-  });
+    if (exitCode === RBSSR_DEV_RESTART_EXIT_CODE) {
+      log("restarting dev child after config change");
+      continue;
+    }
 
-  log(`dev server listening on ${bunServer.url}`);
+    if (exitCode !== 0) {
+      process.exit(exitCode);
+    }
+
+    return;
+  }
 }
 
 export async function runStart(cwd = process.cwd()): Promise<void> {

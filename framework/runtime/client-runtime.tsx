@@ -144,6 +144,28 @@ let popstateBound = false;
 let navigationApiListenerBound = false;
 let navigationApiTransitionCounter = 0;
 
+function pickOptionalClientModuleExport<T>(
+  moduleValue: Record<string, unknown>,
+  exportName: string,
+): T | undefined {
+  const value = moduleValue[exportName];
+  return typeof value === "function" ? (value as T) : undefined;
+}
+
+export function projectClientModule(
+  defaultExport: RouteModule["default"],
+  moduleValue: Record<string, unknown>,
+): RouteModule {
+  return {
+    default: defaultExport,
+    Loading: pickOptionalClientModuleExport<RouteModule["Loading"]>(moduleValue, "Loading"),
+    ErrorComponent: pickOptionalClientModuleExport<RouteModule["ErrorComponent"]>(moduleValue, "ErrorComponent"),
+    CatchBoundary: pickOptionalClientModuleExport<RouteModule["CatchBoundary"]>(moduleValue, "CatchBoundary"),
+    ErrorBoundary: pickOptionalClientModuleExport<RouteModule["ErrorBoundary"]>(moduleValue, "ErrorBoundary"),
+    NotFound: pickOptionalClientModuleExport<RouteModule["NotFound"]>(moduleValue, "NotFound"),
+  };
+}
+
 function withVersionQuery(url: string, version?: number): string {
   if (typeof version !== "number") {
     return url;

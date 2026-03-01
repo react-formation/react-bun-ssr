@@ -1,21 +1,17 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import {
-  createDevSnapshotTargets,
-  createDevSnapshotConfig,
+  createDevHotEntrypointSource,
   createProductionServerEntrypointSource,
   createTestCommands,
   createTypecheckCommand,
   formatCliHelp,
-  listStaleSnapshotVersions,
   parseFlags,
+  RBSSR_DEV_RESTART_EXIT_CODE,
   readProjectEntries,
   resolveCliInvocation,
-  shouldMirrorSnapshotEntry,
-  shouldUseRequestTimeRebuildCheck,
 } from "../../framework/cli/internal";
 import { ensureDir, writeText } from "../../framework/runtime/io";
-import type { ResolvedConfig } from "../../framework/runtime/types";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
@@ -25,88 +21,19 @@ afterEach(async () => {
 });
 
 describe("cli internal helpers", () => {
-  it("builds a package-safe production server entrypoint source", () => {
-    const source = createProductionServerEntrypointSource();
+  it("builds package-safe production and dev entrypoints", () => {
+    const productionSource = createProductionServerEntrypointSource();
+    expect(productionSource).toContain('from "react-bun-ssr"');
+    expect(productionSource).toContain('"dist/manifest.json"');
+    expect(productionSource).not.toContain("../../framework/runtime/index.ts");
 
-    expect(source).toContain('from "react-bun-ssr"');
-    expect(source).toContain('"dist/manifest.json"');
-    expect(source).not.toContain('../../framework/runtime/index.ts');
-  });
-
-  it("creates snapshot config rooted in the mirrored app path and trims stale versions", () => {
-    const resolved: ResolvedConfig = {
+    const devSource = createDevHotEntrypointSource({
       cwd: "/repo",
-      appDir: "/repo/app",
-      routesDir: "/repo/app/routes",
-      publicDir: "/repo/app/public",
-      rootModule: "/repo/app/root.tsx",
-      middlewareFile: "/repo/app/middleware.ts",
-      distDir: "/repo/dist",
-      host: "127.0.0.1",
-      port: 3000,
-      mode: "development",
-      serverBytecode: true,
-      headerRules: [],
-    };
-
-    const snapshotConfig = createDevSnapshotConfig(resolved, "/repo/.rbssr/dev/server-snapshots/v4");
-    expect(snapshotConfig.appDir).toBe("/repo/.rbssr/dev/server-snapshots/v4/app");
-    expect(snapshotConfig.routesDir).toBe("/repo/.rbssr/dev/server-snapshots/v4/app/routes");
-    expect(snapshotConfig.rootModule).toBe("/repo/.rbssr/dev/server-snapshots/v4/app/root.tsx");
-    expect(snapshotConfig.middlewareFile).toBe("/repo/.rbssr/dev/server-snapshots/v4/app/middleware.ts");
-
-    expect(
-      listStaleSnapshotVersions([
-        { name: "v1", isDirectory: true, isFile: false },
-        { name: "v2", isDirectory: true, isFile: false },
-        { name: "v3", isDirectory: true, isFile: false },
-        { name: "v4", isDirectory: true, isFile: false },
-        { name: "notes.txt", isDirectory: false, isFile: true },
-      ]),
-    ).toEqual(["v1"]);
-  });
-
-  it("maps mirrored snapshot targets and request-time rebuild fallback decisions", () => {
-    const targets = createDevSnapshotTargets("/repo", "/repo/.rbssr/dev/server-snapshots/v4", [
-      { name: "app", isDirectory: true, isFile: false },
-      { name: "docs", isDirectory: true, isFile: false },
-      { name: "shared", isDirectory: true, isFile: false },
-      { name: "package.json", isDirectory: false, isFile: true },
-      { name: "framework", isDirectory: true, isFile: false },
-      { name: "react-bun-ssr-0.1.0.tgz", isDirectory: false, isFile: true },
-      { name: ".rbssr", isDirectory: true, isFile: false },
-      { name: "dist", isDirectory: true, isFile: false },
-      { name: "node_modules", isDirectory: true, isFile: false },
-    ]);
-
-    expect(targets).toEqual([
-      {
-        sourcePath: "/repo/app",
-        snapshotPath: "/repo/.rbssr/dev/server-snapshots/v4/app",
-        isDirectory: true,
-        isFile: false,
-      },
-      {
-        sourcePath: "/repo/docs",
-        snapshotPath: "/repo/.rbssr/dev/server-snapshots/v4/docs",
-        isDirectory: true,
-        isFile: false,
-      },
-      {
-        sourcePath: "/repo/shared",
-        snapshotPath: "/repo/.rbssr/dev/server-snapshots/v4/shared",
-        isDirectory: true,
-        isFile: false,
-      },
-    ]);
-    expect(shouldMirrorSnapshotEntry(".rbssr")).toBe(false);
-    expect(shouldMirrorSnapshotEntry("dist")).toBe(false);
-    expect(shouldMirrorSnapshotEntry("framework")).toBe(false);
-    expect(shouldMirrorSnapshotEntry("package.json")).toBe(false);
-    expect(shouldMirrorSnapshotEntry("react-bun-ssr-0.1.0.tgz")).toBe(false);
-    expect(shouldMirrorSnapshotEntry("shared")).toBe(true);
-    expect(shouldUseRequestTimeRebuildCheck(3, 3)).toBe(false);
-    expect(shouldUseRequestTimeRebuildCheck(3, 2)).toBe(true);
+      runtimeModulePath: "/repo/framework/cli/dev-runtime.ts",
+    });
+    expect(devSource).toContain('from "/repo/framework/cli/dev-runtime.ts"');
+    expect(devSource).toContain('process.chdir("/repo")');
+    expect(devSource).toContain("runHotDevChild");
   });
 
   it("reads project entries with directories and files", async () => {
@@ -129,7 +56,7 @@ describe("cli internal helpers", () => {
     ]);
   });
 
-  it("parses force flags and produces stable delegated command lists", () => {
+  it("parses flags and exposes delegated command contracts", () => {
     expect(parseFlags(["--force"])).toEqual({ force: true });
     expect(parseFlags([])).toEqual({ force: false });
     expect(createTypecheckCommand()).toEqual(["bun", "x", "tsc", "--noEmit"]);
@@ -139,6 +66,7 @@ describe("cli internal helpers", () => {
       ["bun", "test", "./tests/integration"],
       ["bun", "x", "playwright", "test"],
     ]);
+    expect(RBSSR_DEV_RESTART_EXIT_CODE).toBe(75);
   });
 
   it("keeps help and unknown command routing stable", () => {

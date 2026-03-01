@@ -1,16 +1,8 @@
 import path from "node:path";
 import { statPath, type FileEntry } from "../runtime/io";
-import type { ResolvedConfig } from "../runtime/types";
 
 export interface CliFlags {
   force: boolean;
-}
-
-export interface SnapshotSourceTarget {
-  sourcePath: string;
-  snapshotPath: string;
-  isDirectory: boolean;
-  isFile: boolean;
 }
 
 export type CliCommand = "init" | "dev" | "build" | "start" | "typecheck" | "test";
@@ -19,6 +11,8 @@ export type CliInvocation =
   | { kind: "command"; command: CliCommand; args: string[] }
   | { kind: "help" }
   | { kind: "unknown"; command: string };
+
+export const RBSSR_DEV_RESTART_EXIT_CODE = 75;
 
 export function parseFlags(args: string[]): CliFlags {
   return {
@@ -50,6 +44,22 @@ startHttpServer({
 `;
 }
 
+export function createDevHotEntrypointSource(options: {
+  cwd: string;
+  runtimeModulePath: string;
+}): string {
+  const cwd = JSON.stringify(path.resolve(options.cwd));
+  const runtimeModulePath = JSON.stringify(path.resolve(options.runtimeModulePath));
+
+  return `import { runHotDevChild } from ${runtimeModulePath};
+
+process.chdir(${cwd});
+await runHotDevChild({
+  cwd: ${cwd},
+});
+`;
+}
+
 export async function readProjectEntries(rootDir: string): Promise<FileEntry[]> {
   const entries: FileEntry[] = [];
 
@@ -71,83 +81,6 @@ export async function readProjectEntries(rootDir: string): Promise<FileEntry[]> 
   }
 
   return entries.sort((left, right) => left.name.localeCompare(right.name));
-}
-
-function toSnapshotPath(snapshotRoot: string, cwd: string, sourcePath: string): string {
-  return path.join(snapshotRoot, path.relative(cwd, sourcePath));
-}
-
-export function createDevSnapshotConfig(
-  resolved: ResolvedConfig,
-  snapshotRoot: string,
-): ResolvedConfig {
-  return {
-    ...resolved,
-    appDir: toSnapshotPath(snapshotRoot, resolved.cwd, resolved.appDir),
-    routesDir: toSnapshotPath(snapshotRoot, resolved.cwd, resolved.routesDir),
-    rootModule: toSnapshotPath(snapshotRoot, resolved.cwd, resolved.rootModule),
-    middlewareFile: toSnapshotPath(snapshotRoot, resolved.cwd, resolved.middlewareFile),
-  };
-}
-
-const SNAPSHOT_EXCLUDED_TOP_LEVEL = new Set([
-  ".git",
-  ".github",
-  ".rbssr",
-  "AGENTS.md",
-  "bin",
-  "bun-env.d.ts",
-  "bun.lock",
-  "bunfig.toml",
-  "CONTRIBUTING.md",
-  "Dockerfile",
-  "dist",
-  "fly.toml",
-  "framework",
-  "node_modules",
-  "package.json",
-  "playwright.config.ts",
-  "README.md",
-  "rbssr.config.ts",
-  "tsconfig.json",
-]);
-
-export function shouldMirrorSnapshotEntry(name: string): boolean {
-  if (SNAPSHOT_EXCLUDED_TOP_LEVEL.has(name)) {
-    return false;
-  }
-
-  return !/^react-bun-ssr-.*\.tgz$/.test(name);
-}
-
-export function createDevSnapshotTargets(
-  cwd: string,
-  snapshotRoot: string,
-  entries: FileEntry[],
-): SnapshotSourceTarget[] {
-  return entries
-    .filter(entry => shouldMirrorSnapshotEntry(entry.name))
-    .map(entry => ({
-      sourcePath: path.join(cwd, entry.name),
-      snapshotPath: path.join(snapshotRoot, entry.name),
-      isDirectory: entry.isDirectory,
-      isFile: entry.isFile,
-    }));
-}
-
-export function shouldUseRequestTimeRebuildCheck(
-  expectedWatcherCount: number,
-  actualWatcherCount: number,
-): boolean {
-  return actualWatcherCount < expectedWatcherCount;
-}
-
-export function listStaleSnapshotVersions(entries: FileEntry[], retainCount = 3): string[] {
-  return entries
-    .filter(entry => entry.isDirectory && /^v\d+$/.test(entry.name))
-    .map(entry => entry.name)
-    .sort((a, b) => Number(b.slice(1)) - Number(a.slice(1)))
-    .slice(retainCount);
 }
 
 export function createTypecheckCommand(): string[] {

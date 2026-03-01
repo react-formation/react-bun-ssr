@@ -5,6 +5,7 @@ import {
   ensureDir,
   existsPath,
   glob,
+  removePath,
   statPath,
   writeTextIfChanged,
 } from './io';
@@ -25,19 +26,19 @@ const BUILD_OPTIMIZE_IMPORTS = [
   '@datadog/browser-rum-react',
 ];
 
-interface ClientEntryFile {
+export interface ClientEntryFile {
   routeId: string;
   entryFilePath: string;
   route: PageRouteDefinition;
 }
 
-const CLIENT_RENDER_SAFE_EXPORTS = [
-  'Loading',
-  'ErrorComponent',
-  'CatchBoundary',
-  'ErrorBoundary',
-  'NotFound',
-] as const;
+export interface ClientEntrySyncResult {
+  entries: ClientEntryFile[];
+  addedEntryPaths: string[];
+  changedEntryPaths: string[];
+  removedEntryPaths: string[];
+  entrySetChanged: boolean;
+}
 
 async function walkFiles(rootDir: string): Promise<string[]> {
   if (!(await existsPath(rootDir))) {
@@ -48,14 +49,18 @@ async function walkFiles(rootDir: string): Promise<string[]> {
 }
 
 function buildClientModuleProjectionSource(defaultRef: string, moduleRef: string): string {
-  const propertyLines = CLIENT_RENDER_SAFE_EXPORTS.map(
-    exportName => `  ${exportName}: ${moduleRef}.${exportName},`,
-  );
+  return `projectClientModule(${defaultRef}, ${moduleRef})`;
+}
 
-  return `{
-  default: ${defaultRef},
-${propertyLines.join('\n')}
-}`;
+function toClientEntryFile(options: {
+  route: PageRouteDefinition;
+  entryFilePath: string;
+}): ClientEntryFile {
+  return {
+    routeId: options.route.id,
+    entryFilePath: options.entryFilePath,
+    route: options.route,
+  };
 }
 
 function buildClientEntrySource(options: {
@@ -73,7 +78,7 @@ function buildClientEntrySource(options: {
   const routeImport = toImportPath(generatedDir, route.filePath);
 
   imports.push(
-    `import { hydrateInitialRoute, registerRouteModules } from "${runtimeImport}";`,
+    `import { hydrateInitialRoute, projectClientModule, registerRouteModules } from "${runtimeImport}";`,
   );
 
   imports.push(`import RootDefault from "${rootImport}";`);
@@ -131,13 +136,84 @@ export async function generateClientEntries(options: {
 
       await writeTextIfChanged(entryFilePath, source);
 
-      return {
-        routeId: route.id,
-        entryFilePath,
+      return toClientEntryFile({
         route,
-      };
+        entryFilePath,
+      });
     }),
   );
+}
+
+export async function syncClientEntries(options: {
+  config: ResolvedConfig;
+  manifest: RouteManifest;
+  generatedDir: string;
+}): Promise<ClientEntrySyncResult> {
+  const { config, manifest, generatedDir } = options;
+  await ensureDir(generatedDir);
+
+  const runtimeClientFile = path.resolve(import.meta.dir, 'client-runtime.tsx');
+  const desiredEntries = new Map<string, { route: PageRouteDefinition; entryFilePath: string }>();
+  for (const route of manifest.pages) {
+    const entryFilePath = path.join(generatedDir, `route__${route.id}.tsx`);
+    desiredEntries.set(entryFilePath, {
+      route,
+      entryFilePath,
+    });
+  }
+
+  const existingEntryPaths = new Set(
+    (await glob('route__*.tsx', {
+      cwd: generatedDir,
+      absolute: true,
+    }))
+      .map((filePath) => path.resolve(filePath)),
+  );
+
+  const addedEntryPaths: string[] = [];
+  const changedEntryPaths: string[] = [];
+  const removedEntryPaths: string[] = [];
+
+  await Promise.all(
+    [...desiredEntries.values()].map(async ({ route, entryFilePath }) => {
+      const source = buildClientEntrySource({
+        generatedDir,
+        route,
+        rootModulePath: config.rootModule,
+        runtimeClientFile,
+      });
+      const existed = existingEntryPaths.has(entryFilePath);
+      const changed = await writeTextIfChanged(entryFilePath, source);
+      if (!existed) {
+        addedEntryPaths.push(entryFilePath);
+      } else if (changed) {
+        changedEntryPaths.push(entryFilePath);
+      }
+      existingEntryPaths.delete(entryFilePath);
+    }),
+  );
+
+  await Promise.all(
+    [...existingEntryPaths].map(async (entryFilePath) => {
+      removedEntryPaths.push(entryFilePath);
+      await removePath(entryFilePath);
+    }),
+  );
+
+  const entries = manifest.pages.map((route) => {
+    return toClientEntryFile({
+      route,
+      entryFilePath: path.join(generatedDir, `route__${route.id}.tsx`),
+    });
+  });
+
+  return {
+    entries,
+    addedEntryPaths: addedEntryPaths.sort(),
+    changedEntryPaths: changedEntryPaths.sort(),
+    removedEntryPaths: removedEntryPaths.sort(),
+    entrySetChanged: addedEntryPaths.length > 0 || removedEntryPaths.length > 0,
+  };
 }
 
 async function mapBuildOutputsByPrefix(options: {
@@ -174,7 +250,7 @@ async function mapBuildOutputsByPrefix(options: {
   return routeAssets;
 }
 
-function normalizeMetafilePath(filePath: string): string {
+export function normalizeMetafilePath(filePath: string): string {
   return normalizeSlashes(filePath).replace(/^\.\//, "");
 }
 
@@ -182,7 +258,7 @@ function toPublicBuildPath(publicPrefix: string, filePath: string): string {
   return `${publicPrefix}${normalizeMetafilePath(filePath)}`;
 }
 
-function mapBuildOutputsFromMetafile(options: {
+export function mapBuildOutputsFromMetafile(options: {
   metafile: Bun.BuildMetafile;
   entries: ClientEntryFile[];
   publicPrefix: string;
@@ -221,6 +297,21 @@ function mapBuildOutputsFromMetafile(options: {
   }
 
   return routeAssets;
+}
+
+export function listBuildOutputFiles(metafile: Bun.BuildMetafile): string[] {
+  return Object.keys(metafile.outputs)
+    .map(normalizeMetafilePath)
+    .sort();
+}
+
+export function createClientEntrySetSignature(entries: ClientEntryFile[]): string {
+  return stableHash(
+    entries
+      .map((entry) => normalizeSlashes(path.resolve(entry.entryFilePath)))
+      .sort()
+      .join('|'),
+  );
 }
 
 export async function bundleClientEntries(options: {

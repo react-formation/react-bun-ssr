@@ -135,7 +135,7 @@ export function collectHeadMarkup(modules: RouteModuleBundle, payload: RenderPay
 }
 
 function buildDevReloadClientScript(version: number): string {
-  return `(() => {\n  const currentVersion = ${version};\n  const source = new EventSource('/__rbssr/events');\n\n  source.addEventListener('reload', event => {\n    const nextVersion = Number(event.data);\n    if (Number.isFinite(nextVersion) && nextVersion > currentVersion) {\n      location.reload();\n    }\n  });\n\n  window.addEventListener('beforeunload', () => {\n    source.close();\n  });\n})();`;
+  return `(() => {\n  let currentVersion = ${version};\n  let closed = false;\n  let socket;\n\n  const connect = () => {\n    socket = new WebSocket(\`\${location.protocol === 'https:' ? 'wss' : 'ws'}://\${location.host}/__rbssr/ws\`);\n\n    socket.addEventListener('message', event => {\n      try {\n        const payload = JSON.parse(String(event.data));\n        const nextVersion = Number(payload?.token);\n        if (Number.isFinite(nextVersion) && nextVersion > currentVersion) {\n          currentVersion = nextVersion;\n          location.reload();\n        }\n      } catch {\n        // ignore malformed dev reload payloads\n      }\n    });\n\n    socket.addEventListener('close', () => {\n      if (!closed) {\n        setTimeout(connect, 150);\n      }\n    });\n  };\n\n  connect();\n\n  window.addEventListener('beforeunload', () => {\n    closed = true;\n    socket?.close();\n  });\n})();`;
 }
 
 function buildDeferredBootstrapScript(): string {

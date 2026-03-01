@@ -19,7 +19,10 @@ const BLOG_REQUIRED_FIELDS = ["title", "description", "section", "author", "publ
 const SOURCE_DIRS = ["framework", "scripts", "tests", "app", "bin"] as const;
 const SOURCE_FILE_PATTERN = "**/*.{ts,tsx,js,jsx,mjs,cjs}";
 const ALLOWED_NODE_IMPORTS = new Set(["path", "fs"]);
-const WATCHER_FILE = "framework/cli/commands.ts";
+const WATCHER_FILES = new Set([
+  "framework/cli/commands.ts",
+  "framework/cli/dev-runtime.ts",
+]);
 const BLOG_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function fail(message: string): never {
@@ -278,9 +281,11 @@ async function validateNodeApiPolicy(): Promise<void> {
 
       if (
         moduleName === "fs"
-        && (relativePath !== WATCHER_FILE || !statement.includes("watch"))
+        && (!WATCHER_FILES.has(relativePath) || !statement.includes("watch"))
       ) {
-        disallowedNodeImports.push(`${relativePath} -> node:fs (only watch in ${WATCHER_FILE} is allowed)`);
+        disallowedNodeImports.push(
+          `${relativePath} -> node:fs (only watch in ${[...WATCHER_FILES].join(", ")} is allowed)`,
+        );
       }
     }
   }

@@ -28,6 +28,7 @@ const SERVER_BUILD_EXTERNAL = [
 export interface RouteModuleLoadOptions {
   cacheBustKey?: string;
   serverBytecode?: boolean;
+  devSourceImports?: boolean;
 }
 
 export function createServerModuleCacheKey(options: {
@@ -67,15 +68,21 @@ export async function importModule<T>(
   return (await import(url)) as T;
 }
 
+function normalizeLoadOptions(
+  options: string | RouteModuleLoadOptions | undefined,
+): RouteModuleLoadOptions {
+  if (typeof options === "string") {
+    return {
+      cacheBustKey: options,
+    };
+  }
+
+  return options ?? {};
+}
+
 function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   const rawValue = moduleValue as Record<string, unknown>;
-  const value =
-    rawValue &&
-    typeof rawValue.default === 'object' &&
-    rawValue.default !== null &&
-    'default' in (rawValue.default as Record<string, unknown>)
-      ? (rawValue.default as Partial<RouteModule>)
-      : (rawValue as Partial<RouteModule>);
+  const value = unwrapModuleNamespace(rawValue) as Partial<RouteModule>;
   const component = value.default;
 
   if (typeof component !== 'function') {
@@ -91,6 +98,19 @@ function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
     ...value,
     default: component,
   } as RouteModule;
+}
+
+function unwrapModuleNamespace(moduleValue: Record<string, unknown>): Record<string, unknown> {
+  if (
+    moduleValue
+    && typeof moduleValue.default === "object"
+    && moduleValue.default !== null
+    && "default" in (moduleValue.default as Record<string, unknown>)
+  ) {
+    return moduleValue.default as Record<string, unknown>;
+  }
+
+  return moduleValue;
 }
 
 function isCompilableRouteModule(filePath: string): boolean {
@@ -210,10 +230,13 @@ export async function loadRouteModule(
   filePath: string,
   options: RouteModuleLoadOptions = {},
 ): Promise<RouteModule> {
-  const bundledModulePath = await buildServerModule(filePath, options);
+  const normalizedOptions = normalizeLoadOptions(options);
+  const modulePath = normalizedOptions.devSourceImports
+    ? path.resolve(filePath)
+    : await buildServerModule(filePath, normalizedOptions);
   const moduleValue = await importModule<unknown>(
-    bundledModulePath,
-    options.cacheBustKey,
+    modulePath,
+    normalizedOptions.cacheBustKey,
   );
   return toRouteModule(filePath, moduleValue);
 }
@@ -224,10 +247,12 @@ export async function loadRouteModules(options: {
   routeFilePath: string;
   cacheBustKey?: string;
   serverBytecode?: boolean;
+  devSourceImports?: boolean;
 }): Promise<RouteModuleBundle> {
   const moduleOptions: RouteModuleLoadOptions = {
     cacheBustKey: options.cacheBustKey,
     serverBytecode: options.serverBytecode,
+    devSourceImports: options.devSourceImports,
   };
   const [root, layouts, route] = await Promise.all([
     loadRouteModule(options.rootFilePath, moduleOptions),
@@ -266,16 +291,20 @@ function normalizeMiddlewareExport(value: unknown): Middleware[] {
 
 export async function loadGlobalMiddleware(
   middlewareFilePath: string,
-  cacheBustKey?: string,
+  options: string | RouteModuleLoadOptions = {},
 ): Promise<Middleware[]> {
   if (!(await existsPath(middlewareFilePath))) {
     return [];
   }
 
-  const raw = await importModule<Record<string, unknown>>(
-    middlewareFilePath,
-    cacheBustKey,
-  );
+  const normalizedOptions = normalizeLoadOptions(options);
+  const modulePath = normalizedOptions.devSourceImports
+    ? path.resolve(middlewareFilePath)
+    : await buildServerModule(middlewareFilePath, normalizedOptions);
+  const raw = unwrapModuleNamespace(await importModule<Record<string, unknown>>(
+    modulePath,
+    normalizedOptions.cacheBustKey,
+  ));
 
   return [
     ...normalizeMiddlewareExport(raw.default),
@@ -285,14 +314,18 @@ export async function loadGlobalMiddleware(
 
 export async function loadNestedMiddleware(
   middlewareFilePaths: string[],
-  cacheBustKey?: string,
+  options: string | RouteModuleLoadOptions = {},
 ): Promise<Middleware[]> {
+  const normalizedOptions = normalizeLoadOptions(options);
   const rawModules = await Promise.all(
-    middlewareFilePaths.map((middlewareFilePath) => {
-      return importModule<Record<string, unknown>>(
-        middlewareFilePath,
-        cacheBustKey,
-      );
+    middlewareFilePaths.map(async (middlewareFilePath) => {
+      const modulePath = normalizedOptions.devSourceImports
+        ? path.resolve(middlewareFilePath)
+        : await buildServerModule(middlewareFilePath, normalizedOptions);
+      return unwrapModuleNamespace(await importModule<Record<string, unknown>>(
+        modulePath,
+        normalizedOptions.cacheBustKey,
+      ));
     }),
   );
 
@@ -310,8 +343,13 @@ export function extractRouteMiddleware(module: RouteModule): Middleware[] {
 
 export async function loadApiRouteModule(
   filePath: string,
-  cacheBustKey?: string,
+  options: string | RouteModuleLoadOptions = {},
 ): Promise<ApiRouteModule> {
-  const raw = await importModule<ApiRouteModule>(filePath, cacheBustKey);
-  return raw;
+  const normalizedOptions = normalizeLoadOptions(options);
+  const modulePath = normalizedOptions.devSourceImports
+    ? path.resolve(filePath)
+    : await buildServerModule(filePath, normalizedOptions);
+  return unwrapModuleNamespace(
+    await importModule<Record<string, unknown>>(modulePath, normalizedOptions.cacheBustKey),
+  ) as ApiRouteModule;
 }

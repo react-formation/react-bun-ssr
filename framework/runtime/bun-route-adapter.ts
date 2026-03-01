@@ -1,5 +1,5 @@
 import path from "node:path";
-import { ensureCleanDir, ensureDir, writeTextIfChanged } from "./io";
+import { ensureDir, glob, removePath, writeTextIfChanged } from "./io";
 import { matchRouteBySegments } from "./matcher";
 import { scanRoutes } from "./route-scanner";
 import type {
@@ -117,6 +117,18 @@ async function writeProjectionRoutes<T extends PageRouteDefinition | ApiRouteDef
     }),
   );
 
+  const expectedPaths = new Set(writes.map(({ projectedFilePath }) => path.resolve(projectedFilePath)));
+  const existingPaths = new Set(await glob(`**/*${extension}`, {
+    cwd: outDir,
+    absolute: true,
+  }));
+
+  await Promise.all(
+    [...existingPaths]
+      .filter((projectedFilePath) => !expectedPaths.has(path.resolve(projectedFilePath)))
+      .map((projectedFilePath) => removePath(projectedFilePath)),
+  );
+
   return byProjectedFilePath;
 }
 
@@ -155,8 +167,7 @@ export async function createBunRouteAdapter(options: {
   const manifest = await scanRoutes(options.routesDir, {
     generatedMarkdownRootDir: options.generatedMarkdownRootDir,
   });
-
-  await ensureCleanDir(options.projectionRootDir);
+  await ensureDir(options.projectionRootDir);
 
   const pagesProjectionDir = path.join(options.projectionRootDir, "pages");
   const apiProjectionDir = path.join(options.projectionRootDir, "api");

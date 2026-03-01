@@ -53,7 +53,7 @@ Author everything you own directly:
 
 This is framework-generated and should be treated as disposable:
 
-- dev snapshots
+- generated dev entrypoints
 - generated markdown wrappers
 - generated client entries
 - router projection files

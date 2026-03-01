@@ -284,6 +284,7 @@ export interface ServerRuntimeOptions {
   devAssets?: Record<string, BuildRouteAsset>;
   getDevAssets?: () => Record<string, BuildRouteAsset>;
   reloadVersion?: () => number;
+  routeManifestVersion?: () => number;
   subscribeReload?: (listener: (version: number) => void) => (() => void) | void;
   resolvePaths?: () => Partial<ResolvedConfig>;
   onBeforeRequest?: () => Promise<void>;

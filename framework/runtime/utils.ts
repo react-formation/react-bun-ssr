@@ -85,6 +85,9 @@ export function sanitizeErrorMessage(error: unknown, production: boolean): strin
     if (error instanceof Error) {
       return error.message;
     }
+    if (typeof error === "string") {
+      return error;
+    }
     return Bun.inspect(error);
   }
   return "Internal Server Error";

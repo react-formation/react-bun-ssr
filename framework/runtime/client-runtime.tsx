@@ -1,4 +1,14 @@
 import { hydrateRoot, type Root } from "react-dom/client";
+import {
+  consumeTransitionChunkText,
+  createTransitionChunkParserState,
+  flushTransitionChunkText,
+  isStaleNavigationToken,
+  matchClientPageRoute,
+  sanitizePrefetchCache,
+  shouldHardNavigateForRedirectDepth,
+  shouldSkipSoftNavigation,
+} from "./client-transition-core";
 import { isDeferredToken } from "./deferred";
 import {
   addNavigationNavigateListener,
@@ -21,14 +31,12 @@ import {
 } from "./tree";
 import { isRouteErrorResponse } from "./route-errors";
 import type {
-  ClientRouteSnapshot,
   ClientRouterSnapshot,
-  Params,
   RenderPayload,
   RouteModule,
   RouteModuleBundle,
-  TransitionChunk,
   TransitionDeferredChunk,
+  TransitionDocumentChunk,
   TransitionInitialChunk,
   TransitionRedirectChunk,
 } from "./types";
@@ -61,7 +69,7 @@ interface NavigateResult {
 interface PrefetchEntry {
   createdAt: number;
   modulePromise: Promise<void>;
-  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | null>;
+  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null>;
   donePromise: Promise<void>;
 }
 
@@ -71,7 +79,7 @@ interface TransitionRequestOptions {
 }
 
 interface TransitionRequestHandle {
-  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | null>;
+  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null>;
   donePromise: Promise<void>;
 }
 
@@ -126,7 +134,6 @@ declare global {
   }
 }
 
-const PREFETCH_TTL_MS = 30_000;
 const NAVIGATION_API_PENDING_TIMEOUT_MS = 1_500;
 const NAVIGATION_API_PENDING_MATCH_WINDOW_MS = 10_000;
 const ROUTE_ANNOUNCER_ID = "__rbssr-route-announcer";
@@ -136,71 +143,6 @@ let runtimeState: RuntimeState | null = null;
 let popstateBound = false;
 let navigationApiListenerBound = false;
 let navigationApiTransitionCounter = 0;
-
-function normalizePathname(pathname: string): string[] {
-  if (!pathname || pathname === "/") {
-    return [];
-  }
-
-  return pathname
-    .replace(/^\/+/, "")
-    .replace(/\/+$/, "")
-    .split("/")
-    .filter(Boolean)
-    .map(part => decodeURIComponent(part));
-}
-
-function matchSegments(segments: ClientRouteSnapshot["segments"], pathname: string): Params | null {
-  const pathParts = normalizePathname(pathname);
-  const params: Params = {};
-
-  let i = 0;
-  let j = 0;
-
-  while (i < segments.length) {
-    const segment = segments[i]!;
-
-    if (segment.kind === "catchall") {
-      params[segment.value] = pathParts.slice(j).join("/");
-      return params;
-    }
-
-    const current = pathParts[j];
-    if (current === undefined) {
-      return null;
-    }
-
-    if (segment.kind === "static") {
-      if (segment.value !== current) {
-        return null;
-      }
-    } else {
-      params[segment.value] = current;
-    }
-
-    i += 1;
-    j += 1;
-  }
-
-  if (j !== pathParts.length) {
-    return null;
-  }
-
-  return params;
-}
-
-function matchPageRoute(
-  routes: ClientRouteSnapshot[],
-  pathname: string,
-): { route: ClientRouteSnapshot; params: Params } | null {
-  for (const route of routes) {
-    const params = matchSegments(route.segments, pathname);
-    if (params) {
-      return { route, params };
-    }
-  }
-  return null;
-}
 
 function withVersionQuery(url: string, version?: number): string {
   if (typeof version !== "number") {
@@ -402,50 +344,23 @@ function ensureRuntimeState(): RuntimeState {
   return runtimeState;
 }
 
-function sanitizePrefetchCache(cache: Map<string, PrefetchEntry>): void {
-  const now = Date.now();
-  for (const [key, entry] of cache.entries()) {
-    if (now - entry.createdAt > PREFETCH_TTL_MS) {
-      cache.delete(key);
-    }
-  }
-}
-
 function createTransitionUrl(toUrl: URL): URL {
   const transitionUrl = new URL("/__rbssr/transition", window.location.origin);
   transitionUrl.searchParams.set("to", toUrl.pathname + toUrl.search + toUrl.hash);
   return transitionUrl;
 }
 
-function splitLines(buffer: string): { lines: string[]; rest: string } {
-  const lines: string[] = [];
-  let start = 0;
-
-  for (let index = 0; index < buffer.length; index += 1) {
-    if (buffer[index] !== "\n") {
-      continue;
-    }
-
-    const line = buffer.slice(start, index).trim();
-    if (line.length > 0) {
-      lines.push(line);
-    }
-    start = index + 1;
-  }
-
-  return {
-    lines,
-    rest: buffer.slice(start),
-  };
-}
-
 function startTransitionRequest(
   toUrl: URL,
   options: TransitionRequestOptions = {},
 ): TransitionRequestHandle {
-  let resolveInitial: (value: TransitionInitialChunk | TransitionRedirectChunk | null) => void = () => undefined;
+  let resolveInitial: (
+    value: TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null,
+  ) => void = () => undefined;
   let rejectInitial: (reason?: unknown) => void = () => undefined;
-  const initialPromise = new Promise<TransitionInitialChunk | TransitionRedirectChunk | null>((resolve, reject) => {
+  const initialPromise = new Promise<
+    TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null
+  >((resolve, reject) => {
     resolveInitial = resolve;
     rejectInitial = reject;
   });
@@ -464,8 +379,7 @@ function startTransitionRequest(
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let initialChunk: TransitionInitialChunk | TransitionRedirectChunk | null = null;
-    let textBuffer = "";
+    let parserState = createTransitionChunkParserState();
 
     while (true) {
       const { done, value } = await reader.read();
@@ -473,38 +387,35 @@ function startTransitionRequest(
         break;
       }
 
-      textBuffer += decoder.decode(value, { stream: true });
-      const { lines, rest } = splitLines(textBuffer);
-      textBuffer = rest;
+      const previousInitialChunk = parserState.initialChunk;
+      const previousDeferredCount = parserState.deferredChunks.length;
+      parserState = consumeTransitionChunkText(
+        parserState,
+        decoder.decode(value, { stream: true }),
+      );
 
-      for (const line of lines) {
-        const chunk = JSON.parse(line) as TransitionChunk;
-        if (chunk.type === "initial" || chunk.type === "redirect") {
-          if (!initialChunk) {
-            initialChunk = chunk;
-            resolveInitial(initialChunk);
-          }
-          continue;
-        }
+      if (!previousInitialChunk && parserState.initialChunk) {
+        resolveInitial(parserState.initialChunk);
+      }
 
+      for (const chunk of parserState.deferredChunks.slice(previousDeferredCount)) {
         options.onDeferredChunk?.(chunk);
       }
     }
 
-    const trailing = textBuffer.trim();
-    if (trailing.length > 0) {
-      const chunk = JSON.parse(trailing) as TransitionChunk;
-      if (chunk.type === "initial" || chunk.type === "redirect") {
-        if (!initialChunk) {
-          initialChunk = chunk;
-          resolveInitial(initialChunk);
-        }
-      } else {
-        options.onDeferredChunk?.(chunk);
-      }
+    const previousInitialChunk = parserState.initialChunk;
+    const previousDeferredCount = parserState.deferredChunks.length;
+    parserState = flushTransitionChunkText(parserState);
+
+    if (!previousInitialChunk && parserState.initialChunk) {
+      resolveInitial(parserState.initialChunk);
     }
 
-    if (!initialChunk) {
+    for (const chunk of parserState.deferredChunks.slice(previousDeferredCount)) {
+      options.onDeferredChunk?.(chunk);
+    }
+
+    if (!parserState.initialChunk) {
       resolveInitial(null);
     }
   })();
@@ -917,11 +828,11 @@ async function navigateToInternal(
   const currentPath = window.location.pathname + window.location.search + window.location.hash;
   const targetPath = toUrl.pathname + toUrl.search + toUrl.hash;
 
-  if (currentPath === targetPath && !options.isPopState && !options.historyManagedByNavigationApi) {
+  if (shouldSkipSoftNavigation(currentPath, targetPath, options)) {
     return null;
   }
 
-  const matched = matchPageRoute(state.routerSnapshot.pages, toUrl.pathname);
+  const matched = matchClientPageRoute(state.routerSnapshot.pages, toUrl.pathname);
   const routeId = matched?.route.id ?? null;
 
   if (state.transitionAbortController) {
@@ -942,7 +853,7 @@ async function navigateToInternal(
 
   try {
     await prefetchEntry.modulePromise;
-    if (navigationToken !== state.navigationToken) {
+    if (isStaleNavigationToken(state.navigationToken, navigationToken)) {
       return null;
     }
 
@@ -965,12 +876,17 @@ async function navigateToInternal(
     }
 
     const initialChunk = await prefetchEntry.initialPromise;
-    if (navigationToken !== state.navigationToken) {
+    if (isStaleNavigationToken(state.navigationToken, navigationToken)) {
       return null;
     }
 
     if (!initialChunk) {
       throw new Error("Transition response did not include an initial payload.");
+    }
+
+    if (initialChunk.type === "document") {
+      hardNavigate(new URL(initialChunk.location, window.location.origin));
+      return null;
     }
 
     if (initialChunk.type === "redirect") {
@@ -981,7 +897,7 @@ async function navigateToInternal(
       }
 
       const depth = (options.redirectDepth ?? 0) + 1;
-      if (depth > 8) {
+      if (shouldHardNavigateForRedirectDepth(depth)) {
         hardNavigate(redirectUrl);
         return null;
       }
@@ -991,6 +907,9 @@ async function navigateToInternal(
         replace: true,
         redirected: true,
         redirectDepth: depth,
+        // The intercepted navigation has already committed the source URL.
+        // The redirected target must update history explicitly.
+        historyManagedByNavigationApi: false,
       });
     }
 
@@ -1190,7 +1109,7 @@ export async function prefetchTo(to: string): Promise<void> {
     return;
   }
 
-  const matched = matchPageRoute(state.routerSnapshot.pages, toUrl.pathname);
+  const matched = matchClientPageRoute(state.routerSnapshot.pages, toUrl.pathname);
   const routeId = matched?.route.id ?? null;
   getOrCreatePrefetchEntry(toUrl, routeId, state.routerSnapshot);
 }

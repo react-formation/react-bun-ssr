@@ -10,20 +10,25 @@ import {
   generateClientEntries,
 } from "../runtime/build-tools";
 import { loadUserConfig, resolveConfig } from "../runtime/config";
-import { ensureDir, existsPath, listEntries, removePath, writeText } from "../runtime/io";
+import { ensureDir, existsPath, removePath, statPath, writeText } from "../runtime/io";
 import { createServer } from "../runtime/server";
 import type { BuildRouteAsset, FrameworkConfig, ResolvedConfig } from "../runtime/types";
+import {
+  createDevSnapshotTargets,
+  createDevSnapshotConfig,
+  createProductionServerEntrypointSource,
+  createTestCommands,
+  createTypecheckCommand,
+  listStaleSnapshotVersions,
+  parseFlags,
+  readProjectEntries,
+  shouldUseRequestTimeRebuildCheck,
+} from "./internal";
 import { scaffoldApp } from "./scaffold";
 
 function log(message: string): void {
   // eslint-disable-next-line no-console
   console.log(`[rbssr] ${message}`);
-}
-
-function parseFlags(args: string[]): { force: boolean } {
-  return {
-    force: args.includes("--force"),
-  };
 }
 
 async function getConfig(cwd: string): Promise<{ userConfig: FrameworkConfig; resolved: ResolvedConfig }> {
@@ -37,29 +42,50 @@ async function writeProductionServerEntrypoint(options: { distDir: string }): Pr
   await ensureDir(serverDir);
 
   const serverEntryPath = path.join(serverDir, "server.mjs");
-  const content = `import path from "node:path";
-import config from "../../rbssr.config.ts";
-import { startHttpServer } from "../../framework/runtime/index.ts";
+  await writeText(serverEntryPath, createProductionServerEntrypointSource());
+}
 
-const rootDir = path.resolve(path.dirname(Bun.fileURLToPath(import.meta.url)), "../..");
-process.chdir(rootDir);
+async function copySnapshotTarget(options: {
+  sourcePath: string;
+  snapshotPath: string;
+  isDirectory: boolean;
+  isFile: boolean;
+}): Promise<void> {
+  if (options.isDirectory) {
+    await copyDirRecursive(options.sourcePath, options.snapshotPath);
+    return;
+  }
 
-const manifestPath = path.resolve(rootDir, "dist/manifest.json");
-const manifest = await Bun.file(manifestPath).json();
+  if (!options.isFile) {
+    return;
+  }
 
-startHttpServer({
-  config: {
-    ...(config ?? {}),
-    mode: "production",
-  },
-  runtimeOptions: {
-    dev: false,
-    buildManifest: manifest,
-  },
-});
-`;
+  await ensureDir(path.dirname(options.snapshotPath));
+  await Bun.write(options.snapshotPath, Bun.file(options.sourcePath));
+}
 
-  await writeText(serverEntryPath, content);
+async function mirrorSnapshotSources(cwd: string, snapshotRoot: string): Promise<string[]> {
+  const targets = createDevSnapshotTargets(cwd, snapshotRoot, await readProjectEntries(cwd));
+  await Promise.all(targets.map(copySnapshotTarget));
+  return targets.map(target => target.sourcePath);
+}
+
+async function watchSourceRoot(
+  sourcePath: string,
+  onChange: () => void,
+): Promise<FSWatcher | null> {
+  const sourceStat = await statPath(sourcePath);
+  if (!sourceStat) {
+    return null;
+  }
+
+  try {
+    return sourceStat.isDirectory()
+      ? watch(sourcePath, { recursive: true }, onChange)
+      : watch(sourcePath, onChange);
+  } catch {
+    return null;
+  }
 }
 
 export async function runInit(args: string[], cwd = process.cwd()): Promise<void> {
@@ -113,8 +139,6 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
   const devClientDir = path.resolve(cwd, ".rbssr/dev/client");
   const serverSnapshotsRoot = path.resolve(cwd, ".rbssr/dev/server-snapshots");
-  const docsSourceDir = path.resolve(cwd, "docs");
-  const docsSnapshotDir = path.join(serverSnapshotsRoot, "docs");
 
   await Promise.all([
     ensureDir(generatedDir),
@@ -125,14 +149,11 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   let routeAssets: Record<string, BuildRouteAsset> = {};
   let signature = "";
   let version = 0;
-  let currentServerSnapshotDir = resolved.appDir;
+  let currentRuntimePaths: Partial<ResolvedConfig> = {};
+  let sourceDirty = true;
   const reloadListeners = new Set<(nextVersion: number) => void>();
-  const docsDir = path.resolve(cwd, "docs");
-
-  const watchedRoots = [resolved.appDir];
-  if (await existsPath(docsDir)) {
-    watchedRoots.push(docsDir);
-  }
+  const watchedRoots = createDevSnapshotTargets(cwd, serverSnapshotsRoot, await readProjectEntries(cwd))
+    .map(target => target.sourcePath);
 
   const getSourceSignature = async (): Promise<string> => {
     const signatures = await Promise.all(
@@ -148,35 +169,24 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
   };
 
   const rebuildIfNeeded = async (force = false): Promise<void> => {
-    const nextSignature = await getSourceSignature();
-    if (!force && nextSignature === signature) {
+    if (!force && !sourceDirty) {
       return;
     }
 
+    const nextSignature = await getSourceSignature();
+    if (!force && nextSignature === signature) {
+      sourceDirty = false;
+      return;
+    }
+
+    sourceDirty = false;
     signature = nextSignature;
 
     const snapshotDir = path.join(serverSnapshotsRoot, `v${version + 1}`);
-    const hasDocsSourceDir = await existsPath(docsSourceDir);
-    await Promise.all([
-      (async () => {
-        await ensureCleanDirectory(snapshotDir);
-        await copyDirRecursive(resolved.appDir, snapshotDir);
-      })(),
-      hasDocsSourceDir
-        ? (async () => {
-            await ensureCleanDirectory(docsSnapshotDir);
-            await copyDirRecursive(docsSourceDir, docsSnapshotDir);
-          })()
-        : removePath(docsSnapshotDir),
-    ]);
+    await ensureCleanDirectory(snapshotDir);
+    await mirrorSnapshotSources(cwd, snapshotDir);
 
-    const snapshotConfig: ResolvedConfig = {
-      ...resolved,
-      appDir: snapshotDir,
-      routesDir: path.join(snapshotDir, "routes"),
-      rootModule: path.join(snapshotDir, "root.tsx"),
-      middlewareFile: path.join(snapshotDir, "middleware.ts"),
-    };
+    const snapshotConfig = createDevSnapshotConfig(resolved, snapshotDir);
 
     const manifest = await buildRouteManifest(snapshotConfig);
     const entries = await generateClientEntries({
@@ -194,17 +204,14 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       publicPrefix: "/__rbssr/client/",
     });
 
-    currentServerSnapshotDir = snapshotDir;
+    currentRuntimePaths = {
+      appDir: snapshotConfig.appDir,
+      routesDir: snapshotConfig.routesDir,
+      rootModule: snapshotConfig.rootModule,
+      middlewareFile: snapshotConfig.middlewareFile,
+    };
 
-    const staleVersions = (await listEntries(serverSnapshotsRoot))
-      .filter(entry => entry.isDirectory && /^v\d+$/.test(entry.name))
-      .map(entry => entry.name)
-      .sort((a, b) => {
-        const aNum = Number(a.slice(1));
-        const bNum = Number(b.slice(1));
-        return bNum - aNum;
-      })
-      .slice(3);
+    const staleVersions = listStaleSnapshotVersions(await readProjectEntries(serverSnapshotsRoot));
     await Promise.all(staleVersions.map(stale => removePath(path.join(serverSnapshotsRoot, stale))));
 
     version += 1;
@@ -238,15 +245,18 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
 
   const watchers: FSWatcher[] = [];
   for (const root of watchedRoots) {
-    try {
-      const watcher = watch(root, { recursive: true }, () => {
-        scheduleRebuild();
-      });
+    const watcher = await watchSourceRoot(root, () => {
+      sourceDirty = true;
+      scheduleRebuild();
+    });
+    if (watcher) {
       watchers.push(watcher);
-    } catch {
+    } else {
       log(`recursive file watching unavailable for ${root}; relying on request-time rebuild checks`);
     }
   }
+
+  const useRequestTimeRebuildCheck = shouldUseRequestTimeRebuildCheck(watchedRoots.length, watchers.length);
 
   const cleanup = (): void => {
     if (rebuildTimer) {
@@ -283,13 +293,16 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
           reloadListeners.delete(listener);
         };
       },
-      resolvePaths: () => ({
-        appDir: currentServerSnapshotDir,
-        routesDir: path.join(currentServerSnapshotDir, "routes"),
-        rootModule: path.join(currentServerSnapshotDir, "root.tsx"),
-        middlewareFile: path.join(currentServerSnapshotDir, "middleware.ts"),
-      }),
+      resolvePaths: () => currentRuntimePaths,
       onBeforeRequest: () => {
+        if (!sourceDirty && !useRequestTimeRebuildCheck) {
+          return Promise.resolve();
+        }
+
+        if (useRequestTimeRebuildCheck) {
+          sourceDirty = true;
+        }
+
         return enqueueRebuild(false);
       },
     },
@@ -328,16 +341,11 @@ function runSubprocess(cmd: string[]): void {
 }
 
 export async function runTypecheck(): Promise<void> {
-  runSubprocess(["bun", "x", "tsc", "--noEmit"]);
+  runSubprocess(createTypecheckCommand());
 }
 
 export async function runTest(extraArgs: string[]): Promise<void> {
-  if (extraArgs.length > 0) {
-    runSubprocess(["bun", "test", ...extraArgs]);
-    return;
+  for (const cmd of createTestCommands(extraArgs)) {
+    runSubprocess(cmd);
   }
-
-  runSubprocess(["bun", "test", "./tests/unit"]);
-  runSubprocess(["bun", "test", "./tests/integration"]);
-  runSubprocess(["bun", "x", "playwright", "test"]);
 }

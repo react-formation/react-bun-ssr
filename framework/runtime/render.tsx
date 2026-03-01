@@ -154,6 +154,34 @@ function createVersionedCssHrefs(assets: HydrationDocumentAssets): string[] {
   return assets.css.map(href => withVersionQuery(href, assets.devVersion));
 }
 
+interface DocumentRenderState {
+  cssHrefs: string[];
+  deferredBootstrapScript: string;
+  devReloadScript?: string;
+  payloadJson: string;
+  routerSnapshotJson: string;
+  versionedScript?: string;
+}
+
+function createDocumentRenderState(options: {
+  assets: HydrationDocumentAssets;
+  payload: RenderPayload;
+  routerSnapshot: ClientRouterSnapshot;
+}): DocumentRenderState {
+  return {
+    cssHrefs: createVersionedCssHrefs(options.assets),
+    deferredBootstrapScript: buildDeferredBootstrapScript(),
+    devReloadScript: typeof options.assets.devVersion === "number"
+      ? buildDevReloadClientScript(options.assets.devVersion)
+      : undefined,
+    payloadJson: safeJsonSerialize(options.payload),
+    routerSnapshotJson: safeJsonSerialize(options.routerSnapshot),
+    versionedScript: options.assets.script
+      ? withVersionQuery(options.assets.script, options.assets.devVersion)
+      : undefined,
+  };
+}
+
 export function createManagedHeadMarkup(options: {
   headMarkup: string;
   assets: HydrationDocumentAssets;
@@ -190,9 +218,13 @@ function HtmlDocument(options: {
   routerSnapshot: ClientRouterSnapshot;
   deferredSettleEntries: DeferredSettleEntry[];
 }): ReactElement {
-  const { appTree, payload, assets, managedHeadElements, deferredSettleEntries } = options;
-  const versionedScript = assets.script ? withVersionQuery(assets.script, assets.devVersion) : undefined;
-  const cssLinks = createVersionedCssHrefs(assets).map((versionedHref, index) => {
+  const { appTree, managedHeadElements, deferredSettleEntries } = options;
+  const documentState = createDocumentRenderState({
+    assets: options.assets,
+    payload: options.payload,
+    routerSnapshot: options.routerSnapshot,
+  });
+  const cssLinks = documentState.cssHrefs.map((versionedHref, index) => {
     return <link key={`css:${index}:${versionedHref}`} rel="stylesheet" href={versionedHref} />;
   });
 
@@ -210,24 +242,24 @@ function HtmlDocument(options: {
         <div id="rbssr-root">{appTree}</div>
         <script
           dangerouslySetInnerHTML={{
-            __html: buildDeferredBootstrapScript(),
+            __html: documentState.deferredBootstrapScript,
           }}
         />
         <script
           id={RBSSR_PAYLOAD_SCRIPT_ID}
           type="application/json"
-          dangerouslySetInnerHTML={{ __html: safeJsonSerialize(payload) }}
+          dangerouslySetInnerHTML={{ __html: documentState.payloadJson }}
         />
         <script
           id={RBSSR_ROUTER_SCRIPT_ID}
           type="application/json"
-          dangerouslySetInnerHTML={{ __html: safeJsonSerialize(options.routerSnapshot) }}
+          dangerouslySetInnerHTML={{ __html: documentState.routerSnapshotJson }}
         />
-        {versionedScript ? <script type="module" src={versionedScript} /> : null}
-        {typeof assets.devVersion === "number" ? (
+        {documentState.versionedScript ? <script type="module" src={documentState.versionedScript} /> : null}
+        {documentState.devReloadScript ? (
           <script
             dangerouslySetInnerHTML={{
-              __html: buildDevReloadClientScript(assets.devVersion),
+              __html: documentState.devReloadScript,
             }}
           />
         ) : null}
@@ -296,22 +328,26 @@ export function renderDocument(options: {
   headMarkup: string;
   routerSnapshot: ClientRouterSnapshot;
 }): string {
-  const { appMarkup, payload, assets, headMarkup, routerSnapshot } = options;
-  const versionedScript = assets.script ? withVersionQuery(assets.script, assets.devVersion) : undefined;
+  const { appMarkup, headMarkup } = options;
+  const documentState = createDocumentRenderState({
+    assets: options.assets,
+    payload: options.payload,
+    routerSnapshot: options.routerSnapshot,
+  });
   const managedHeadMarkup = createManagedHeadMarkup({
     headMarkup,
-    assets,
+    assets: options.assets,
   });
 
-  const payloadScript = `<script id="${RBSSR_PAYLOAD_SCRIPT_ID}" type="application/json">${safeJsonSerialize(payload)}</script>`;
-  const routerScript = `<script id="${RBSSR_ROUTER_SCRIPT_ID}" type="application/json">${safeJsonSerialize(routerSnapshot)}</script>`;
-  const entryScript = versionedScript
-    ? `<script type="module" src="${Bun.escapeHTML(versionedScript)}"></script>`
+  const payloadScript = `<script id="${RBSSR_PAYLOAD_SCRIPT_ID}" type="application/json">${documentState.payloadJson}</script>`;
+  const routerScript = `<script id="${RBSSR_ROUTER_SCRIPT_ID}" type="application/json">${documentState.routerSnapshotJson}</script>`;
+  const entryScript = documentState.versionedScript
+    ? `<script type="module" src="${Bun.escapeHTML(documentState.versionedScript)}"></script>`
     : "";
-  const devScript = typeof assets.devVersion === "number"
-    ? `<script>${buildDevReloadClientScript(assets.devVersion)}</script>`
+  const devScript = documentState.devReloadScript
+    ? `<script>${documentState.devReloadScript}</script>`
     : "";
-  const deferredBootstrapScript = `<script>${buildDeferredBootstrapScript()}</script>`;
+  const deferredBootstrapScript = `<script>${documentState.deferredBootstrapScript}</script>`;
 
   return `<!doctype html>
 <html lang="en">

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { ensureCleanDir, ensureDir, writeTextIfChanged } from "./io";
+import { matchRouteBySegments } from "./matcher";
 import { scanRoutes } from "./route-scanner";
 import type {
   ApiRouteDefinition,
@@ -120,13 +121,14 @@ async function writeProjectionRoutes<T extends PageRouteDefinition | ApiRouteDef
 }
 
 function toRouteMatch<T extends PageRouteDefinition | ApiRouteDefinition>(
+  orderedRoutes: T[],
   routeByProjectedPath: Map<string, T>,
   pathname: string,
   router: Bun.FileSystemRouter,
 ): RouteMatch<T> | null {
   const matched = router.match(pathname);
   if (!matched) {
-    return null;
+    return matchRouteBySegments(orderedRoutes, pathname);
   }
 
   const matchedSource = normalizeRouteKey(
@@ -136,7 +138,7 @@ function toRouteMatch<T extends PageRouteDefinition | ApiRouteDefinition>(
   );
   const route = routeByProjectedPath.get(matchedSource);
   if (!route) {
-    return null;
+    return matchRouteBySegments(orderedRoutes, pathname);
   }
 
   return {
@@ -191,10 +193,10 @@ export async function createBunRouteAdapter(options: {
   return {
     manifest,
     matchPage(pathname) {
-      return toRouteMatch(pageRouteByProjectedPath, pathname, pageRouter);
+      return toRouteMatch(manifest.pages, pageRouteByProjectedPath, pathname, pageRouter);
     },
     matchApi(pathname) {
-      return toRouteMatch(apiRouteByProjectedPath, pathname, apiRouter);
+      return toRouteMatch(manifest.api, apiRouteByProjectedPath, pathname, apiRouter);
     },
   };
 }

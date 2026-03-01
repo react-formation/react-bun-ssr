@@ -46,6 +46,7 @@
     "test": "bun bin/rbssr.ts test",
     "test:unit": "bun test ./tests/unit",
     "test:integration": "bun test ./tests/integration",
+    "test:consumer": "RBSSR_RUN_CONSUMER_SMOKE=1 bun test ./tests/integration/package-smoke.test.ts",
     "test:e2e": "bunx playwright test",
     "docs:dev": "bun run scripts/generate-api-docs.ts && bun run scripts/build-docs-manifest.ts && bun run scripts/build-search-index.ts && bun run scripts/build-blog-manifest.ts && bun run scripts/build-sitemap.ts && bun bin/rbssr.ts dev",
     "docs:build": "bun run scripts/docs-build.ts",

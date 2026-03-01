@@ -39,6 +39,7 @@ Guidance for AI coding agents working in this repository.
 2. If exports/docs content change, regenerate and commit generated artifacts.
 3. Keep docs site as the primary product surface (no demo-first reintroduction).
 4. Prefer small, targeted patches over broad rewrites.
+5. Use promise.all when possible.
 
 ## Server/client boundary rules
 

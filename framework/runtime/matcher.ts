@@ -60,10 +60,10 @@ function matchSegments(segments: RouteSegment[], pathname: string): Params | nul
   return params;
 }
 
-export function matchPageRoute(
-  routes: PageRouteDefinition[],
+export function matchRouteBySegments<T extends { segments: RouteSegment[] }>(
+  routes: T[],
   pathname: string,
-): RouteMatch<PageRouteDefinition> | null {
+): { route: T; params: Params } | null {
   for (const route of routes) {
     const params = matchSegments(route.segments, pathname);
     if (params) {
@@ -74,16 +74,16 @@ export function matchPageRoute(
   return null;
 }
 
+export function matchPageRoute(
+  routes: PageRouteDefinition[],
+  pathname: string,
+): RouteMatch<PageRouteDefinition> | null {
+  return matchRouteBySegments(routes, pathname);
+}
+
 export function matchApiRoute(
   routes: ApiRouteDefinition[],
   pathname: string,
 ): RouteMatch<ApiRouteDefinition> | null {
-  for (const route of routes) {
-    const params = matchSegments(route.segments, pathname);
-    if (params) {
-      return { route, params };
-    }
-  }
-
-  return null;
+  return matchRouteBySegments(routes, pathname);
 }

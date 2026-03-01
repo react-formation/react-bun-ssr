@@ -31,12 +31,31 @@ interface ClientEntryFile {
   route: PageRouteDefinition;
 }
 
+const CLIENT_RENDER_SAFE_EXPORTS = [
+  'Loading',
+  'ErrorComponent',
+  'CatchBoundary',
+  'ErrorBoundary',
+  'NotFound',
+] as const;
+
 async function walkFiles(rootDir: string): Promise<string[]> {
   if (!(await existsPath(rootDir))) {
     return [];
   }
 
   return glob('**/*', { cwd: rootDir, absolute: true });
+}
+
+function buildClientModuleProjectionSource(defaultRef: string, moduleRef: string): string {
+  const propertyLines = CLIENT_RENDER_SAFE_EXPORTS.map(
+    exportName => `  ${exportName}: ${moduleRef}.${exportName},`,
+  );
+
+  return `{
+  default: ${defaultRef},
+${propertyLines.join('\n')}
+}`;
 }
 
 function buildClientEntrySource(options: {
@@ -72,16 +91,16 @@ function buildClientEntrySource(options: {
       `import * as Layout${index}Module from "${layoutImportPath}";`,
     );
     layoutModuleRefs.push(
-      `{ ...Layout${index}Module, default: Layout${index}Default }`,
+      buildClientModuleProjectionSource(`Layout${index}Default`, `Layout${index}Module`),
     );
   }
 
   return `${imports.join('\n')}
 
 const modules = {
-  root: { ...RootModule, default: RootDefault },
+  root: ${buildClientModuleProjectionSource('RootDefault', 'RootModule')},
   layouts: [${layoutModuleRefs.join(', ')}],
-  route: { ...RouteModule, default: RouteDefault },
+  route: ${buildClientModuleProjectionSource('RouteDefault', 'RouteModule')},
 };
 
 registerRouteModules(${JSON.stringify(route.id)}, modules);
@@ -299,8 +318,17 @@ export function createBuildManifest(
   };
 }
 
-export async function discoverFileSignature(rootDir: string): Promise<string> {
-  const files = (await walkFiles(rootDir))
+export async function discoverFileSignature(rootPath: string): Promise<string> {
+  const rootStat = await statPath(rootPath);
+  if (!rootStat) {
+    return stableHash("");
+  }
+
+  const files = (
+    rootStat.isFile()
+      ? [rootPath]
+      : await walkFiles(rootPath)
+  )
     .filter((file) => !normalizeSlashes(file).includes('/node_modules/'))
     .sort();
 

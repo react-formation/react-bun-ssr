@@ -28,6 +28,7 @@ import type {
   ServerRuntimeOptions,
   TransitionChunk,
   TransitionDeferredChunk,
+  TransitionDocumentChunk,
   TransitionInitialChunk,
   TransitionRedirectChunk,
 } from "./types";
@@ -436,17 +437,25 @@ function toRedirectChunk(location: string, status: number): TransitionRedirectCh
   };
 }
 
+function toDocumentChunk(location: string, status: number): TransitionDocumentChunk {
+  return {
+    type: "document",
+    location,
+    status,
+  };
+}
+
 function createTransitionStream(options: {
   initialChunk?: TransitionInitialChunk;
-  redirectChunk?: TransitionRedirectChunk;
+  controlChunk?: TransitionRedirectChunk | TransitionDocumentChunk;
   deferredSettleEntries?: DeferredSettleEntry[];
   sanitizeDeferredError: (message: string) => string;
 }): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        if (options.redirectChunk) {
-          controller.enqueue(toTransitionChunkLine(options.redirectChunk));
+        if (options.controlChunk) {
+          controller.enqueue(toTransitionChunkLine(options.controlChunk));
           controller.close();
           return;
         }
@@ -626,8 +635,6 @@ export function createServer(
   };
 
   const fetchHandler = async (request: Request): Promise<Response> => {
-    await runtimeOptions.onBeforeRequest?.();
-
     const runtimePaths = runtimeOptions.resolvePaths?.() ?? {};
     const activeConfig: ResolvedConfig = {
       ...resolvedConfig,
@@ -691,6 +698,8 @@ export function createServer(
     if (publicResponse) {
       return finalize(publicResponse, "static");
     }
+
+    await runtimeOptions.onBeforeRequest?.();
 
     const routeAdapter = await getRouteAdapter(activeConfig);
     const cacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? Date.now()) : undefined;
@@ -862,7 +871,7 @@ export function createServer(
           const location = redirectResponse.headers.get("location");
           if (location) {
             const stream = createTransitionStream({
-              redirectChunk: toRedirectChunk(location, redirectResponse.status),
+              controlChunk: toRedirectChunk(location, redirectResponse.status),
               sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
             });
             return finalize(toTransitionStreamResponse(stream, redirectResponse.headers), "internal-transition");
@@ -952,17 +961,18 @@ export function createServer(
       const redirectLocation = middlewareResponse.headers.get("location");
       if (redirectLocation && isRedirectStatus(middlewareResponse.status)) {
         const stream = createTransitionStream({
-          redirectChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
+          controlChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
           sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
         });
         return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
       }
 
       if (!transitionInitialChunk) {
-        return finalize(
-          new Response("Transition fallback required for non-streamable response.", { status: 409 }),
-          "internal-transition",
-        );
+        const stream = createTransitionStream({
+          controlChunk: toDocumentChunk(targetUrl.toString(), middlewareResponse.status),
+          sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
+        });
+        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
       }
 
       const stream = createTransitionStream({

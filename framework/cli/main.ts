@@ -8,49 +8,45 @@ import {
   runTest,
   runTypecheck,
 } from "./commands";
+import { formatCliHelp, resolveCliInvocation } from "./internal";
 
 function printHelp(): void {
   // eslint-disable-next-line no-console
-  console.log(`rbssr commands:
-  rbssr init [--force]
-  rbssr dev
-  rbssr build
-  rbssr start
-  rbssr typecheck
-  rbssr test [bun-test-args]
-`);
+  console.log(formatCliHelp());
 }
 
 async function main(argv: string[]): Promise<void> {
-  const [command = "help", ...rest] = argv;
+  const invocation = resolveCliInvocation(argv);
 
-  switch (command) {
-    case "init":
-      await runInit(rest);
-      return;
-    case "dev":
-      await runDev();
-      return;
-    case "build":
-      await runBuild();
-      return;
-    case "start":
-      await runStart();
-      return;
-    case "typecheck":
-      await runTypecheck();
-      return;
-    case "test":
-      await runTest(rest);
+  switch (invocation.kind) {
+    case "command":
+      switch (invocation.command) {
+        case "init":
+          await runInit(invocation.args);
+          return;
+        case "dev":
+          await runDev();
+          return;
+        case "build":
+          await runBuild();
+          return;
+        case "start":
+          await runStart();
+          return;
+        case "typecheck":
+          await runTypecheck();
+          return;
+        case "test":
+          await runTest(invocation.args);
+          return;
+      }
       return;
     case "help":
-    case "--help":
-    case "-h":
       printHelp();
       return;
-    default:
+    case "unknown":
       // eslint-disable-next-line no-console
-      console.error(`Unknown command: ${command}`);
+      console.error(`Unknown command: ${invocation.command}`);
       printHelp();
       process.exit(1);
   }

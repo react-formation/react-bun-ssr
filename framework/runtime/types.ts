@@ -254,7 +254,17 @@ export interface TransitionRedirectChunk {
   status: number;
 }
 
-export type TransitionChunk = TransitionInitialChunk | TransitionDeferredChunk | TransitionRedirectChunk;
+export interface TransitionDocumentChunk {
+  type: "document";
+  location: string;
+  status: number;
+}
+
+export type TransitionChunk =
+  | TransitionInitialChunk
+  | TransitionDeferredChunk
+  | TransitionRedirectChunk
+  | TransitionDocumentChunk;
 
 export interface RouteModuleBundle {
   root: RouteModule;

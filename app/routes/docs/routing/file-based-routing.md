@@ -79,6 +79,39 @@ export const loader: Loader = async ({ params }) => {
 
 That keeps URL matching and missing-resource handling separate, which is the right model for dynamic routes.
 
+## Customize the `NotFound` page
+
+Export `NotFound` from the route, layout, or root module where you want the 404 UI to be defined.
+
+```tsx
+// app/root.tsx
+import { Link } from "react-bun-ssr/route";
+
+export function NotFound() {
+  return (
+    <main>
+      <h1>Page not found</h1>
+      <p>The page you requested does not exist or is no longer available.</p>
+      <p>
+        <Link to="/docs">Back to the docs</Link>
+      </p>
+    </main>
+  );
+}
+```
+
+You can scope the 404 UI at different levels:
+
+- export `NotFound` from `app/root.tsx` for a site-wide default 404 page
+- export `NotFound` from a `_layout.tsx` to customize 404 behavior for a section
+- export `NotFound` from a matched page route when missing data should render a route-specific not-found state
+
+Resolution order is:
+
+- matched route `NotFound`
+- nearest layout `NotFound`
+- root `NotFound`
+
 ## Rules
 
 - `.md` is supported as a page route.
@@ -86,6 +119,7 @@ That keeps URL matching and missing-resource handling separate, which is the rig
 - `_layout` and `_middleware` participate in routing but do not become public URLs.
 - Route-group directories like `(marketing)` affect organization, not the URL.
 - Use `NotFound` for unmatched URLs and `notFound()` for matched routes with missing data.
+- The nearest `NotFound` export wins.
 
 ## Related APIs
 

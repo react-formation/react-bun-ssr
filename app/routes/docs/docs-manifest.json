@@ -313,6 +313,11 @@
       },
       {
         "depth": 2,
+        "id": "customize-the-notfound-page",
+        "text": "Customize the NotFound page"
+      },
+      {
+        "depth": 2,
         "id": "rules",
         "text": "Rules"
       },

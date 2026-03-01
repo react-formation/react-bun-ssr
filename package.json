@@ -5,6 +5,14 @@
   "type": "module",
   "sideEffects": false,
   "types": "./framework/runtime/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/react-formation/react-bun-ssr.git"
+  },
+  "homepage": "https://github.com/react-formation/react-bun-ssr",
+  "bugs": {
+    "url": "https://github.com/react-formation/react-bun-ssr/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
@@ -17,7 +25,7 @@
     "README.md"
   ],
   "bin": {
-    "rbssr": "./bin/rbssr.ts"
+    "rbssr": "bin/rbssr.ts"
   },
   "exports": {
     ".": {

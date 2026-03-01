@@ -1,34 +1,58 @@
 ---
 title: Troubleshooting
-description: Common hydration and dev-mode issues with concrete fixes.
+navTitle: Troubleshooting
+description: Debug hydration mismatches, stale generated artifacts, deployment failures, and Bun-version-specific runtime issues.
 section: Deployment
 order: 3
-tags: troubleshooting,hydration,dev
+kind: reference
+tags: troubleshooting,hydration,deploy,ci
 ---
 
 # Troubleshooting
 
-## Hydration mismatch after edits
+Most production issues in `react-bun-ssr` fall into one of four buckets.
 
-If server and client assets are out of sync, ensure dev snapshot rebuild completes and browser performs a reload after SSE `reload` event.
+## 1. Hydration mismatch
 
-## Missing module from dev snapshots
+Check for:
 
-If a route file cannot be imported from `.rbssr/dev/server-snapshots/*`, restart dev server and ensure snapshot root is cleaned only once on startup.
+- server/client render branches
+- unstable IDs or dates in render output
+- mismatched generated CSS module class names across rebuilds
+- browser-only globals referenced during SSR
 
-## Unexpected stale static assets
+## 2. Stale generated artifacts
 
-Production static files are cached by default:
+Run:
 
-- `/client/*-[hash].js|css`: long-lived immutable cache
-- other static files: 1 hour cache
-
-If you need different behavior, override with `headers` rules in `rbssr.config.ts`.
-
-## Title children warning
-
-Use a single string in `<title>` children. Example:
-
-```tsx
-<title>{`Page ${name}`}</title>
+```bash
+bun run docs:check
+bun run docs:build
 ```
+
+## 3. Deployment image drift
+
+If production differs from local:
+
+- verify the Bun version in your image
+- confirm the build happened before `start`
+- confirm copied public assets exist in `dist/client`
+
+## 4. Bytecode-specific issues
+
+If a deployment behaves differently with bytecode enabled, set:
+
+```ts
+export default defineConfig({
+  serverBytecode: false,
+});
+```
+
+## Related APIs
+
+- [`FrameworkConfig`](/docs/api/react-bun-ssr)
+- [`RouteErrorResponse`](/docs/api/react-bun-ssr-route)
+
+## Next step
+
+Finish with the [API Overview](/docs/api/overview) to move between guides and generated reference quickly.

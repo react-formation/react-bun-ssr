@@ -1,17 +1,22 @@
 import path from "node:path";
-import { sidebar } from "../app/routes/docs/_sidebar.ts";
+import { flattenSidebarSlugs, sidebar } from "../app/routes/docs/_sidebar.ts";
+import { buildBlogManifest } from "./build-blog-manifest.ts";
+import { buildDocsManifest } from "./build-docs-manifest.ts";
 import { buildSearchIndex } from "./build-search-index.ts";
 import { parseMarkdownWithFrontmatter, walkFiles } from "./docs-utils.ts";
 import { generateApiDocs } from "./generate-api-docs.ts";
 
 const ROOT = process.cwd();
 const DOCS_ROUTES_DIR = path.join(ROOT, "app/routes/docs");
+const BLOG_ROUTES_DIR = path.join(ROOT, "app/routes/blog");
 const API_DIR = path.join(DOCS_ROUTES_DIR, "api");
-const REQUIRED_FIELDS = ["title", "description", "section", "order"] as const;
+const DOC_REQUIRED_FIELDS = ["title", "navTitle", "description", "section", "order", "kind"] as const;
+const BLOG_REQUIRED_FIELDS = ["title", "description", "section", "author", "publishedAt", "tags"] as const;
 const SOURCE_DIRS = ["framework", "scripts", "tests", "app", "bin"] as const;
 const SOURCE_FILE_PATTERN = "**/*.{ts,tsx,js,jsx,mjs,cjs}";
 const ALLOWED_NODE_IMPORTS = new Set(["path", "fs"]);
 const WATCHER_FILE = "framework/cli/commands.ts";
+const BLOG_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function fail(message: string): never {
   throw new Error(`[docs:check] ${message}`);
@@ -61,7 +66,7 @@ async function validateFrontmatter(): Promise<void> {
     const raw = await Bun.file(file).text();
     const parsed = parseMarkdownWithFrontmatter(raw);
 
-    for (const field of REQUIRED_FIELDS) {
+    for (const field of DOC_REQUIRED_FIELDS) {
       if (!(field in parsed.frontmatter) || !parsed.frontmatter[field]) {
         fail(`Missing frontmatter field '${field}' in ${path.relative(ROOT, file)}`);
       }
@@ -69,8 +74,31 @@ async function validateFrontmatter(): Promise<void> {
   }
 }
 
+async function validateBlogFrontmatter(): Promise<void> {
+  const files = await walkFiles(BLOG_ROUTES_DIR, ".md");
+
+  for (const file of files) {
+    const raw = await Bun.file(file).text();
+    const parsed = parseMarkdownWithFrontmatter(raw);
+
+    for (const field of BLOG_REQUIRED_FIELDS) {
+      if (!(field in parsed.frontmatter) || !parsed.frontmatter[field]) {
+        fail(`Missing blog frontmatter field '${field}' in ${path.relative(ROOT, file)}`);
+      }
+    }
+
+    if (parsed.frontmatter.section !== "Blog") {
+      fail(`Blog markdown must use section: Blog in ${path.relative(ROOT, file)}`);
+    }
+
+    if (!BLOG_DATE_RE.test(parsed.frontmatter.publishedAt ?? "")) {
+      fail(`Blog markdown publishedAt must use YYYY-MM-DD in ${path.relative(ROOT, file)}`);
+    }
+  }
+}
+
 async function validateSidebarMappings(): Promise<void> {
-  const slugs = sidebar.flatMap(section => section.items.map(item => item.slug));
+  const slugs = flattenSidebarSlugs();
   const seen = new Set<string>();
 
   for (const slug of slugs) {
@@ -85,11 +113,10 @@ async function validateSidebarMappings(): Promise<void> {
     }
   }
 
-  const routeSlugs = (await walkFiles(DOCS_ROUTES_DIR, ".md"))
-    .map(file => toSlug(DOCS_ROUTES_DIR, file));
+  const routeSlugs = (await walkFiles(DOCS_ROUTES_DIR, ".md")).map(file => toSlug(DOCS_ROUTES_DIR, file));
 
   for (const slug of routeSlugs) {
-    if (!seen.has(slug) && !slug.startsWith("api-reference/")) {
+    if (!seen.has(slug)) {
       fail(`Markdown slug is not referenced in sidebar: ${slug}`);
     }
   }
@@ -97,8 +124,7 @@ async function validateSidebarMappings(): Promise<void> {
 
 async function validateLinks(): Promise<void> {
   const files = await walkFiles(DOCS_ROUTES_DIR, ".md");
-
-  const validSlugs = new Set(sidebar.flatMap(section => section.items.map(item => item.slug)));
+  const validSlugs = new Set(flattenSidebarSlugs());
 
   for (const file of files) {
     const raw = await Bun.file(file).text();
@@ -120,12 +146,42 @@ async function validateLinks(): Promise<void> {
   }
 }
 
+async function validateBlogLinks(): Promise<void> {
+  const files = await walkFiles(BLOG_ROUTES_DIR, ".md");
+  const validDocsSlugs = new Set(flattenSidebarSlugs());
+  const validBlogSlugs = new Set(
+    (await walkFiles(BLOG_ROUTES_DIR, ".md")).map(file => toSlug(BLOG_ROUTES_DIR, file)),
+  );
+
+  for (const file of files) {
+    const raw = await Bun.file(file).text();
+    const linkMatches = raw.matchAll(/\[[^\]]+\]\(([^)]+)\)/g);
+
+    for (const match of linkMatches) {
+      const href = match[1] ?? "";
+
+      if (href.startsWith("/docs/")) {
+        const slug = href.slice("/docs/".length).replace(/\/$/, "");
+        if (slug && !validDocsSlugs.has(slug)) {
+          fail(`Broken docs link '${href}' in ${path.relative(ROOT, file)}`);
+        }
+        continue;
+      }
+
+      if (href.startsWith("/blog/")) {
+        const slug = href.slice("/blog/".length).replace(/\/$/, "");
+        if (slug && !validBlogSlugs.has(slug)) {
+          fail(`Broken blog link '${href}' in ${path.relative(ROOT, file)}`);
+        }
+      }
+    }
+  }
+}
+
 async function validateGeneratedFreshness(): Promise<void> {
   const apiFiles = await walkFiles(API_DIR, ".md");
   const before = new Map(
-    await Promise.all(
-      apiFiles.map(async file => [file, await Bun.file(file).text()] as const),
-    ),
+    await Promise.all(apiFiles.map(async file => [file, await Bun.file(file).text()] as const)),
   );
 
   await generateApiDocs();
@@ -137,6 +193,15 @@ async function validateGeneratedFreshness(): Promise<void> {
     }
   }
 
+  const expectedManifest = JSON.stringify(await buildDocsManifest(), null, 2);
+  const manifestFile = path.join(DOCS_ROUTES_DIR, "docs-manifest.json");
+  const currentManifest = (await Bun.file(manifestFile).exists())
+    ? await Bun.file(manifestFile).text()
+    : "";
+  if (expectedManifest !== currentManifest) {
+    fail("Docs manifest is stale. Run `bun run scripts/build-docs-manifest.ts`.");
+  }
+
   const expectedIndex = JSON.stringify(await buildSearchIndex(), null, 2);
   const searchIndexFile = path.join(DOCS_ROUTES_DIR, "search-index.json");
   const currentIndex = (await Bun.file(searchIndexFile).exists())
@@ -144,6 +209,15 @@ async function validateGeneratedFreshness(): Promise<void> {
     : "";
   if (expectedIndex !== currentIndex) {
     fail("Search index is stale. Run `bun run scripts/build-search-index.ts`.");
+  }
+
+  const expectedBlogManifest = JSON.stringify(await buildBlogManifest(), null, 2);
+  const blogManifestFile = path.join(BLOG_ROUTES_DIR, "blog-manifest.json");
+  const currentBlogManifest = (await Bun.file(blogManifestFile).exists())
+    ? await Bun.file(blogManifestFile).text()
+    : "";
+  if (expectedBlogManifest !== currentBlogManifest) {
+    fail("Blog manifest is stale. Run `bun run scripts/build-blog-manifest.ts`.");
   }
 }
 
@@ -213,8 +287,10 @@ async function validateNodeApiPolicy(): Promise<void> {
 
 async function run(): Promise<void> {
   await validateFrontmatter();
+  await validateBlogFrontmatter();
   await validateSidebarMappings();
   await validateLinks();
+  await validateBlogLinks();
   await validateGeneratedFreshness();
   await validateNodeApiPolicy();
   // eslint-disable-next-line no-console

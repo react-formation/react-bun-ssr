@@ -1,8 +1,10 @@
 ---
 title: react-bun-ssr
+navTitle: react-bun-ssr
 description: Public runtime exports from the root package entrypoint.
-section: API Reference
-order: 2
+section: API
+order: 3
+kind: api
 tags: api,generated
 ---
 
@@ -10,7 +12,7 @@ tags: api,generated
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 
-Import from `react-bun-ssr` for framework runtime APIs (`createServer`, `startHttpServer`), config helpers, and shared route contracts.
+Import from `react-bun-ssr` for runtime startup APIs, config helpers, response helpers, and deployment-facing types. Start here when you are wiring Bun server startup or authoring `rbssr.config.ts`.
 
 ## Examples
 
@@ -42,7 +44,7 @@ export function GET() {
 }
 
 export function POST() {
-  return redirect("/docs/core-concepts/actions");
+  return redirect("/docs/data/actions");
 }
 ```
 
@@ -53,7 +55,7 @@ export function POST() {
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Route action function signature for handling mutating HTTP requests.
-- Learn more: [Actions and mutation flow](/docs/core-concepts/actions)
+- Learn more: [Actions](/docs/data/actions)
 
 ```ts
 export type Action = (ctx: ActionContext) => Promise<ActionResult> | ActionResult;
@@ -63,8 +65,8 @@ export type Action = (ctx: ActionContext) => Promise<ActionResult> | ActionResul
 
 - Kind: interface
 - Source: `framework/runtime/types.ts`
-- Description: Context object passed to actions with request metadata and parsed body helpers.
-- Learn more: [Actions and mutation flow](/docs/core-concepts/actions)
+- Description: Context object passed to actions with request metadata, parsed body helpers, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.
+- Learn more: [Actions](/docs/data/actions), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
 export interface ActionContext extends RequestContext {
@@ -78,7 +80,7 @@ export interface ActionContext extends RequestContext {
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Allowed return union for actions, including data, redirects, and `Response` values.
-- Learn more: [Actions and mutation flow](/docs/core-concepts/actions)
+- Learn more: [Actions](/docs/data/actions)
 
 ```ts
 export type ActionResult = LoaderResult | RedirectResult;
@@ -89,7 +91,7 @@ export type ActionResult = LoaderResult | RedirectResult;
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Contract for API route modules exporting method handlers like `GET` and `POST`.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
 export interface ApiRouteModule {
@@ -108,7 +110,7 @@ export interface ApiRouteModule {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Production manifest describing built route assets used for SSR document injection.
-- Learn more: [Build artifacts](/docs/tooling/build-artifacts)
+- Learn more: [Build Output](/docs/tooling/build-output)
 
 ```ts
 export interface BuildManifest {
@@ -123,7 +125,7 @@ export interface BuildManifest {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Per-route client asset metadata (entry script and CSS files).
-- Learn more: [Build artifacts](/docs/tooling/build-artifacts)
+- Learn more: [Build Output](/docs/tooling/build-output)
 
 ```ts
 export interface BuildRouteAsset {
@@ -137,7 +139,7 @@ export interface BuildRouteAsset {
 - Kind: function
 - Source: `framework/runtime/server.ts`
 - Description: Creates the runtime request handler used by Bun server entrypoints.
-- Learn more: [Bun-only deployment](/docs/deployment/bun-deployment), [SSR and hydration](/docs/rendering/ssr-hydration)
+- Learn more: [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Bun-only deployment](/docs/deployment/bun-deployment), [SSR and hydration](/docs/rendering/ssr-hydration), [Bun APIs](https://bun.com/docs/runtime/bun-apis), [Common HTTP server usage](https://bun.com/docs/guides/http/server)
 
 ```ts
 createServer(config?: FrameworkConfig, runtimeOptions?: ServerRuntimeOptions): { fetch(req: Request): Promise<Response>; }
@@ -148,7 +150,7 @@ createServer(config?: FrameworkConfig, runtimeOptions?: ServerRuntimeOptions): {
 - Kind: variable
 - Source: `framework/runtime/helpers.ts`
 - Description: Marks loader return data as deferred so promise-backed keys can stream progressively.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders), [SSR and hydration](/docs/rendering/ssr-hydration)
+- Learn more: [Loaders](/docs/data/loaders), [Streaming and Deferred](/docs/rendering/streaming-deferred)
 
 ```ts
 defer<T extends Record<string, unknown>>(data: T): DeferredLoaderResult<T>
@@ -159,7 +161,7 @@ defer<T extends Record<string, unknown>>(data: T): DeferredLoaderResult<T>
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Typed wrapper returned by `defer()` for loaders with immediate and deferred values.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
 export interface DeferredLoaderResult<T extends Record<string, unknown> = Record<string, unknown>> {
@@ -173,7 +175,7 @@ export interface DeferredLoaderResult<T extends Record<string, unknown> = Record
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Serialized payload token used internally to revive deferred values during hydration.
-- Learn more: [SSR and hydration](/docs/rendering/ssr-hydration)
+- Learn more: [Streaming and Deferred](/docs/rendering/streaming-deferred)
 
 ```ts
 export interface DeferredToken {
@@ -186,7 +188,7 @@ export interface DeferredToken {
 - Kind: function
 - Source: `framework/runtime/helpers.ts`
 - Description: Helper for authoring typed `rbssr.config.ts` configuration.
-- Learn more: [Environment configuration](/docs/deployment/environment)
+- Learn more: [Configuration](/docs/deployment/configuration)
 
 ```ts
 defineConfig(config: FrameworkConfig): FrameworkConfig
@@ -197,7 +199,7 @@ defineConfig(config: FrameworkConfig): FrameworkConfig
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Main framework configuration surface for paths, server mode, response headers, and server bytecode behavior.
-- Learn more: [Environment configuration](/docs/deployment/environment)
+- Learn more: [Configuration](/docs/deployment/configuration)
 
 ```ts
 export interface FrameworkConfig {
@@ -220,7 +222,7 @@ export interface FrameworkConfig {
 - Kind: function
 - Source: `framework/runtime/route-errors.ts`
 - Description: Type guard for narrowing unknown errors to framework caught route errors.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 isRouteErrorResponse(value: unknown): value is RouteErrorResponse
@@ -231,7 +233,7 @@ isRouteErrorResponse(value: unknown): value is RouteErrorResponse
 - Kind: function
 - Source: `framework/runtime/helpers.ts`
 - Description: Creates a JSON `Response` with a default UTF-8 content-type.
-- Learn more: [API reference overview](/docs/api-reference/overview)
+- Learn more: [API Overview](/docs/api/overview)
 
 ```ts
 json(data: unknown, init?: ResponseInit): Response
@@ -267,7 +269,7 @@ export interface LinkProps
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Route loader function signature for GET/HEAD data requests.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
 export type Loader = (ctx: LoaderContext) => Promise<LoaderResult> | LoaderResult;
@@ -277,8 +279,8 @@ export type Loader = (ctx: LoaderContext) => Promise<LoaderResult> | LoaderResul
 
 - Kind: interface
 - Source: `framework/runtime/types.ts`
-- Description: Context object passed to loaders with URL, params, cookies, and mutable locals.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Description: Context object passed to loaders with URL, params, mutable locals, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.
+- Learn more: [Loaders](/docs/data/loaders), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
 export interface LoaderContext extends RequestContext {}
@@ -289,7 +291,7 @@ export interface LoaderContext extends RequestContext {}
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Allowed return union for loaders, including plain data, redirects, deferred data, and `Response`.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
 export type LoaderResult =
@@ -308,7 +310,7 @@ export type LoaderResult =
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Middleware function contract executed around page and API handlers.
-- Learn more: [Middleware chain](/docs/core-concepts/middleware)
+- Learn more: [Layouts and Groups](/docs/routing/layouts-and-groups)
 
 ```ts
 export type Middleware = (
@@ -322,7 +324,7 @@ export type Middleware = (
 - Kind: function
 - Source: `framework/runtime/route-errors.ts`
 - Description: Throws a typed caught 404 route error for nearest not-found/catch boundary handling.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 notFound(data?: unknown): never
@@ -333,7 +335,7 @@ notFound(data?: unknown): never
 - Kind: function
 - Source: `framework/runtime/tree.tsx`
 - Description: Renders the next nested route element inside root/layout route modules.
-- Learn more: [Nested layouts and route groups](/docs/core-concepts/layouts-and-groups)
+- Learn more: [Layouts and Groups](/docs/routing/layouts-and-groups)
 
 ```ts
 Outlet(): ReactElement<unknown, string | JSXElementConstructor<any>> | null
@@ -344,7 +346,7 @@ Outlet(): ReactElement<unknown, string | JSXElementConstructor<any>> | null
 - Kind: type
 - Source: `framework/runtime/types.ts`
 - Description: Dynamic URL params object shape exposed to loaders, actions, and hooks.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
 export type Params = Record<string, string>;
@@ -355,7 +357,7 @@ export type Params = Record<string, string>;
 - Kind: function
 - Source: `framework/runtime/helpers.ts`
 - Description: Returns a framework redirect descriptor consumed by loader/action runtime flow.
-- Learn more: [Actions and mutation flow](/docs/core-concepts/actions)
+- Learn more: [Actions](/docs/data/actions)
 
 ```ts
 redirect(location: string, status?: 301 | 302 | 303 | 307 | 308 | undefined): RedirectResult
@@ -366,7 +368,7 @@ redirect(location: string, status?: 301 | 302 | 303 | 307 | 308 | undefined): Re
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Redirect descriptor shape with destination and HTTP redirect status.
-- Learn more: [Actions and mutation flow](/docs/core-concepts/actions)
+- Learn more: [Actions](/docs/data/actions)
 
 ```ts
 export interface RedirectResult {
@@ -380,8 +382,8 @@ export interface RedirectResult {
 
 - Kind: interface
 - Source: `framework/runtime/types.ts`
-- Description: Base request context shared by middleware, loaders, actions, and API handlers.
-- Learn more: [Middleware chain](/docs/core-concepts/middleware)
+- Description: Base request context shared by middleware, loaders, actions, and API handlers, including framework-normalized cookies as `Map<string, string>` rather than Bun's `CookieMap`.
+- Learn more: [Layouts and Groups](/docs/routing/layouts-and-groups), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
 export interface RequestContext {
@@ -398,7 +400,7 @@ export interface RequestContext {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Path-based response header rule used by `FrameworkConfig.headers`.
-- Learn more: [Environment configuration](/docs/deployment/environment)
+- Learn more: [Configuration](/docs/deployment/configuration)
 
 ```ts
 export interface ResponseHeaderRule {
@@ -412,7 +414,7 @@ export interface ResponseHeaderRule {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Context passed to `onCatch` lifecycle hooks when a typed caught route error is handled.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 export interface RouteCatchContext extends Omit<RouteErrorContext, "error"> {
@@ -425,7 +427,7 @@ export interface RouteCatchContext extends Omit<RouteErrorContext, "error"> {
 - Kind: function
 - Source: `framework/runtime/route-errors.ts`
 - Description: Throws a typed caught route error with status/data for TanStack-style catch-boundary flows.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 routeError(status: number, data?: unknown, init?: { statusText?: string | undefined; headers?: HeadersInit | undefined; }): never
@@ -436,7 +438,7 @@ routeError(status: number, data?: unknown, init?: { statusText?: string | undefi
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Context passed to `onError` lifecycle hooks for uncaught route failures.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 export interface RouteErrorContext {
@@ -455,7 +457,7 @@ export interface RouteErrorContext {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Serializable caught route-error shape used by catch boundaries and transition payloads.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 export interface RouteErrorResponse {
@@ -472,7 +474,7 @@ export interface RouteErrorResponse {
 - Kind: interface
 - Source: `framework/runtime/types.ts`
 - Description: Page route module contract including component and optional route lifecycle exports.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
 export interface RouteModule {
@@ -497,7 +499,7 @@ export interface RouteModule {
 - Kind: interface
 - Source: `framework/runtime/router.ts`
 - Description: Programmatic navigation contract returned by `useRouter`.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [Navigation](/docs/routing/navigation)
 
 ```ts
 export interface Router {
@@ -515,7 +517,7 @@ export interface Router {
 - Kind: interface
 - Source: `framework/runtime/router.ts`
 - Description: Options accepted by `router.push()` and `router.replace()`.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [Navigation](/docs/routing/navigation)
 
 ```ts
 export interface RouterNavigateOptions {
@@ -528,7 +530,7 @@ export interface RouterNavigateOptions {
 - Kind: function
 - Source: `framework/runtime/server.ts`
 - Description: Starts Bun HTTP server for configured framework runtime.
-- Learn more: [Bun-only deployment](/docs/deployment/bun-deployment)
+- Learn more: [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Bun-only deployment](/docs/deployment/bun-deployment), [Bun APIs](https://bun.com/docs/runtime/bun-apis), [Common HTTP server usage](https://bun.com/docs/guides/http/server)
 
 ```ts
 startHttpServer(options: { config: FrameworkConfig; runtimeOptions?: ServerRuntimeOptions | undefined; }): void
@@ -539,7 +541,7 @@ startHttpServer(options: { config: FrameworkConfig; runtimeOptions?: ServerRunti
 - Kind: function
 - Source: `framework/runtime/tree.tsx`
 - Description: Reads loader data in route components, including deferred values as promises.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
 useLoaderData<T = unknown>(): T
@@ -550,7 +552,7 @@ useLoaderData<T = unknown>(): T
 - Kind: function
 - Source: `framework/runtime/tree.tsx`
 - Description: Returns dynamic route params for the current matched route.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
 useParams<T extends Params = Params>(): T
@@ -561,7 +563,7 @@ useParams<T extends Params = Params>(): T
 - Kind: function
 - Source: `framework/runtime/tree.tsx`
 - Description: Returns the current request URL object in route components.
-- Learn more: [Loaders and data flow](/docs/core-concepts/loaders)
+- Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
 useRequestUrl(): URL
@@ -572,7 +574,7 @@ useRequestUrl(): URL
 - Kind: function
 - Source: `framework/runtime/tree.tsx`
 - Description: Reads error values inside `ErrorBoundary` route components.
-- Learn more: [Error boundaries and not-found](/docs/rendering/error-and-not-found)
+- Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
 useRouteError(): unknown
@@ -583,7 +585,7 @@ useRouteError(): unknown
 - Kind: function
 - Source: `framework/runtime/router.ts`
 - Description: Returns a Next.js-style router object for programmatic client transitions.
-- Learn more: [Routing model](/docs/core-concepts/routing-model)
+- Learn more: [Navigation](/docs/routing/navigation)
 
 ```ts
 useRouter(): Router

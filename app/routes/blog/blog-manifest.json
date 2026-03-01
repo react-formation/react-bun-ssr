@@ -1,0 +1,126 @@
+[
+  {
+    "slug": "how-i-built-react-bun-ssr-with-ai",
+    "title": "How I Built react-bun-ssr With AI and Kept the Engineering Bar High",
+    "description": "How I used AI to build react-bun-ssr faster, the constraints that kept the framework coherent, and the Bun-first architecture choices that made the workflow work.",
+    "author": "gaudiauj",
+    "publishedAt": "2026-03-01",
+    "publishedLabel": "March 1, 2026",
+    "tags": [
+      "ai",
+      "bun",
+      "ssr",
+      "react",
+      "framework",
+      "engineering"
+    ],
+    "excerpt": "I built with AI assistance, but the useful part of that sentence is not the AI part. The useful part is how the work was constrained. AI helped me move faster across implementation, documentation, refactors, and test cov",
+    "readingMinutes": 7,
+    "canonicalUrl": "https://react-bun-ssr.fly.dev/blog/how-i-built-react-bun-ssr-with-ai",
+    "headings": [
+      {
+        "depth": 2,
+        "id": "why-use-ai-at-all-for-a-framework-project",
+        "text": "Why use AI at all for a framework project?"
+      },
+      {
+        "depth": 2,
+        "id": "the-rule-that-mattered-most-ai-could-execute-but-it-could-not-decide",
+        "text": "The rule that mattered most: AI could execute, but it could not decide"
+      },
+      {
+        "depth": 2,
+        "id": "the-engineering-choices-that-made-the-workflow-actually-work",
+        "text": "The engineering choices that made the workflow actually work"
+      },
+      {
+        "depth": 2,
+        "id": "why-bun-made-this-easier",
+        "text": "Why Bun made this easier"
+      },
+      {
+        "depth": 2,
+        "id": "what-i-optimized-for-in-the-framework-itself",
+        "text": "What I optimized for in the framework itself"
+      },
+      {
+        "depth": 2,
+        "id": "where-ai-helped-the-most",
+        "text": "Where AI helped the most"
+      },
+      {
+        "depth": 2,
+        "id": "what-did-not-work",
+        "text": "What did not work"
+      },
+      {
+        "depth": 2,
+        "id": "the-practical-rules-i-would-use-again",
+        "text": "The practical rules I would use again"
+      },
+      {
+        "depth": 2,
+        "id": "why-this-matters-if-you-are-evaluating-react-bun-ssr",
+        "text": "Why this matters if you are evaluating react-bun-ssr"
+      },
+      {
+        "depth": 2,
+        "id": "closing",
+        "text": "Closing"
+      }
+    ],
+    "nextSlug": "why-i-built-a-bun-native-ssr-framework"
+  },
+  {
+    "slug": "why-i-built-a-bun-native-ssr-framework",
+    "title": "Why I Built a Bun-Native SSR Framework as an Alternative to Next.js and Remix",
+    "description": "Why I built react-bun-ssr as a Bun-native alternative to Next.js and Remix, what it already supports today, and what I plan to ship next.",
+    "author": "gaudiauj",
+    "publishedAt": "2026-03-01",
+    "publishedLabel": "March 1, 2026",
+    "tags": [
+      "bun",
+      "ssr",
+      "react",
+      "nextjs",
+      "remix",
+      "framework"
+    ],
+    "excerpt": "I built because I wanted a serious SSR framework in the React ecosystem that does not start from Node assumptions and does not force every project into the shape of Next.js or Remix. Next.js and Remix both matter. They p",
+    "readingMinutes": 4,
+    "canonicalUrl": "https://react-bun-ssr.fly.dev/blog/why-i-built-a-bun-native-ssr-framework",
+    "headings": [
+      {
+        "depth": 2,
+        "id": "why-build-another-ssr-framework",
+        "text": "Why build another SSR framework?"
+      },
+      {
+        "depth": 2,
+        "id": "why-bun",
+        "text": "Why Bun?"
+      },
+      {
+        "depth": 2,
+        "id": "what-react-bun-ssr-already-supports",
+        "text": "What react-bun-ssr already supports"
+      },
+      {
+        "depth": 2,
+        "id": "what-i-want-to-build-next",
+        "text": "What I want to build next"
+      },
+      {
+        "depth": 2,
+        "id": "benchmarking-comes-later",
+        "text": "Benchmarking comes later"
+      },
+      {
+        "depth": 2,
+        "id": "closing",
+        "text": "Closing"
+      }
+    ],
+    "prevSlug": "how-i-built-react-bun-ssr-with-ai"
+  }
+]

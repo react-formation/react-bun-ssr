@@ -1,0 +1,242 @@
+.page {
+  display: grid;
+  gap: 1.7rem;
+}
+
+.hero,
+.pathGrid,
+.valueSection,
+.callout,
+.blogCallout {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+  box-shadow: var(--shadow-md);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  gap: 1.4rem;
+  padding: 1.7rem;
+}
+
+.heroCopy h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 4.8vw, 3.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.eyebrow {
+  margin: 0 0 0.7rem;
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.lead {
+  max-width: 62ch;
+  margin: 1rem 0 0;
+  color: #5a6c80;
+  font-size: 1.05rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.4rem;
+}
+
+.primaryCta,
+.secondaryCta,
+.calloutLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.72rem 1rem;
+  font-weight: 800;
+}
+
+.primaryCta {
+  background: linear-gradient(180deg, #0f766e, #0b5953);
+  color: white;
+}
+
+.secondaryCta,
+.calloutLinks a {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.9);
+  color: #1d344e;
+}
+
+.heroPanel {
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #f9fbfd, #f2f6fa);
+  padding: 1rem;
+}
+
+.heroPanel p {
+  margin: 0 0 0.8rem;
+  color: #475a71;
+  font-weight: 800;
+}
+
+.heroStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.heroStats div {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.heroStats strong {
+  font-size: 1.6rem;
+  letter-spacing: -0.04em;
+}
+
+.heroStats span {
+  color: #637489;
+  font-size: 0.84rem;
+}
+
+.pathGrid,
+.valueSection,
+.callout,
+.blogCallout {
+  padding: 1.5rem;
+}
+
+.sectionIntro h2,
+.callout h2 {
+  margin: 0;
+  font-size: clamp(1.75rem, 2.2vw, 2.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.cards,
+.valueGrid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.cards {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.card,
+.valueCard {
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1rem;
+}
+
+.cardEyebrow {
+  margin: 0 0 0.8rem;
+  color: #20384f;
+  font-size: 0.92rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.card ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card li {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.card li a {
+  font-weight: 800;
+}
+
+.card li span,
+.valueCard p,
+.callout p {
+  color: #5e6f82;
+}
+
+.valueGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.valueCard h3 {
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.03em;
+}
+
+.callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.blogCallout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.calloutLinks {
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (max-width: 1080px) {
+  .hero,
+  .callout,
+  .blogCallout,
+  .valueGrid,
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero,
+  .pathGrid,
+  .valueSection,
+  .callout,
+  .blogCallout {
+    padding: 1rem;
+    border-radius: 22px;
+  }
+
+  .heroCopy h1 {
+    font-size: 2rem;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primaryCta,
+  .secondaryCta,
+  .calloutLinks a {
+    width: 100%;
+  }
+}

@@ -1,4 +1,9 @@
 import path from "node:path";
+import {
+  addHeadingIds,
+  extractHeadingEntriesFromHtml as extractHtmlHeadingEntries,
+  type MarkdownHeadingEntry,
+} from "../framework/runtime/markdown-headings";
 
 export interface ParsedFrontmatter {
   [key: string]: string;
@@ -8,6 +13,8 @@ export interface ParsedMarkdownFile {
   frontmatter: ParsedFrontmatter;
   body: string;
 }
+
+export type HeadingEntry = MarkdownHeadingEntry;
 
 async function directoryExists(dirPath: string): Promise<boolean> {
   try {
@@ -71,6 +78,13 @@ export function parseMarkdownWithFrontmatter(raw: string): ParsedMarkdownFile {
   };
 }
 
+export function parseTags(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map(tag => tag.trim())
+    .filter(Boolean);
+}
+
 export function markdownToText(markdown: string): string {
   return markdown
     .replace(/```[\s\S]*?```/g, " ")
@@ -88,6 +102,19 @@ export function extractHeadings(markdown: string): string[] {
     .map(line => /^(#{1,6})\s+(.+)$/.exec(line))
     .filter((match): match is RegExpExecArray => Boolean(match))
     .map(match => match[2]!.trim());
+}
+
+function stripLeadingH1(html: string): string {
+  return html.replace(/^\s*<h1\b[^>]*>[\s\S]*?<\/h1>\s*/i, "");
+}
+
+export function renderMarkdownHtml(parsed: ParsedMarkdownFile): string {
+  const html = addHeadingIds(Bun.markdown.html(parsed.body));
+  return parsed.frontmatter.title ? stripLeadingH1(html) : html;
+}
+
+export function extractHeadingEntriesFromHtml(html: string): HeadingEntry[] {
+  return extractHtmlHeadingEntries(html);
 }
 
 export function tokenize(value: string): string[] {

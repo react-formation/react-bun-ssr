@@ -1,0 +1,1771 @@
+[
+  {
+    "slug": "start/overview",
+    "title": "Overview",
+    "navTitle": "Overview",
+    "description": "Learn what react-bun-ssr is, why it is Bun-first, and how the Task Tracker example maps to the framework primitives.",
+    "section": "Start",
+    "kind": "overview",
+    "order": 1,
+    "tags": [
+      "bun",
+      "ssr",
+      "react",
+      "overview"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "what-you-build-with-it",
+        "text": "What you build with it"
+      },
+      {
+        "depth": 2,
+        "id": "the-shape-of-the-framework",
+        "text": "The shape of the framework"
+      },
+      {
+        "depth": 2,
+        "id": "what-is-opinionated",
+        "text": "What is opinionated"
+      },
+      {
+        "depth": 2,
+        "id": "what-is-not-here",
+        "text": "What is not here"
+      },
+      {
+        "depth": 2,
+        "id": "why-bun-first-matters",
+        "text": "Why Bun-first matters"
+      },
+      {
+        "depth": 2,
+        "id": "start-with-these-guides",
+        "text": "Start with these guides"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "nextSlug": "start/installation"
+  },
+  {
+    "slug": "start/installation",
+    "title": "Installation",
+    "navTitle": "Installation",
+    "description": "Install Bun, prepare a project directory, and boot the framework with a minimal Bun-first setup.",
+    "section": "Start",
+    "kind": "guide",
+    "order": 2,
+    "tags": [
+      "install",
+      "bun",
+      "setup"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-setup",
+        "text": "Minimal setup"
+      },
+      {
+        "depth": 2,
+        "id": "if-you-are-working-from-this-repository",
+        "text": "If you are working from this repository"
+      },
+      {
+        "depth": 2,
+        "id": "what-rbssr-init-gives-you",
+        "text": "What rbssr init gives you"
+      },
+      {
+        "depth": 2,
+        "id": "first-files-to-verify",
+        "text": "First files to verify"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "start/overview",
+    "nextSlug": "start/quick-start"
+  },
+  {
+    "slug": "start/quick-start",
+    "title": "Quick Start",
+    "navTitle": "Quick Start",
+    "description": "Build the first Task Tracker route tree, loader, action, and API endpoint with complete working files.",
+    "section": "Start",
+    "kind": "guide",
+    "order": 3,
+    "tags": [
+      "quickstart",
+      "task-tracker",
+      "loader",
+      "action"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "why-this-example-matters",
+        "text": "Why this example matters"
+      },
+      {
+        "depth": 2,
+        "id": "what-to-notice",
+        "text": "What to notice"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "start/installation",
+    "nextSlug": "start/project-structure"
+  },
+  {
+    "slug": "start/project-structure",
+    "title": "Project Structure",
+    "navTitle": "Project Structure",
+    "description": "Understand how the framework maps app, public, dist, and generated directories so your project stays predictable.",
+    "section": "Start",
+    "kind": "reference",
+    "order": 4,
+    "tags": [
+      "structure",
+      "files",
+      "generated"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "reference-layout",
+        "text": "Reference layout"
+      },
+      {
+        "depth": 2,
+        "id": "what-belongs-where",
+        "text": "What belongs where"
+      },
+      {
+        "depth": 3,
+        "id": "app",
+        "text": "app/"
+      },
+      {
+        "depth": 3,
+        "id": "rbssr",
+        "text": ".rbssr/"
+      },
+      {
+        "depth": 3,
+        "id": "dist",
+        "text": "dist/"
+      },
+      {
+        "depth": 2,
+        "id": "how-route-files-map-to-urls",
+        "text": "How route files map to URLs"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "start/quick-start",
+    "nextSlug": "start/dev-build-lifecycle"
+  },
+  {
+    "slug": "start/dev-build-lifecycle",
+    "title": "Dev and Build Lifecycle",
+    "navTitle": "Dev/Build Lifecycle",
+    "description": "See how dev snapshots, generated client entries, builds, and production startup differ across rbssr commands.",
+    "section": "Start",
+    "kind": "reference",
+    "order": 5,
+    "tags": [
+      "dev",
+      "build",
+      "preview",
+      "lifecycle"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "command-model",
+        "text": "Command model"
+      },
+      {
+        "depth": 2,
+        "id": "development",
+        "text": "Development"
+      },
+      {
+        "depth": 2,
+        "id": "production-build",
+        "text": "Production build"
+      },
+      {
+        "depth": 2,
+        "id": "preview-start",
+        "text": "Preview / start"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "start/project-structure",
+    "nextSlug": "routing/file-based-routing"
+  },
+  {
+    "slug": "routing/file-based-routing",
+    "title": "File-Based Routing",
+    "navTitle": "File-Based Routing",
+    "description": "Map files to URLs for pages, APIs, markdown routes, dynamic params, catchalls, and route groups.",
+    "section": "Routing",
+    "kind": "guide",
+    "order": 6,
+    "tags": [
+      "routing",
+      "files",
+      "params",
+      "markdown"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "dynamic-params",
+        "text": "Dynamic params"
+      },
+      {
+        "depth": 2,
+        "id": "markdown-routes",
+        "text": "Markdown routes"
+      },
+      {
+        "depth": 2,
+        "id": "404-handling",
+        "text": "404 handling"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "start/dev-build-lifecycle",
+    "nextSlug": "routing/layouts-and-groups"
+  },
+  {
+    "slug": "routing/layouts-and-groups",
+    "title": "Layouts and Groups",
+    "navTitle": "Layouts and Groups",
+    "description": "Share shells, route middleware, and URL-free group structure without breaking route boundaries.",
+    "section": "Routing",
+    "kind": "guide",
+    "order": 7,
+    "tags": [
+      "layouts",
+      "groups",
+      "middleware"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "why-it-matters",
+        "text": "Why it matters"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "routing/file-based-routing",
+    "nextSlug": "routing/middleware"
+  },
+  {
+    "slug": "routing/middleware",
+    "title": "Middleware",
+    "navTitle": "Middleware",
+    "description": "Run request pipeline logic globally and per route tree before loaders, actions, page rendering, and API handlers.",
+    "section": "Routing",
+    "kind": "guide",
+    "order": 8,
+    "tags": [
+      "middleware",
+      "auth",
+      "locals",
+      "request-pipeline",
+      "task-tracker"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "execution-order",
+        "text": "Execution order"
+      },
+      {
+        "depth": 2,
+        "id": "what-middleware-is-good-for",
+        "text": "What middleware is good for"
+      },
+      {
+        "depth": 2,
+        "id": "short-circuiting-and-redirects",
+        "text": "Short-circuiting and redirects"
+      },
+      {
+        "depth": 2,
+        "id": "route-middleware",
+        "text": "Route middleware"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "routing/layouts-and-groups",
+    "nextSlug": "routing/navigation"
+  },
+  {
+    "slug": "routing/navigation",
+    "title": "Navigation",
+    "navTitle": "Navigation",
+    "description": "Use Link, useRouter, prefetching, route announcements, and soft transitions for Bun-native SSR apps.",
+    "section": "Routing",
+    "kind": "guide",
+    "order": 9,
+    "tags": [
+      "navigation",
+      "link",
+      "router",
+      "transitions"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "what-happens-on-a-client-transition",
+        "text": "What happens on a client transition"
+      },
+      {
+        "depth": 2,
+        "id": "prefetching",
+        "text": "Prefetching"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "routing/middleware",
+    "nextSlug": "data/loaders"
+  },
+  {
+    "slug": "data/loaders",
+    "title": "Loaders",
+    "navTitle": "Loaders",
+    "description": "Fetch server data, return deferred values, and hydrate the same payload into the client route tree.",
+    "section": "Data",
+    "kind": "guide",
+    "order": 10,
+    "tags": [
+      "loaders",
+      "defer",
+      "suspense",
+      "task-tracker"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "why-loaders-are-central",
+        "text": "Why loaders are central"
+      },
+      {
+        "depth": 2,
+        "id": "return-model",
+        "text": "Return model"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "routing/navigation",
+    "nextSlug": "data/actions"
+  },
+  {
+    "slug": "data/actions",
+    "title": "Actions",
+    "navTitle": "Actions",
+    "description": "Process mutating requests, validate form data, redirect after success, and keep Task Tracker writes server-owned.",
+    "section": "Data",
+    "kind": "guide",
+    "order": 11,
+    "tags": [
+      "actions",
+      "forms",
+      "redirects",
+      "mutations"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "why-redirect-after-success-is-preferred",
+        "text": "Why redirect-after-success is preferred"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "data/loaders",
+    "nextSlug": "data/error-handling"
+  },
+  {
+    "slug": "data/error-handling",
+    "title": "Error Handling",
+    "navTitle": "Error Handling",
+    "description": "Model caught and uncaught errors with routeError, notFound, CatchBoundary, ErrorComponent, and lifecycle hooks.",
+    "section": "Data",
+    "kind": "guide",
+    "order": 12,
+    "tags": [
+      "errors",
+      "not-found",
+      "catch-boundary",
+      "tanstack-style"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "the-model",
+        "text": "The model"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "data/actions",
+    "nextSlug": "rendering/ssr-hydration"
+  },
+  {
+    "slug": "rendering/ssr-hydration",
+    "title": "SSR and Hydration",
+    "navTitle": "SSR and Hydration",
+    "description": "Understand full-document SSR, payload injection, and how the client revives the same route tree without drift.",
+    "section": "Rendering",
+    "kind": "guide",
+    "order": 13,
+    "tags": [
+      "ssr",
+      "hydration",
+      "document",
+      "payload"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "what-is-rendered-into-the-document",
+        "text": "What is rendered into the document"
+      },
+      {
+        "depth": 2,
+        "id": "hydration-rules",
+        "text": "Hydration rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "data/error-handling",
+    "nextSlug": "rendering/streaming-deferred"
+  },
+  {
+    "slug": "rendering/streaming-deferred",
+    "title": "Streaming and Deferred Data",
+    "navTitle": "Streaming and Deferred",
+    "description": "Stream full HTML documents and deferred loader chunks so pages can reveal data progressively.",
+    "section": "Rendering",
+    "kind": "guide",
+    "order": 14,
+    "tags": [
+      "streaming",
+      "defer",
+      "suspense",
+      "html"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "what-streams",
+        "text": "What streams"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "rendering/ssr-hydration",
+    "nextSlug": "rendering/head-meta"
+  },
+  {
+    "slug": "rendering/head-meta",
+    "title": "Head and Meta",
+    "navTitle": "Head and Meta",
+    "description": "Set titles and metadata per route so SSR, hydration, and client transitions keep SEO and announcements in sync.",
+    "section": "Rendering",
+    "kind": "guide",
+    "order": 15,
+    "tags": [
+      "seo",
+      "head",
+      "meta",
+      "title"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "why-this-matters",
+        "text": "Why this matters"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "rendering/streaming-deferred",
+    "nextSlug": "styling/css-modules"
+  },
+  {
+    "slug": "styling/css-modules",
+    "title": "CSS Modules",
+    "navTitle": "CSS Modules",
+    "description": "Keep styling close to route and component code, and bridge framework-emitted markdown classes with scoped global selectors.",
+    "section": "Styling",
+    "kind": "guide",
+    "order": 16,
+    "tags": [
+      "css",
+      "modules",
+      "styles"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-working-example",
+        "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "bridging-framework-emitted-markdown-classes",
+        "text": "Bridging framework-emitted markdown classes"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "rendering/head-meta",
+    "nextSlug": "styling/global-css"
+  },
+  {
+    "slug": "styling/global-css",
+    "title": "Global CSS",
+    "navTitle": "Global CSS",
+    "description": "Reserve global CSS for tokens, resets, typography primitives, and syntax highlighting rather than route-specific layout work.",
+    "section": "Styling",
+    "kind": "reference",
+    "order": 17,
+    "tags": [
+      "global-css",
+      "tokens",
+      "reset"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "good-global-responsibilities",
+        "text": "Good global responsibilities"
+      },
+      {
+        "depth": 2,
+        "id": "what-should-not-stay-global",
+        "text": "What should not stay global"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "styling/css-modules",
+    "nextSlug": "styling/public-assets"
+  },
+  {
+    "slug": "styling/public-assets",
+    "title": "Public Assets",
+    "navTitle": "Public Assets",
+    "description": "Serve images, fonts, icons, and other static files from app/public with predictable URLs and production cache headers.",
+    "section": "Styling",
+    "kind": "reference",
+    "order": 18,
+    "tags": [
+      "assets",
+      "static",
+      "cache-control"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "example",
+        "text": "Example"
+      },
+      {
+        "depth": 2,
+        "id": "production-cache-behavior",
+        "text": "Production cache behavior"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "styling/global-css",
+    "nextSlug": "tooling/dev-server"
+  },
+  {
+    "slug": "tooling/dev-server",
+    "title": "Dev Server",
+    "navTitle": "Dev Server",
+    "description": "Understand watch behavior, rebuild signatures, transition endpoints, and dev-only reload semantics.",
+    "section": "Tooling",
+    "kind": "reference",
+    "order": 19,
+    "tags": [
+      "dev",
+      "watch",
+      "reload",
+      "transitions"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "what-the-dev-server-owns",
+        "text": "What the dev server owns"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "styling/public-assets",
+    "nextSlug": "tooling/cli"
+  },
+  {
+    "slug": "tooling/cli",
+    "title": "CLI",
+    "navTitle": "CLI",
+    "description": "Use rbssr commands to initialize, develop, build, and preview a Bun-native SSR application.",
+    "section": "Tooling",
+    "kind": "reference",
+    "order": 20,
+    "tags": [
+      "cli",
+      "rbssr",
+      "commands"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "commands",
+        "text": "Commands"
+      },
+      {
+        "depth": 2,
+        "id": "what-they-do",
+        "text": "What they do"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "tooling/dev-server",
+    "nextSlug": "tooling/testing"
+  },
+  {
+    "slug": "tooling/testing",
+    "title": "Testing",
+    "navTitle": "Testing",
+    "description": "Test the framework and your app across unit, integration, and e2e layers without losing SSR or routing coverage.",
+    "section": "Tooling",
+    "kind": "reference",
+    "order": 21,
+    "tags": [
+      "tests",
+      "unit",
+      "integration",
+      "e2e"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "recommended-layers",
+        "text": "Recommended layers"
+      },
+      {
+        "depth": 2,
+        "id": "useful-commands",
+        "text": "Useful commands"
+      },
+      {
+        "depth": 2,
+        "id": "what-to-cover-in-a-task-tracker-app",
+        "text": "What to cover in a Task Tracker app"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "tooling/cli",
+    "nextSlug": "tooling/build-output"
+  },
+  {
+    "slug": "tooling/build-output",
+    "title": "Build Output",
+    "navTitle": "Build Output",
+    "description": "Inspect client assets, manifest data, copied public files, and the production server entry emitted by rbssr build.",
+    "section": "Tooling",
+    "kind": "reference",
+    "order": 22,
+    "tags": [
+      "build",
+      "manifest",
+      "dist"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "typical-output",
+        "text": "Typical output"
+      },
+      {
+        "depth": 2,
+        "id": "why-the-manifest-exists",
+        "text": "Why the manifest exists"
+      },
+      {
+        "depth": 2,
+        "id": "rules",
+        "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "tooling/testing",
+    "nextSlug": "deployment/bun-deployment"
+  },
+  {
+    "slug": "deployment/bun-deployment",
+    "title": "Bun Deployment",
+    "navTitle": "Bun Deployment",
+    "description": "Ship the production build under Bun with a small deployment surface and no Node adapter layer.",
+    "section": "Deployment",
+    "kind": "guide",
+    "order": 23,
+    "tags": [
+      "deploy",
+      "bun",
+      "fly",
+      "production"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "minimal-flow",
+        "text": "Minimal flow"
+      },
+      {
+        "depth": 2,
+        "id": "recommended-checklist",
+        "text": "Recommended checklist"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "tooling/build-output",
+    "nextSlug": "deployment/configuration"
+  },
+  {
+    "slug": "deployment/configuration",
+    "title": "Configuration",
+    "navTitle": "Configuration",
+    "description": "Configure headers, ports, public paths, and server bytecode behavior through rbssr.config.ts.",
+    "section": "Deployment",
+    "kind": "reference",
+    "order": 24,
+    "tags": [
+      "config",
+      "headers",
+      "bytecode"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "example",
+        "text": "Example"
+      },
+      {
+        "depth": 2,
+        "id": "important-settings",
+        "text": "Important settings"
+      },
+      {
+        "depth": 2,
+        "id": "cache-policy-defaults",
+        "text": "Cache policy defaults"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "deployment/bun-deployment",
+    "nextSlug": "deployment/troubleshooting"
+  },
+  {
+    "slug": "deployment/troubleshooting",
+    "title": "Troubleshooting",
+    "navTitle": "Troubleshooting",
+    "description": "Debug hydration mismatches, stale generated artifacts, deployment failures, and Bun-version-specific runtime issues.",
+    "section": "Deployment",
+    "kind": "reference",
+    "order": 25,
+    "tags": [
+      "troubleshooting",
+      "hydration",
+      "deploy",
+      "ci"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "1-hydration-mismatch",
+        "text": "1. Hydration mismatch"
+      },
+      {
+        "depth": 2,
+        "id": "2-stale-generated-artifacts",
+        "text": "2. Stale generated artifacts"
+      },
+      {
+        "depth": 2,
+        "id": "3-deployment-image-drift",
+        "text": "3. Deployment image drift"
+      },
+      {
+        "depth": 2,
+        "id": "4-bytecode-specific-issues",
+        "text": "4. Bytecode-specific issues"
+      },
+      {
+        "depth": 2,
+        "id": "related-apis",
+        "text": "Related APIs"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "deployment/configuration",
+    "nextSlug": "api/overview"
+  },
+  {
+    "slug": "api/overview",
+    "title": "API Overview",
+    "navTitle": "Overview",
+    "description": "Choose the right package entrypoint, understand the surface area, and jump from concepts to generated signatures quickly.",
+    "section": "API",
+    "kind": "reference",
+    "order": 26,
+    "tags": [
+      "api",
+      "reference",
+      "entrypoints"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "react-bun-ssr",
+        "text": "react-bun-ssr"
+      },
+      {
+        "depth": 2,
+        "id": "react-bun-ssr-route",
+        "text": "react-bun-ssr/route"
+      },
+      {
+        "depth": 2,
+        "id": "bun-runtime-mapping",
+        "text": "Bun runtime mapping"
+      },
+      {
+        "depth": 2,
+        "id": "recommended-reading-path",
+        "text": "Recommended reading path"
+      },
+      {
+        "depth": 2,
+        "id": "what-generated-api-pages-provide",
+        "text": "What generated API pages provide"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "deployment/troubleshooting",
+    "nextSlug": "api/bun-runtime-apis"
+  },
+  {
+    "slug": "api/bun-runtime-apis",
+    "title": "Bun Runtime APIs Used by react-bun-ssr",
+    "navTitle": "Bun Runtime APIs",
+    "description": "Map the Bun-native APIs used by the framework to the public framework surface and official Bun documentation.",
+    "section": "API",
+    "kind": "reference",
+    "order": 27,
+    "tags": [
+      "bun",
+      "api",
+      "runtime",
+      "reference"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "how-to-use-this-page",
+        "text": "How to use this page"
+      },
+      {
+        "depth": 2,
+        "id": "http-server-runtime",
+        "text": "HTTP server runtime"
+      },
+      {
+        "depth": 2,
+        "id": "cookies",
+        "text": "Cookies"
+      },
+      {
+        "depth": 2,
+        "id": "markdown-rendering",
+        "text": "Markdown rendering"
+      },
+      {
+        "depth": 2,
+        "id": "file-i-o-and-static-assets",
+        "text": "File I/O and static assets"
+      },
+      {
+        "depth": 2,
+        "id": "build-and-bundling",
+        "text": "Build and bundling"
+      },
+      {
+        "depth": 2,
+        "id": "routing-internals",
+        "text": "Routing internals"
+      },
+      {
+        "depth": 2,
+        "id": "bun-utilities-adopted-in-the-framework",
+        "text": "Bun utilities adopted in the framework"
+      },
+      {
+        "depth": 2,
+        "id": "internal-only-appendix",
+        "text": "Internal-only appendix"
+      }
+    ],
+    "prevSlug": "api/overview",
+    "nextSlug": "api/react-bun-ssr"
+  },
+  {
+    "slug": "api/react-bun-ssr",
+    "title": "react-bun-ssr",
+    "navTitle": "react-bun-ssr",
+    "description": "Public runtime exports from the root package entrypoint.",
+    "section": "API",
+    "kind": "api",
+    "order": 28,
+    "tags": [
+      "api",
+      "generated"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "examples",
+        "text": "Examples"
+      },
+      {
+        "depth": 3,
+        "id": "typed-config-with-response-headers",
+        "text": "Typed config with response headers"
+      },
+      {
+        "depth": 3,
+        "id": "runtime-json-and-redirect-helpers",
+        "text": "Runtime JSON and redirect helpers"
+      },
+      {
+        "depth": 2,
+        "id": "exported-symbols",
+        "text": "Exported symbols"
+      },
+      {
+        "depth": 2,
+        "id": "action",
+        "text": "Action"
+      },
+      {
+        "depth": 2,
+        "id": "actioncontext",
+        "text": "ActionContext"
+      },
+      {
+        "depth": 2,
+        "id": "actionresult",
+        "text": "ActionResult"
+      },
+      {
+        "depth": 2,
+        "id": "apiroutemodule",
+        "text": "ApiRouteModule"
+      },
+      {
+        "depth": 2,
+        "id": "buildmanifest",
+        "text": "BuildManifest"
+      },
+      {
+        "depth": 2,
+        "id": "buildrouteasset",
+        "text": "BuildRouteAsset"
+      },
+      {
+        "depth": 2,
+        "id": "createserver",
+        "text": "createServer"
+      },
+      {
+        "depth": 2,
+        "id": "defer",
+        "text": "defer"
+      },
+      {
+        "depth": 2,
+        "id": "deferredloaderresult",
+        "text": "DeferredLoaderResult"
+      },
+      {
+        "depth": 2,
+        "id": "deferredtoken",
+        "text": "DeferredToken"
+      },
+      {
+        "depth": 2,
+        "id": "defineconfig",
+        "text": "defineConfig"
+      },
+      {
+        "depth": 2,
+        "id": "frameworkconfig",
+        "text": "FrameworkConfig"
+      },
+      {
+        "depth": 2,
+        "id": "isrouteerrorresponse",
+        "text": "isRouteErrorResponse"
+      },
+      {
+        "depth": 2,
+        "id": "json",
+        "text": "json"
+      },
+      {
+        "depth": 2,
+        "id": "link",
+        "text": "Link"
+      },
+      {
+        "depth": 2,
+        "id": "linkprops",
+        "text": "LinkProps"
+      },
+      {
+        "depth": 2,
+        "id": "loader",
+        "text": "Loader"
+      },
+      {
+        "depth": 2,
+        "id": "loadercontext",
+        "text": "LoaderContext"
+      },
+      {
+        "depth": 2,
+        "id": "loaderresult",
+        "text": "LoaderResult"
+      },
+      {
+        "depth": 2,
+        "id": "middleware",
+        "text": "Middleware"
+      },
+      {
+        "depth": 2,
+        "id": "notfound",
+        "text": "notFound"
+      },
+      {
+        "depth": 2,
+        "id": "outlet",
+        "text": "Outlet"
+      },
+      {
+        "depth": 2,
+        "id": "params",
+        "text": "Params"
+      },
+      {
+        "depth": 2,
+        "id": "redirect",
+        "text": "redirect"
+      },
+      {
+        "depth": 2,
+        "id": "redirectresult",
+        "text": "RedirectResult"
+      },
+      {
+        "depth": 2,
+        "id": "requestcontext",
+        "text": "RequestContext"
+      },
+      {
+        "depth": 2,
+        "id": "responseheaderrule",
+        "text": "ResponseHeaderRule"
+      },
+      {
+        "depth": 2,
+        "id": "routecatchcontext",
+        "text": "RouteCatchContext"
+      },
+      {
+        "depth": 2,
+        "id": "routeerror",
+        "text": "routeError"
+      },
+      {
+        "depth": 2,
+        "id": "routeerrorcontext",
+        "text": "RouteErrorContext"
+      },
+      {
+        "depth": 2,
+        "id": "routeerrorresponse",
+        "text": "RouteErrorResponse"
+      },
+      {
+        "depth": 2,
+        "id": "routemodule",
+        "text": "RouteModule"
+      },
+      {
+        "depth": 2,
+        "id": "router",
+        "text": "Router"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigateoptions",
+        "text": "RouterNavigateOptions"
+      },
+      {
+        "depth": 2,
+        "id": "starthttpserver",
+        "text": "startHttpServer"
+      },
+      {
+        "depth": 2,
+        "id": "useloaderdata",
+        "text": "useLoaderData"
+      },
+      {
+        "depth": 2,
+        "id": "useparams",
+        "text": "useParams"
+      },
+      {
+        "depth": 2,
+        "id": "userequesturl",
+        "text": "useRequestUrl"
+      },
+      {
+        "depth": 2,
+        "id": "userouteerror",
+        "text": "useRouteError"
+      },
+      {
+        "depth": 2,
+        "id": "userouter",
+        "text": "useRouter"
+      }
+    ],
+    "prevSlug": "api/bun-runtime-apis",
+    "nextSlug": "api/react-bun-ssr-route"
+  },
+  {
+    "slug": "api/react-bun-ssr-route",
+    "title": "react-bun-ssr/route",
+    "navTitle": "react-bun-ssr/route",
+    "description": "Route module contracts, hooks, and helpers exposed to application routes.",
+    "section": "API",
+    "kind": "api",
+    "order": 29,
+    "tags": [
+      "api",
+      "generated"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "examples",
+        "text": "Examples"
+      },
+      {
+        "depth": 3,
+        "id": "loader-useloaderdata",
+        "text": "Loader + useLoaderData"
+      },
+      {
+        "depth": 3,
+        "id": "action-redirect-helper",
+        "text": "Action + redirect helper"
+      },
+      {
+        "depth": 3,
+        "id": "route-middleware",
+        "text": "Route middleware"
+      },
+      {
+        "depth": 3,
+        "id": "deferred-loader-data",
+        "text": "Deferred loader data"
+      },
+      {
+        "depth": 2,
+        "id": "exported-symbols",
+        "text": "Exported symbols"
+      },
+      {
+        "depth": 2,
+        "id": "action",
+        "text": "Action"
+      },
+      {
+        "depth": 2,
+        "id": "actioncontext",
+        "text": "ActionContext"
+      },
+      {
+        "depth": 2,
+        "id": "actionresult",
+        "text": "ActionResult"
+      },
+      {
+        "depth": 2,
+        "id": "defer",
+        "text": "defer"
+      },
+      {
+        "depth": 2,
+        "id": "deferredloaderresult",
+        "text": "DeferredLoaderResult"
+      },
+      {
+        "depth": 2,
+        "id": "deferredtoken",
+        "text": "DeferredToken"
+      },
+      {
+        "depth": 2,
+        "id": "isrouteerrorresponse",
+        "text": "isRouteErrorResponse"
+      },
+      {
+        "depth": 2,
+        "id": "json",
+        "text": "json"
+      },
+      {
+        "depth": 2,
+        "id": "link",
+        "text": "Link"
+      },
+      {
+        "depth": 2,
+        "id": "linkprops",
+        "text": "LinkProps"
+      },
+      {
+        "depth": 2,
+        "id": "loader",
+        "text": "Loader"
+      },
+      {
+        "depth": 2,
+        "id": "loadercontext",
+        "text": "LoaderContext"
+      },
+      {
+        "depth": 2,
+        "id": "loaderresult",
+        "text": "LoaderResult"
+      },
+      {
+        "depth": 2,
+        "id": "middleware",
+        "text": "Middleware"
+      },
+      {
+        "depth": 2,
+        "id": "notfound",
+        "text": "notFound"
+      },
+      {
+        "depth": 2,
+        "id": "outlet",
+        "text": "Outlet"
+      },
+      {
+        "depth": 2,
+        "id": "params",
+        "text": "Params"
+      },
+      {
+        "depth": 2,
+        "id": "redirect",
+        "text": "redirect"
+      },
+      {
+        "depth": 2,
+        "id": "redirectresult",
+        "text": "RedirectResult"
+      },
+      {
+        "depth": 2,
+        "id": "requestcontext",
+        "text": "RequestContext"
+      },
+      {
+        "depth": 2,
+        "id": "routecatchcontext",
+        "text": "RouteCatchContext"
+      },
+      {
+        "depth": 2,
+        "id": "routeerror",
+        "text": "routeError"
+      },
+      {
+        "depth": 2,
+        "id": "routeerrorcontext",
+        "text": "RouteErrorContext"
+      },
+      {
+        "depth": 2,
+        "id": "routeerrorresponse",
+        "text": "RouteErrorResponse"
+      },
+      {
+        "depth": 2,
+        "id": "router",
+        "text": "Router"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigateoptions",
+        "text": "RouterNavigateOptions"
+      },
+      {
+        "depth": 2,
+        "id": "useloaderdata",
+        "text": "useLoaderData"
+      },
+      {
+        "depth": 2,
+        "id": "useparams",
+        "text": "useParams"
+      },
+      {
+        "depth": 2,
+        "id": "userequesturl",
+        "text": "useRequestUrl"
+      },
+      {
+        "depth": 2,
+        "id": "userouteerror",
+        "text": "useRouteError"
+      },
+      {
+        "depth": 2,
+        "id": "userouter",
+        "text": "useRouter"
+      }
+    ],
+    "prevSlug": "api/react-bun-ssr",
+    "nextSlug": "migration/from-demo-template"
+  },
+  {
+    "slug": "migration/from-demo-template",
+    "title": "From Demo Template",
+    "navTitle": "From Demo Template",
+    "description": "Move from an older demo-style setup to the docs-first, Bun-native framework structure used by the current project.",
+    "section": "Migration",
+    "kind": "migration",
+    "order": 30,
+    "tags": [
+      "migration",
+      "template",
+      "upgrade"
+    ],
+    "headings": [
+      {
+        "depth": 2,
+        "id": "migration-goals",
+        "text": "Migration goals"
+      },
+      {
+        "depth": 2,
+        "id": "typical-migration-steps",
+        "text": "Typical migration steps"
+      },
+      {
+        "depth": 2,
+        "id": "validation-checklist",
+        "text": "Validation checklist"
+      },
+      {
+        "depth": 2,
+        "id": "related-guides",
+        "text": "Related guides"
+      },
+      {
+        "depth": 2,
+        "id": "next-step",
+        "text": "Next step"
+      }
+    ],
+    "prevSlug": "api/react-bun-ssr-route"
+  }
+]

@@ -1,69 +1,68 @@
 ---
-title: SSR and hydration
-description: Request-time streamed SSR output and hydrateRoot behavior.
+title: SSR and Hydration
+navTitle: SSR and Hydration
+description: Understand full-document SSR, payload injection, and how the client revives the same route tree without drift.
 section: Rendering
 order: 1
-tags: ssr,hydration
+kind: guide
+tags: ssr,hydration,document,payload
 ---
 
-# SSR and hydration
+# SSR and Hydration
 
-The server streams full HTML with `renderToReadableStream` and embeds a serialized route payload.
+`react-bun-ssr` renders full HTML documents on the server. Hydration then revives the same route tree in the browser.
 
-The client bootstraps with `hydrateRoot` and reuses the SSR tree.
-
-## Example
+## Minimal working example
 
 ```tsx
-import { useLoaderData } from "react-bun-ssr/route";
+// app/root.tsx
+import { Outlet } from "react-bun-ssr/route";
 
-export function loader() {
-  return {
-    renderedAt: "2026-02-25T00:00:00.000Z",
-  };
-}
-
-export default function TimeRoute() {
-  const data = useLoaderData<{ renderedAt: string }>();
-  return <p>Rendered at: {data.renderedAt}</p>;
+export default function RootLayout() {
+  return (
+    <html lang="en">
+      <body>
+        <Outlet />
+      </body>
+    </html>
+  );
 }
 ```
 
-## Hydration mismatch prevention
-
-Keep server and client output deterministic for first render. Avoid random values and time-dependent strings unless they are included in payload data.
-
-## Deferred payload hydration
-
-When a loader uses `defer({...})`, deferred keys are serialized as tokens in the payload and revived as promises on the client before hydration.
-
-Use React `Suspense` + `use()` in route components to consume those deferred values progressively.
-
-## Transition rendering model
-
-Client transitions use `Link` and stream route payloads from an internal transition endpoint.
-
-- shared root/layout components stay mounted when route module identity is shared
-- route payload and deferred settle chunks are applied without full reload
-- route head/meta/link tags are reconciled on each transition
-
-## Route loading state (`Loading`)
-
-Route modules can export a `Loading` component. It renders during client navigation while the target route payload is in flight.
-
 ```tsx
+// app/routes/tasks/[id].tsx
 import { useLoaderData } from "react-bun-ssr/route";
 
-export function Loading() {
-  return <p>Loading post…</p>;
+export async function loader({ params }: { params: { id?: string } }) {
+  return { id: params.id ?? "unknown" };
 }
 
-export function loader() {
-  return { title: "Post title" };
-}
-
-export default function PostPage() {
-  const data = useLoaderData<{ title: string }>();
-  return <h1>{data.title}</h1>;
+export default function TaskPage() {
+  const data = useLoaderData<{ id: string }>();
+  return <h1>Task {data.id}</h1>;
 }
 ```
+
+## What is rendered into the document
+
+- managed `<head>` output
+- route HTML under `#rbssr-root`
+- serialized loader payload
+- client entry module script
+- route metadata used for transitions
+
+## Hydration rules
+
+- Server markup and client markup must stay deterministic.
+- Avoid server/client branches inside render output.
+- Do not compute unstable IDs with `Math.random()` or `Date.now()` during render.
+
+## Related APIs
+
+- [`createServer`](/docs/api/react-bun-ssr)
+- [`useLoaderData`](/docs/api/react-bun-ssr-route)
+- [`useRequestUrl`](/docs/api/react-bun-ssr-route)
+
+## Next step
+
+Add progressive delivery with [Streaming and Deferred](/docs/rendering/streaming-deferred).

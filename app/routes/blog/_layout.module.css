@@ -1,0 +1,237 @@
+.layout {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.2rem 1.25rem 2.3rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.contentColumn {
+  min-width: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #415266;
+  font-weight: 800;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.metaGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.metaPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.66rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  color: #4d5f73;
+  font-size: 0.77rem;
+  font-weight: 800;
+}
+
+.article {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
+  box-shadow: var(--shadow-md);
+  padding: 1.7rem 1.8rem;
+}
+
+.toc {
+  position: sticky;
+  top: 5.9rem;
+  align-self: start;
+}
+
+.tocCard {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+}
+
+.tocEyebrow {
+  margin: 0 0 0.85rem;
+  color: #5f6b7c;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tocNav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.tocLink {
+  color: #46586d;
+  font-size: 0.9rem;
+}
+
+.tocLinkNested {
+  padding-left: 0.85rem;
+  font-size: 0.84rem;
+}
+
+.article :global(.docs-hero) {
+  margin-bottom: 2rem;
+}
+
+.article :global(.docs-hero) :global(.kicker) {
+  margin: 0 0 0.8rem;
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.article :global(.docs-hero) h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 3.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.article :global(.docs-hero) p {
+  margin: 1rem 0 0;
+  max-width: 66ch;
+  color: #5a6c80;
+  font-size: 1.04rem;
+}
+
+.article :global(.docs-hero) div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.article :global(.docs-hero) span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.66rem;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.article :global(.docs-content-body) {
+  color: #1a2736;
+}
+
+.article :global(.docs-content-body) > :first-child {
+  margin-top: 0;
+}
+
+.article :global(.docs-content-body) h2,
+.article :global(.docs-content-body) h3,
+.article :global(.docs-content-body) h4 {
+  letter-spacing: -0.03em;
+  scroll-margin-top: 7rem;
+}
+
+.article :global(.docs-content-body) h2 {
+  margin: 2.1rem 0 0.8rem;
+  font-size: clamp(1.65rem, 2vw, 2.2rem);
+}
+
+.article :global(.docs-content-body) h3 {
+  margin: 1.7rem 0 0.65rem;
+  font-size: clamp(1.22rem, 1.5vw, 1.5rem);
+}
+
+.article :global(.docs-content-body) p,
+.article :global(.docs-content-body) ul,
+.article :global(.docs-content-body) ol,
+.article :global(.docs-content-body) blockquote,
+.article :global(.docs-content-body) pre,
+.article :global(.docs-content-body) table {
+  margin: 0.95rem 0 0;
+}
+
+.article :global(.docs-content-body) ul,
+.article :global(.docs-content-body) ol {
+  padding-left: 1.3rem;
+}
+
+.article :global(.docs-content-body) li + li {
+  margin-top: 0.38rem;
+}
+
+.article :global(.docs-content-body) blockquote {
+  padding: 0.9rem 1rem;
+  border-left: 4px solid rgba(15, 118, 110, 0.28);
+  border-radius: 0 18px 18px 0;
+  background: rgba(15, 118, 110, 0.05);
+  color: #3c556c;
+}
+
+.article :global(.docs-content-body) table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 18px;
+}
+
+.article :global(.docs-content-body) th,
+.article :global(.docs-content-body) td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid rgba(15, 29, 43, 0.08);
+  text-align: left;
+}
+
+.article :global(.docs-content-body) th {
+  background: #f5f9fc;
+  font-weight: 800;
+}
+
+@media (max-width: 1040px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toc {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .layout {
+    padding: 1rem 0.85rem 1.6rem;
+  }
+
+  .article {
+    padding: 1.1rem;
+    border-radius: 24px;
+  }
+
+  .article :global(.docs-hero) h1 {
+    font-size: 1.9rem;
+  }
+}

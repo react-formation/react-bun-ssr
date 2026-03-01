@@ -1,10 +1,10 @@
 import path from "node:path";
+import { addHeadingIds } from "./markdown-headings";
 import { existsPath, readText, writeTextIfChanged } from "./io";
 import { normalizeSlashes, stableHash, trimFileExtension } from "./utils";
 
 const compiledMarkdownCache = new Map<string, { sourceHash: string; outputPath: string }>();
-const REQUIRED_FRONTMATTER_FIELDS = ["title", "description", "section", "order"] as const;
-const MARKDOWN_WRAPPER_VERSION = "2";
+const MARKDOWN_WRAPPER_VERSION = "3";
 
 interface ParsedFrontmatter {
   title?: string;
@@ -163,15 +163,6 @@ function parseFrontmatter(raw: string): {
     values.set(key, value);
   }
 
-  for (const key of REQUIRED_FRONTMATTER_FIELDS) {
-    if (!values.has(key)) {
-      return {
-        frontmatter: { tags: [] },
-        markdown: raw,
-      };
-    }
-  }
-
   const tags = (values.get("tags") ?? "")
     .split(",")
     .map(value => value.trim())
@@ -295,7 +286,7 @@ export async function compileMarkdownRouteModule(options: {
   }
 
   const parsed = parseFrontmatter(markdownSource);
-  const highlightedHtml = applySyntaxHighlight(Bun.markdown.html(parsed.markdown));
+  const highlightedHtml = applySyntaxHighlight(addHeadingIds(Bun.markdown.html(parsed.markdown)));
   const html = parsed.frontmatter.title ? stripLeadingH1(highlightedHtml) : highlightedHtml;
   await writeFileIfChanged(
     outputPath,

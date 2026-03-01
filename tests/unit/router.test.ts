@@ -34,12 +34,11 @@ describe("useRouter", () => {
   it("is server-safe when invoked during SSR", () => {
     const router = captureRouterFromRender();
 
-    expect(() => router.push("/docs/core-concepts/loaders")).not.toThrow();
-    expect(() => router.replace("/docs/core-concepts/actions")).not.toThrow();
-    expect(() => router.prefetch("/docs/getting-started/introduction")).not.toThrow();
+    expect(() => router.push("/docs/data/loaders")).not.toThrow();
+    expect(() => router.replace("/docs/data/actions")).not.toThrow();
+    expect(() => router.prefetch("/docs/start/overview")).not.toThrow();
     expect(() => router.back()).not.toThrow();
     expect(() => router.forward()).not.toThrow();
     expect(() => router.refresh()).not.toThrow();
   });
 });
-

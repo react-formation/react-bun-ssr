@@ -52,161 +52,185 @@ const SYMBOL_DETAILS: Record<
 > = {
   Action: {
     description: "Route action function signature for handling mutating HTTP requests.",
-    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   ActionContext: {
-    description: "Context object passed to actions with request metadata and parsed body helpers.",
-    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+    description:
+      "Context object passed to actions with request metadata, parsed body helpers, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.",
+    links: [
+      { label: "Actions", href: "/docs/data/actions" },
+      { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
+      { label: "Cookies", href: "https://bun.com/docs/api/cookie" },
+      { label: "HTTP server cookies", href: "https://bun.com/docs/runtime/http/cookies" },
+    ],
   },
   ActionResult: {
     description: "Allowed return union for actions, including data, redirects, and `Response` values.",
-    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   ApiRouteModule: {
     description: "Contract for API route modules exporting method handlers like `GET` and `POST`.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "File-Based Routing", href: "/docs/routing/file-based-routing" }],
   },
   BuildManifest: {
     description: "Production manifest describing built route assets used for SSR document injection.",
-    links: [{ label: "Build artifacts", href: "/docs/tooling/build-artifacts" }],
+    links: [{ label: "Build Output", href: "/docs/tooling/build-output" }],
   },
   BuildRouteAsset: {
     description: "Per-route client asset metadata (entry script and CSS files).",
-    links: [{ label: "Build artifacts", href: "/docs/tooling/build-artifacts" }],
+    links: [{ label: "Build Output", href: "/docs/tooling/build-output" }],
   },
   createServer: {
     description: "Creates the runtime request handler used by Bun server entrypoints.",
     links: [
+      { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
       { label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" },
       { label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" },
+      { label: "Bun APIs", href: "https://bun.com/docs/runtime/bun-apis" },
+      { label: "Common HTTP server usage", href: "https://bun.com/docs/guides/http/server" },
     ],
   },
   defer: {
     description: "Marks loader return data as deferred so promise-backed keys can stream progressively.",
     links: [
-      { label: "Loaders and data flow", href: "/docs/core-concepts/loaders" },
-      { label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" },
+      { label: "Loaders", href: "/docs/data/loaders" },
+      { label: "Streaming and Deferred", href: "/docs/rendering/streaming-deferred" },
     ],
   },
   DeferredLoaderResult: {
     description: "Typed wrapper returned by `defer()` for loaders with immediate and deferred values.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   DeferredToken: {
     description: "Serialized payload token used internally to revive deferred values during hydration.",
-    links: [{ label: "SSR and hydration", href: "/docs/rendering/ssr-hydration" }],
+    links: [{ label: "Streaming and Deferred", href: "/docs/rendering/streaming-deferred" }],
   },
   defineConfig: {
     description: "Helper for authoring typed `rbssr.config.ts` configuration.",
-    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+    links: [{ label: "Configuration", href: "/docs/deployment/configuration" }],
   },
   FrameworkConfig: {
     description: "Main framework configuration surface for paths, server mode, response headers, and server bytecode behavior.",
-    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+    links: [{ label: "Configuration", href: "/docs/deployment/configuration" }],
   },
   json: {
     description: "Creates a JSON `Response` with a default UTF-8 content-type.",
-    links: [{ label: "API reference overview", href: "/docs/api-reference/overview" }],
+    links: [{ label: "API Overview", href: "/docs/api/overview" }],
   },
   Loader: {
     description: "Route loader function signature for GET/HEAD data requests.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   LoaderContext: {
-    description: "Context object passed to loaders with URL, params, cookies, and mutable locals.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    description: "Context object passed to loaders with URL, params, mutable locals, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.",
+    links: [
+      { label: "Loaders", href: "/docs/data/loaders" },
+      { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
+      { label: "Cookies", href: "https://bun.com/docs/api/cookie" },
+      { label: "HTTP server cookies", href: "https://bun.com/docs/runtime/http/cookies" },
+    ],
   },
   LoaderResult: {
     description: "Allowed return union for loaders, including plain data, redirects, deferred data, and `Response`.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   Middleware: {
     description: "Middleware function contract executed around page and API handlers.",
-    links: [{ label: "Middleware chain", href: "/docs/core-concepts/middleware" }],
+    links: [{ label: "Layouts and Groups", href: "/docs/routing/layouts-and-groups" }],
   },
   Outlet: {
     description: "Renders the next nested route element inside root/layout route modules.",
-    links: [{ label: "Nested layouts and route groups", href: "/docs/core-concepts/layouts-and-groups" }],
+    links: [{ label: "Layouts and Groups", href: "/docs/routing/layouts-and-groups" }],
   },
   Params: {
     description: "Dynamic URL params object shape exposed to loaders, actions, and hooks.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "File-Based Routing", href: "/docs/routing/file-based-routing" }],
   },
   notFound: {
     description: "Throws a typed caught 404 route error for nearest not-found/catch boundary handling.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   redirect: {
     description: "Returns a framework redirect descriptor consumed by loader/action runtime flow.",
-    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   RedirectResult: {
     description: "Redirect descriptor shape with destination and HTTP redirect status.",
-    links: [{ label: "Actions and mutation flow", href: "/docs/core-concepts/actions" }],
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   RequestContext: {
-    description: "Base request context shared by middleware, loaders, actions, and API handlers.",
-    links: [{ label: "Middleware chain", href: "/docs/core-concepts/middleware" }],
+    description: "Base request context shared by middleware, loaders, actions, and API handlers, including framework-normalized cookies as `Map<string, string>` rather than Bun's `CookieMap`.",
+    links: [
+      { label: "Layouts and Groups", href: "/docs/routing/layouts-and-groups" },
+      { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
+      { label: "Cookies", href: "https://bun.com/docs/api/cookie" },
+      { label: "HTTP server cookies", href: "https://bun.com/docs/runtime/http/cookies" },
+    ],
   },
   routeError: {
     description: "Throws a typed caught route error with status/data for TanStack-style catch-boundary flows.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   RouteCatchContext: {
     description: "Context passed to `onCatch` lifecycle hooks when a typed caught route error is handled.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   RouteErrorContext: {
     description: "Context passed to `onError` lifecycle hooks for uncaught route failures.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   RouteErrorResponse: {
     description: "Serializable caught route-error shape used by catch boundaries and transition payloads.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   isRouteErrorResponse: {
     description: "Type guard for narrowing unknown errors to framework caught route errors.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
   ResponseHeaderRule: {
     description: "Path-based response header rule used by `FrameworkConfig.headers`.",
-    links: [{ label: "Environment configuration", href: "/docs/deployment/environment" }],
+    links: [{ label: "Configuration", href: "/docs/deployment/configuration" }],
   },
   RouteModule: {
     description: "Page route module contract including component and optional route lifecycle exports.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "File-Based Routing", href: "/docs/routing/file-based-routing" }],
   },
   Router: {
     description: "Programmatic navigation contract returned by `useRouter`.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
   RouterNavigateOptions: {
     description: "Options accepted by `router.push()` and `router.replace()`.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
   startHttpServer: {
     description: "Starts Bun HTTP server for configured framework runtime.",
-    links: [{ label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" }],
+    links: [
+      { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
+      { label: "Bun-only deployment", href: "/docs/deployment/bun-deployment" },
+      { label: "Bun APIs", href: "https://bun.com/docs/runtime/bun-apis" },
+      { label: "Common HTTP server usage", href: "https://bun.com/docs/guides/http/server" },
+    ],
   },
   useLoaderData: {
     description: "Reads loader data in route components, including deferred values as promises.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   useParams: {
     description: "Returns dynamic route params for the current matched route.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "File-Based Routing", href: "/docs/routing/file-based-routing" }],
   },
   useRouter: {
     description: "Returns a Next.js-style router object for programmatic client transitions.",
-    links: [{ label: "Routing model", href: "/docs/core-concepts/routing-model" }],
+    links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
   useRequestUrl: {
     description: "Returns the current request URL object in route components.",
-    links: [{ label: "Loaders and data flow", href: "/docs/core-concepts/loaders" }],
+    links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   useRouteError: {
     description: "Reads error values inside `ErrorBoundary` route components.",
-    links: [{ label: "Error boundaries and not-found", href: "/docs/rendering/error-and-not-found" }],
+    links: [{ label: "Error Handling", href: "/docs/data/error-handling" }],
   },
 };
 
@@ -307,9 +331,11 @@ function docMarkdown(file: ApiDocFile): string {
 
   return `---
 title: ${file.title}
+navTitle: ${file.title}
 description: ${file.description}
 section: ${file.section}
 order: ${file.order}
+kind: api
 tags: api,generated
 ---
 
@@ -330,10 +356,10 @@ function buildApiDocs(): Record<string, string> {
       source: path.join(ROOT, "framework/runtime/index.ts"),
       title: "react-bun-ssr",
       description: "Public runtime exports from the root package entrypoint.",
-      section: "API Reference",
-      order: 2,
+      section: "API",
+      order: 3,
       intro:
-        "Import from `react-bun-ssr` for framework runtime APIs (`createServer`, `startHttpServer`), config helpers, and shared route contracts.",
+        "Import from `react-bun-ssr` for runtime startup APIs, config helpers, response helpers, and deployment-facing types. Start here when you are wiring Bun server startup or authoring `rbssr.config.ts`.",
       examples: [
         {
           title: "Typed config with response headers",
@@ -360,7 +386,7 @@ export function GET() {
 }
 
 export function POST() {
-  return redirect("/docs/core-concepts/actions");
+  return redirect("/docs/data/actions");
 }`,
         },
       ],
@@ -370,10 +396,10 @@ export function POST() {
       source: path.join(ROOT, "framework/runtime/route-api.ts"),
       title: "react-bun-ssr/route",
       description: "Route module contracts, hooks, and helpers exposed to application routes.",
-      section: "API Reference",
-      order: 3,
+      section: "API",
+      order: 4,
       intro:
-        "Use this entrypoint inside route modules for hooks (`useLoaderData`, `useParams`, `Outlet`) and route contract types (`Loader`, `Action`, `Middleware`).",
+        "Use this entrypoint inside route modules for hooks, route contract types, navigation helpers, and TanStack-style route error primitives. It is the package you import from day-to-day while building routes.",
       examples: [
         {
           title: "Loader + `useLoaderData`",
@@ -396,7 +422,7 @@ import type { Action } from "react-bun-ssr/route";
 export const action: Action = async ({ formData }) => {
   const name = String(formData?.get("name") ?? "").trim();
   if (!name) return { error: "name is required" };
-  return redirect("/docs/core-concepts/actions");
+  return redirect("/docs/data/actions");
 };`,
         },
         {

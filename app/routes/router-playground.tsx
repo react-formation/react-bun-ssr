@@ -10,14 +10,14 @@ export default function RouterPlaygroundRoute() {
       <button
         id="router-push-loaders"
         type="button"
-        onClick={() => router.push("/docs/core-concepts/loaders")}
+        onClick={() => router.push("/docs/data/loaders")}
       >
         Push to loaders
       </button>
       <button
         id="router-replace-actions"
         type="button"
-        onClick={() => router.replace("/docs/core-concepts/actions")}
+        onClick={() => router.replace("/docs/data/actions")}
       >
         Replace with actions
       </button>

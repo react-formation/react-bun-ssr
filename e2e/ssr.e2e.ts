@@ -3,30 +3,32 @@ import { expect, test } from "@playwright/test";
 test.describe("Documentation app", () => {
   test("renders docs home and search UI", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/docs\/getting-started\/introduction$/);
-    await expect(page.locator("h1").first()).toContainText("Introduction");
+    await expect(page).toHaveURL(/\/docs$/);
+    await expect(page.getByRole("heading", { name: /Server-rendered React on Bun/i })).toBeVisible();
 
-    await page.fill("#docs-search", "loader");
-    await expect(page.locator("#docs-search")).toHaveValue("loader");
+    await page.getByRole("button", { name: /Search documentation/i }).click();
+    await page.fill("#docs-search", "loaders");
+    await expect(page.locator("#docs-search")).toHaveValue("loaders");
+    await expect(page.getByRole("link", { name: /Loaders/i }).first()).toBeVisible();
 
     const response = await page.request.get("/api/search");
     expect(response.status()).toBe(200);
   });
 
   test("supports docs deep link", async ({ page }) => {
-    await page.goto("/docs/core-concepts/loaders");
-    await expect(page.locator(".docs-hero h1")).toContainText("Loaders and data flow");
-    await expect(page.getByRole("heading", { name: "Return values" })).toBeVisible();
+    await page.goto("/docs/data/loaders");
+    await expect(page.locator(".docs-hero h1")).toContainText("Loaders");
+    await expect(page.getByRole("heading", { name: "Return model" })).toBeVisible();
   });
 
   test("navigates internal docs links without a full page reload", async ({ page }) => {
-    await page.goto("/docs/getting-started/introduction");
+    await page.goto("/docs/start/overview");
     const before = await page.evaluate(() => performance.getEntriesByType("navigation").length);
     const historyBefore = await page.evaluate(() => window.history.length);
 
-    await page.getByRole("link", { name: "Loaders and data flow" }).first().click();
-    await expect(page).toHaveURL(/\/docs\/core-concepts\/loaders$/);
-    await expect(page.locator(".docs-hero h1")).toContainText("Loaders and data flow");
+    await page.getByRole("link", { name: "File-Based Routing" }).first().click();
+    await expect(page).toHaveURL(/\/docs\/routing\/file-based-routing$/);
+    await expect(page.locator(".docs-hero h1")).toContainText("File-Based Routing");
 
     const after = await page.evaluate(() => performance.getEntriesByType("navigation").length);
     const historyAfter = await page.evaluate(() => window.history.length);
@@ -40,8 +42,8 @@ test.describe("Documentation app", () => {
     const before = await page.evaluate(() => performance.getEntriesByType("navigation").length);
 
     await page.click("#router-push-loaders");
-    await expect(page).toHaveURL(/\/docs\/core-concepts\/loaders$/);
-    await expect(page.locator(".docs-hero h1")).toContainText("Loaders and data flow");
+    await expect(page).toHaveURL(/\/docs\/data\/loaders$/);
+    await expect(page.locator(".docs-hero h1")).toContainText("Loaders");
 
     const after = await page.evaluate(() => performance.getEntriesByType("navigation").length);
     expect(after).toBe(before);
@@ -55,8 +57,8 @@ test.describe("Documentation app", () => {
     const beforeHistoryLength = await page.evaluate(() => window.history.length);
 
     await page.click("#router-replace-actions");
-    await expect(page).toHaveURL(/\/docs\/core-concepts\/actions$/);
-    await expect(page.locator(".docs-hero h1")).toContainText("Actions and mutation flow");
+    await expect(page).toHaveURL(/\/docs\/data\/actions$/);
+    await expect(page.locator(".docs-hero h1")).toContainText("Actions");
 
     const afterNavigationEntries = await page.evaluate(() => performance.getEntriesByType("navigation").length);
     const afterHistoryLength = await page.evaluate(() => window.history.length);
@@ -65,23 +67,42 @@ test.describe("Documentation app", () => {
   });
 
   test("announces client transitions for assistive technology", async ({ page }) => {
-    await page.goto("/docs/getting-started/introduction");
+    await page.goto("/docs/start/overview");
 
     const announcer = page.locator("#__rbssr-route-announcer");
 
-    await page.getByRole("link", { name: "Loaders and data flow" }).first().click();
-    await expect(page).toHaveURL(/\/docs\/core-concepts\/loaders$/);
+    await page.getByRole("link", { name: "File-Based Routing" }).first().click();
+    await expect(page).toHaveURL(/\/docs\/routing\/file-based-routing$/);
     await expect
       .poll(async () => (await announcer.getAttribute("aria-live")) ?? "")
       .toBe("assertive");
     await expect
       .poll(async () => (await announcer.textContent()) ?? "")
-      .toContain("Loaders and data flow");
+      .toContain("File-Based Routing");
   });
 
   test("serves not found page", async ({ page }) => {
     const response = await page.goto("/missing-page");
     expect(response?.status()).toBe(404);
-    await expect(page.locator("text=Documentation page not found.")).toBeVisible();
+    await expect(page.locator("text=Page not found.")).toBeVisible();
+  });
+
+  test("renders the blog index and launch article", async ({ page }) => {
+    await page.goto("/blog");
+    await expect(page.getByRole("heading", { name: /Building a Bun-native SSR framework in public/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Why I Built a Bun-Native SSR Framework/i })).toBeVisible();
+
+    await page.getByRole("link", { name: /Why I Built a Bun-Native SSR Framework/i }).first().click();
+    await expect(page).toHaveURL(/\/blog\/why-i-built-a-bun-native-ssr-framework$/);
+    await expect(page.locator(".docs-hero h1")).toContainText(
+      "Why I Built a Bun-Native SSR Framework as an Alternative to Next.js and Remix",
+    );
+    await expect(page.locator("text=gaudiauj")).toBeVisible();
+    await expect(page.locator("text=March 1, 2026")).toBeVisible();
+    await expect(page.locator("text=min read")).toBeVisible();
+
+    const canonicalHref = await page.locator('link[rel=\"canonical\"]').getAttribute("href");
+    expect(canonicalHref).toBe("https://react-bun-ssr.fly.dev/blog/why-i-built-a-bun-native-ssr-framework");
+    await expect(page.locator("#docs-sidebar")).toHaveCount(0);
   });
 });

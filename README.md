@@ -162,6 +162,15 @@ That starts the docs site locally using the framework itself.
 
 Contributions should keep framework behavior, docs, tests, and generated artifacts aligned. For local setup, workflow, validation requirements, and generated-file policy, read [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+## Release and deploy
+
+- Pushes to `main` run the main-branch CI gate and deploy automatically to Fly.io.
+- Tags like `v0.1.1-rc.0` publish prereleases to npm under `rc`.
+- Tags like `v0.1.1` publish stable releases to npm under `latest`.
+- The release workflow derives the published package version from the Git tag and rewrites `package.json` in the release job before publishing.
+- npm publishing uses trusted publishing with GitHub OIDC instead of an `NPM_TOKEN`.
+- npm package settings must have a trusted publisher configured for `react-formation / react-bun-ssr / release.yml`.
+
 ## Deploying
 
 Fly.io deployment support is already documented and used by this project.

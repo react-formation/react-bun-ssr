@@ -91,6 +91,25 @@ Additional useful checks:
 - `bun run typecheck`
 - `CI=1 bun run test:e2e` for routing, rendering, and navigation-heavy changes
 
+## CI, deploys, and releases
+
+- Branch pushes and pull requests run the core CI suite:
+  - `typecheck`
+  - unit tests
+  - integration tests
+  - docs check
+  - docs build
+- Pushes to `main` also run e2e and, after success, deploy to the Fly production app.
+- Tags like `v0.1.1-rc.0` publish npm prereleases under the `rc` dist-tag.
+- Tags like `v0.1.1` publish stable npm releases under `latest`.
+- The Git tag is the source of truth for npm versioning.
+- The release workflow rewrites `package.json` inside the release job before publishing.
+- npm publishing uses trusted publishing via GitHub OIDC and requires the package trusted publisher to be configured on npm.
+- Configure the npm trusted publisher with:
+  - organization/user: `react-formation`
+  - repository: `react-bun-ssr`
+  - workflow filename: `release.yml`
+
 ## Change-specific guidance
 
 - If public runtime exports change:

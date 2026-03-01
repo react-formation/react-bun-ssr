@@ -54,11 +54,51 @@ export default function AnalyticsPage() {
 - deferred resolve/reject chunks
 - transition payloads during client-side navigation
 
+## How `defer()` fits into streaming
+
+`defer()` is the loader API that turns streaming into a practical page pattern.
+
+The first response contains:
+
+- the full HTML document shell
+- immediate loader values
+- placeholder tokens for deferred keys
+
+Then the server streams deferred settle chunks as each promise resolves or rejects. The client runtime revives those deferred keys into promises again, so the same route can hydrate and later transition without changing component code.
+
+That is why the recommended consumption model is:
+
+- `useLoaderData()` to read the loader object
+- React `use()` to unwrap the deferred promise
+- `Suspense` to define the loading boundary
+
+## Choosing immediate vs deferred data
+
+Split loader data by render priority:
+
+- keep page title, summary counts, and primary shell data immediate
+- defer slow tables, analytics, secondary panels, or related collections
+
+For example, a task dashboard can render the title and task counts immediately, while a slower activity feed resolves later behind a `Suspense` boundary.
+
+## Failure behavior
+
+Deferred failures are not ignored.
+
+- If a deferred promise rejects, the error bubbles to the nearest route error boundary.
+- During client transitions, deferred settle events follow the same behavior as the initial document render.
+- If the value is required for the whole page, it should not be deferred in the first place.
+
 ## Rules
 
 - Deferred values must resolve to serializable data.
 - Rejected deferred promises bubble to the nearest error boundary.
 - Top-level keys only are supported in v1.
+
+## Related guides
+
+- [Loaders](/docs/data/loaders)
+- [Error Handling](/docs/data/error-handling)
 
 ## Related APIs
 

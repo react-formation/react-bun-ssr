@@ -514,6 +514,26 @@
       },
       {
         "depth": 2,
+        "id": "using-defer",
+        "text": "Using defer()"
+      },
+      {
+        "depth": 2,
+        "id": "what-defer-does",
+        "text": "What defer() does"
+      },
+      {
+        "depth": 2,
+        "id": "loader-with-or-without-defer",
+        "text": "Loader with or without defer()"
+      },
+      {
+        "depth": 2,
+        "id": "when-to-use-it",
+        "text": "When to use it"
+      },
+      {
+        "depth": 2,
         "id": "rules",
         "text": "Rules"
       },
@@ -690,8 +710,28 @@
       },
       {
         "depth": 2,
+        "id": "how-defer-fits-into-streaming",
+        "text": "How defer() fits into streaming"
+      },
+      {
+        "depth": 2,
+        "id": "choosing-immediate-vs-deferred-data",
+        "text": "Choosing immediate vs deferred data"
+      },
+      {
+        "depth": 2,
+        "id": "failure-behavior",
+        "text": "Failure behavior"
+      },
+      {
+        "depth": 2,
         "id": "rules",
         "text": "Rules"
+      },
+      {
+        "depth": 2,
+        "id": "related-guides",
+        "text": "Related guides"
       },
       {
         "depth": 2,

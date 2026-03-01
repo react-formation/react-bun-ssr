@@ -1,5 +1,6 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
+import { toAbsoluteUrl } from "../../app/lib/site.ts";
 import { ensureDir, makeTempDir, removePath } from "../../framework/runtime/io";
 import { createServer } from "../../framework/runtime/server";
 
@@ -31,7 +32,8 @@ describe("createServer integration", () => {
     (globalThis as { __rbssrOnErrorOrder?: string[] }).__rbssrOnErrorOrder = [];
     const cwd = await writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
-      export default function Root(){ return <div><Outlet /></div>; }
+      import styles from "./root.module.css";
+      export default function Root(){ return <div className={styles.shell}><Outlet /></div>; }
       export function NotFound(){ return <h1>missing</h1>; }
       export function onCatch(){
         const g = globalThis as { __rbssrOnCatchOrder?: string[] };
@@ -43,6 +45,7 @@ describe("createServer integration", () => {
         g.__rbssrOnErrorOrder ??= [];
         g.__rbssrOnErrorOrder.push("root");
       }`,
+      "app/root.module.css": `.shell { color: rgb(17, 31, 45); }`,
       "app/routes/index.tsx": `import { useLoaderData } from "${runtimeImport}";
       export function loader(){ return { message: "SSR works" }; }
       export default function Index(){ const data = useLoaderData<{ message: string }>(); return <h1>{data.message}</h1>; }`,
@@ -114,14 +117,14 @@ This route is **native markdown**.`,
       {
         dev: true,
         devAssets: {
-          index: { script: "/__rbssr/client/route__index.js", css: [] },
-          submit: { script: "/__rbssr/client/route__submit.js", css: [] },
-          error: { script: "/__rbssr/client/route__error.js", css: [] },
-          caught: { script: "/__rbssr/client/route__caught.js", css: [] },
-          missing_caught: { script: "/__rbssr/client/route__missing_caught.js", css: [] },
-          styled: { script: "/__rbssr/client/route__styled.js", css: [] },
-          guide: { script: "/__rbssr/client/route__guide.js", css: [] },
-          deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
+          index: { script: "/__rbssr/client/route__index.js", css: ["/__rbssr/client/shared.css"] },
+          submit: { script: "/__rbssr/client/route__submit.js", css: ["/__rbssr/client/shared.css"] },
+          error: { script: "/__rbssr/client/route__error.js", css: ["/__rbssr/client/shared.css"] },
+          caught: { script: "/__rbssr/client/route__caught.js", css: ["/__rbssr/client/shared.css"] },
+          missing_caught: { script: "/__rbssr/client/route__missing_caught.js", css: ["/__rbssr/client/shared.css"] },
+          styled: { script: "/__rbssr/client/route__styled.js", css: ["/__rbssr/client/shared.css"] },
+          guide: { script: "/__rbssr/client/route__guide.js", css: ["/__rbssr/client/shared.css"] },
+          deferred: { script: "/__rbssr/client/route__deferred.js", css: ["/__rbssr/client/shared.css"] },
         },
       },
     );
@@ -134,7 +137,10 @@ This route is **native markdown**.`,
 
     const notFound = await server.fetch(new Request("http://localhost/does-not-exist"));
     expect(notFound.status).toBe(404);
-    expect(await notFound.text()).toContain("missing");
+    const notFoundHtml = await notFound.text();
+    expect(notFoundHtml).toContain("missing");
+    expect(notFoundHtml).toContain("class=\"shell_");
+    expect(notFoundHtml).toContain("/__rbssr/client/shared.css?v=0");
 
     const redirectResponse = await server.fetch(
       new Request("http://localhost/submit", {
@@ -204,6 +210,8 @@ This route is **native markdown**.`,
       "dist/client/route__index-abc123.js": "console.log('chunk');",
       "dist/client/route__index-abc123.css": ".hero{color:red;}",
       "app/public/logo.png": "png-bytes",
+      "app/public/sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`,
+      "app/public/robots.txt": `User-agent: *\nAllow: /\n\nSitemap: ${toAbsoluteUrl("/sitemap.xml")}\n`,
     });
 
     const server = createServer({
@@ -234,6 +242,23 @@ This route is **native markdown**.`,
     expect(logoHead.status).toBe(200);
     expect(logoHead.headers.get("cache-control")).toBe("public, max-age=3600");
     expect(await logoHead.text()).toBe("");
+
+    const sitemapGet = await server.fetch(new Request("http://localhost/sitemap.xml"));
+    expect(sitemapGet.status).toBe(200);
+    expect(sitemapGet.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(sitemapGet.headers.get("content-type")?.includes("xml")).toBe(true);
+
+    const sitemapHead = await server.fetch(
+      new Request("http://localhost/sitemap.xml", { method: "HEAD" }),
+    );
+    expect(sitemapHead.status).toBe(200);
+    expect(sitemapHead.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(await sitemapHead.text()).toBe("");
+
+    const robotsGet = await server.fetch(new Request("http://localhost/robots.txt"));
+    expect(robotsGet.status).toBe(200);
+    expect(robotsGet.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(await robotsGet.text()).toContain(`Sitemap: ${toAbsoluteUrl("/sitemap.xml")}`);
   });
 
   it("renders routes in production when server bytecode is disabled", async () => {
@@ -260,8 +285,10 @@ This route is **native markdown**.`,
     const runtimeImport = "react-bun-ssr/route";
     const cwd = await writeFixture({
       "app/root.tsx": `import { Outlet } from "${runtimeImport}";
-      export default function Root(){ return <div><Outlet /></div>; }
+      import styles from "./root.module.css";
+      export default function Root(){ return <div className={styles.shell}><Outlet /></div>; }
       export function NotFound(){ return <h1>missing</h1>; }`,
+      "app/root.module.css": `.shell { color: rgb(17, 31, 45); }`,
       "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
       "app/routes/deferred.tsx": `import { defer } from "${runtimeImport}";
       export function loader(){ return defer({ slow: Promise.resolve("done") }); }
@@ -283,10 +310,10 @@ This route is **native markdown**.`,
       {
         dev: true,
         devAssets: {
-          index: { script: "/__rbssr/client/route__index.js", css: [] },
-          deferred: { script: "/__rbssr/client/route__deferred.js", css: [] },
-          caught: { script: "/__rbssr/client/route__caught.js", css: [] },
-          boom: { script: "/__rbssr/client/route__boom.js", css: [] },
+          index: { script: "/__rbssr/client/route__index.js", css: ["/__rbssr/client/shared.css"] },
+          deferred: { script: "/__rbssr/client/route__deferred.js", css: ["/__rbssr/client/shared.css"] },
+          caught: { script: "/__rbssr/client/route__caught.js", css: ["/__rbssr/client/shared.css"] },
+          boom: { script: "/__rbssr/client/route__boom.js", css: ["/__rbssr/client/shared.css"] },
         },
       },
     );
@@ -342,6 +369,7 @@ This route is **native markdown**.`,
     expect(notFoundLines[0]?.type).toBe("initial");
     expect(notFoundLines[0]?.kind).toBe("not_found");
     expect(notFoundLines[0]?.status).toBe(404);
+    expect(String(notFoundLines[0]?.head ?? "")).toContain("/__rbssr/client/shared.css?v=0");
   });
 
   it("applies configured headers and lets config override defaults", async () => {

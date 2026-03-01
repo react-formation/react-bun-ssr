@@ -1,5 +1,6 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
+import { toAbsoluteUrl } from "../../app/lib/site.ts";
 import { makeTempDir, removePath, writeText } from "../../framework/runtime/io";
 import { buildBlogManifest } from "../../scripts/build-blog-manifest";
 
@@ -27,7 +28,7 @@ describe("buildBlogManifest", () => {
 
     expect(manifest.map(entry => entry.slug)).toEqual(["newer-post", "older-post"]);
     expect(manifest[0]?.headings).toEqual([{ text: "Launch notes", id: "launch-notes", depth: 2 }]);
-    expect(manifest[0]?.canonicalUrl).toBe("https://react-bun-ssr.fly.dev/blog/newer-post");
+    expect(manifest[0]?.canonicalUrl).toBe(toAbsoluteUrl("/blog/newer-post"));
     expect(manifest[0]?.nextSlug).toBe("older-post");
     expect(manifest[1]?.prevSlug).toBe("newer-post");
     expect(manifest[1]?.readingMinutes).toBe(2);

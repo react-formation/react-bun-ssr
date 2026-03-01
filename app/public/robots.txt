@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://react-bun-ssr.fly.dev/sitemap.xml

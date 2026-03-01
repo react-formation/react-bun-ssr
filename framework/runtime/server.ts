@@ -13,6 +13,7 @@ import type {
   ClientRouteSnapshot,
   ClientRouterSnapshot,
   FrameworkConfig,
+  HydrationDocumentAssets,
   LoaderContext,
   PageRouteDefinition,
   RouteManifest,
@@ -387,6 +388,23 @@ function createRouterSnapshot(options: {
   };
 }
 
+function resolveFallbackHtmlAssets(options: {
+  routeAssets: Record<string, BuildRouteAsset>;
+  devVersion?: number;
+}): HydrationDocumentAssets {
+  const css = Array.from(
+    new Set(
+      Object.values(options.routeAssets).flatMap((asset) => asset.css),
+    ),
+  );
+
+  return {
+    script: undefined,
+    css,
+    devVersion: options.devVersion,
+  };
+}
+
 function toTransitionStreamResponse(
   stream: ReadableStream<Uint8Array>,
   baseHeaders?: HeadersInit,
@@ -685,6 +703,10 @@ export function createServer(
       routeAssets: routeAssetsById,
       devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
     });
+    const fallbackHtmlAssets = resolveFallbackHtmlAssets({
+      routeAssets: routeAssetsById,
+      devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+    });
 
     if (request.method.toUpperCase() === "GET" && url.pathname === "/__rbssr/transition") {
       const toParam = url.searchParams.get("to");
@@ -731,11 +753,7 @@ export function createServer(
           payload,
           head: createManagedHeadMarkup({
             headMarkup: collectHeadMarkup(modules, payload),
-            assets: {
-              script: undefined,
-              css: [],
-              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-            },
+            assets: fallbackHtmlAssets,
           }),
           redirected: false,
         };
@@ -1074,11 +1092,7 @@ export function createServer(
       const stream = await renderDocumentStream({
         appTree,
         payload,
-        assets: {
-          script: undefined,
-          css: [],
-          devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-        },
+        assets: fallbackHtmlAssets,
         headElements: collectHeadElements(modules, payload),
         routerSnapshot,
       });

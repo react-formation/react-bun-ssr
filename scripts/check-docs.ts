@@ -3,6 +3,7 @@ import { flattenSidebarSlugs, sidebar } from "../app/routes/docs/_sidebar.ts";
 import { buildBlogManifest } from "./build-blog-manifest.ts";
 import { buildDocsManifest } from "./build-docs-manifest.ts";
 import { buildSearchIndex } from "./build-search-index.ts";
+import { buildSitemap, renderRobotsTxt, renderSitemapXml } from "./build-sitemap.ts";
 import { parseMarkdownWithFrontmatter, walkFiles } from "./docs-utils.ts";
 import { generateApiDocs } from "./generate-api-docs.ts";
 
@@ -10,6 +11,9 @@ const ROOT = process.cwd();
 const DOCS_ROUTES_DIR = path.join(ROOT, "app/routes/docs");
 const BLOG_ROUTES_DIR = path.join(ROOT, "app/routes/blog");
 const API_DIR = path.join(DOCS_ROUTES_DIR, "api");
+const PUBLIC_DIR = path.join(ROOT, "app/public");
+const SITEMAP_FILE = path.join(PUBLIC_DIR, "sitemap.xml");
+const ROBOTS_FILE = path.join(PUBLIC_DIR, "robots.txt");
 const DOC_REQUIRED_FIELDS = ["title", "navTitle", "description", "section", "order", "kind"] as const;
 const BLOG_REQUIRED_FIELDS = ["title", "description", "section", "author", "publishedAt", "tags"] as const;
 const SOURCE_DIRS = ["framework", "scripts", "tests", "app", "bin"] as const;
@@ -20,6 +24,10 @@ const BLOG_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function fail(message: string): never {
   throw new Error(`[docs:check] ${message}`);
+}
+
+function normalizeSitemapForFreshness(value: string): string {
+  return value.replace(/<lastmod>[^<]+<\/lastmod>/g, "<lastmod>__DYNAMIC__</lastmod>");
 }
 
 function toSlug(baseDir: string, filePath: string): string {
@@ -218,6 +226,23 @@ async function validateGeneratedFreshness(): Promise<void> {
     : "";
   if (expectedBlogManifest !== currentBlogManifest) {
     fail("Blog manifest is stale. Run `bun run scripts/build-blog-manifest.ts`.");
+  }
+
+  const expectedSitemap = renderSitemapXml(await buildSitemap());
+  const currentSitemap = (await Bun.file(SITEMAP_FILE).exists())
+    ? await Bun.file(SITEMAP_FILE).text()
+    : "";
+  if (normalizeSitemapForFreshness(expectedSitemap) !== normalizeSitemapForFreshness(currentSitemap)) {
+    fail("Sitemap is stale. Run `bun run scripts/build-sitemap.ts`.");
+  }
+
+  if (!(await Bun.file(ROBOTS_FILE).exists())) {
+    fail("robots.txt is missing. Run `bun run scripts/build-sitemap.ts`.");
+  }
+  const currentRobots = await Bun.file(ROBOTS_FILE).text();
+  const expectedRobots = renderRobotsTxt(currentRobots);
+  if (expectedRobots !== currentRobots) {
+    fail("robots.txt sitemap linkage is stale. Run `bun run scripts/build-sitemap.ts`.");
   }
 }
 

@@ -28,7 +28,7 @@ Open `http://127.0.0.1:3000` after the dev server starts.
 ## If you are working from this repository
 
 ```bash
-git clone git@github.com:gaudiauj/react-bun-ssr.git
+git clone git@github.com:react-formation/react-bun-ssr.git
 cd react-bun-ssr
 bun install
 bun run docs:dev

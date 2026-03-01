@@ -94,4 +94,4 @@ When that work happens, the goal will be simple: understand where a Bun-native S
 
 `react-bun-ssr` exists because I wanted a serious Bun-native alternative to Next.js and Remix in the SSR space.
 
-If that is the same thing you have been looking for, start with the [docs](/docs), read the [Quick Start](/docs/start/quick-start), and check the code on [GitHub](https://github.com/gaudiauj/react-bun-ssr).
+If that is the same thing you have been looking for, start with the [docs](/docs), read the [Quick Start](/docs/start/quick-start), and check the code on [GitHub](https://github.com/react-formation/react-bun-ssr).

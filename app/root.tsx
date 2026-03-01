@@ -1,31 +1,17 @@
 import { useEffect } from 'react';
-import { Link, Outlet, useRequestUrl } from 'react-bun-ssr/route';
+import { Link, Outlet } from 'react-bun-ssr/route';
+import DocsSearch, { openDocsSearch } from './components/docs-search';
 import { SITE_NAME } from './lib/site';
 import { initDatadogRum } from './lib/datadog-rum';
 import styles from './root.module.css';
 
-const DOCS_SEARCH_EVENT = 'rbssr:open-docs-search';
-
 export default function RootLayout() {
-  const url = useRequestUrl();
-  const isDocsRoute =
-    url.pathname === '/docs' || url.pathname.startsWith('/docs/');
-
   useEffect(() => {
     void initDatadogRum();
   }, []);
 
   const handleSearchClick = (): void => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (isDocsRoute) {
-      window.dispatchEvent(new CustomEvent(DOCS_SEARCH_EVENT));
-      return;
-    }
-
-    window.location.assign('/docs');
+    openDocsSearch();
   };
 
   return (
@@ -51,7 +37,7 @@ export default function RootLayout() {
               <Link to="/blog">Blog</Link>
               <Link to="/docs">Docs</Link>
               <Link to="/docs/api/overview">API</Link>
-              <a href="https://github.com/gaudiauj/react-bun-ssr">GitHub</a>
+              <a href="https://github.com/react-formation/react-bun-ssr">GitHub</a>
             </nav>
 
             <button
@@ -67,6 +53,18 @@ export default function RootLayout() {
         </div>
       </header>
       <Outlet />
+      <DocsSearch />
+      <footer className={styles.siteFooter}>
+        <div className={styles.siteFooterInner}>
+          <p className={styles.siteFooterCopy}>react-bun-ssr</p>
+          <nav className={styles.siteFooterNav} aria-label="Site footer">
+            <Link to="/docs">Docs</Link>
+            <Link to="/blog">Blog</Link>
+            <Link to="/docs/api/overview">API</Link>
+            <a href="/sitemap.xml">Sitemap</a>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }

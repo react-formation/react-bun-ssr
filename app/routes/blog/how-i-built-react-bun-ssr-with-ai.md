@@ -167,4 +167,4 @@ If you are evaluating `react-bun-ssr`, start with the [Quick Start](/docs/start/
 
 AI helped me build `react-bun-ssr` faster, but the framework only got better when the engineering bar stayed high.
 
-If you want to see what that produced, start with the [docs](/docs), read the [Quick Start](/docs/start/quick-start), and inspect the code on [GitHub](https://github.com/gaudiauj/react-bun-ssr).
+If you want to see what that produced, start with the [docs](/docs), read the [Quick Start](/docs/start/quick-start), and inspect the code on [GitHub](https://github.com/react-formation/react-bun-ssr).

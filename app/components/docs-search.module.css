@@ -1,0 +1,102 @@
+.searchOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: start center;
+  padding: 5.5rem 1rem 1rem;
+}
+
+.searchBackdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(11, 20, 31, 0.36);
+}
+
+.searchPanel {
+  position: relative;
+  width: min(760px, 100%);
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 28px 70px rgba(16, 31, 47, 0.25);
+  overflow: hidden;
+}
+
+.searchPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.8rem;
+}
+
+.searchPanelHeader p {
+  margin: 0;
+  font-weight: 800;
+}
+
+.searchPanelHeader button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.searchInput {
+  width: calc(100% - 2rem);
+  margin: 0 1rem 1rem;
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: #f9fbfc;
+  color: var(--text);
+  font: inherit;
+}
+
+.searchResults {
+  display: grid;
+  gap: 0.5rem;
+  max-height: min(60vh, 620px);
+  overflow-y: auto;
+  padding: 0 1rem 1rem;
+}
+
+.searchResult {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 18px;
+  background: #f9fbfc;
+}
+
+.searchResult strong {
+  color: #13283d;
+}
+
+.searchResult p {
+  margin: 0;
+  color: #617082;
+  font-size: 0.88rem;
+}
+
+.searchResultMeta {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  color: #607087;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.searchEmpty {
+  margin: 0;
+  padding: 0.6rem 0.2rem 0.2rem;
+  color: var(--muted);
+}

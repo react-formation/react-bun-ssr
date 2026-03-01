@@ -20,7 +20,7 @@ primary_region = "cdg"
     timeout = "5s"
     grace_period = "10s"
     method = "GET"
-    path = "/docs/getting-started/introduction"
+    path = "/docs"
 
 [[vm]]
   cpu_kind = "shared"

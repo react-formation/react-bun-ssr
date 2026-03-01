@@ -1,5 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
+import { toAbsoluteUrl } from "../../app/lib/site.ts";
 import blogManifest from "../../app/routes/blog/blog-manifest.json";
 
 interface BlogManifestEntry {
@@ -45,7 +46,7 @@ describe("blog content", () => {
     expect(firstPost?.author).toBe("gaudiauj");
     expect(firstPost?.publishedAt).toBe("2026-03-01");
     expect(firstPost?.readingMinutes).toBeGreaterThan(1);
-    expect(firstPost?.canonicalUrl).toBe("https://react-bun-ssr.fly.dev/blog/how-i-built-react-bun-ssr-with-ai");
+    expect(firstPost?.canonicalUrl).toBe(toAbsoluteUrl("/blog/how-i-built-react-bun-ssr-with-ai"));
   });
 
   it("broadens the root chrome beyond docs-only copy", async () => {

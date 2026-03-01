@@ -1,5 +1,7 @@
 .shell {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar {
@@ -119,6 +121,50 @@
   padding: 2rem 1.3rem;
 }
 
+.siteFooter {
+  margin-top: auto;
+  border-top: 1px solid rgba(15, 29, 43, 0.08);
+  background: rgba(246, 248, 251, 0.86);
+}
+
+.siteFooterInner {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 1rem 1.3rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.siteFooterCopy {
+  margin: 0;
+  color: #5f6b7c;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.siteFooterNav {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.siteFooterNav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  color: #415266;
+  font-weight: 700;
+}
+
+.siteFooterNav a:hover {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
+}
+
 .card {
   max-width: 760px;
   padding: 1.5rem;
@@ -159,5 +205,11 @@
 
   .singleMain {
     padding: 1rem 0.85rem;
+  }
+
+  .siteFooterInner {
+    padding: 0.9rem 0.85rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

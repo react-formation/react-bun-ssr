@@ -89,6 +89,13 @@ export function createDevClientWatch(options: {
   let metafilePoller: ReturnType<typeof setInterval> | undefined;
   let lastMetafileMtime = "";
 
+  const resetReadyState = (): void => {
+    const deferred = createDeferred();
+    state.readyPromise = deferred.promise;
+    state.resolveReady = deferred.resolve;
+    state.rejectReady = deferred.reject;
+  };
+
   const stopPolling = (): void => {
     if (metafilePoller) {
       clearInterval(metafilePoller);
@@ -152,10 +159,6 @@ export function createDevClientWatch(options: {
     await removePath(options.metafilePath);
 
     const previousOutputFiles = [...state.outputFiles];
-    const deferred = createDeferred();
-    state.readyPromise = deferred.promise;
-    state.resolveReady = deferred.resolve;
-    state.rejectReady = deferred.reject;
     state.buildCount = 0;
     state.outputFiles = new Set<string>();
     lastMetafileMtime = "";
@@ -244,6 +247,7 @@ export function createDevClientWatch(options: {
       }
 
       state.entrySetSignature = nextEntrySetSignature;
+      resetReadyState();
       await stopProcess();
       await startProcess();
       options.onLog?.("restarted Bun client watch after entry set change");

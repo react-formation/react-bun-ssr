@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 describe("CLI dev runtime", () => {
-  it("starts without creating versioned server snapshots", async () => {
+  it("starts without creating versioned server snapshots and can restart from existing generated entries", async () => {
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `export default { appDir: "app", port: 3217 };`,
       "app/root.tsx": `export default function Root(){ return <main>root</main>; }`,
@@ -41,5 +41,18 @@ describe("CLI dev runtime", () => {
 
     expect(await existsPath(path.join(root, ".rbssr/generated/dev/entry.ts"))).toBe(true);
     expect(await existsPath(path.join(root, ".rbssr/dev/server-snapshots"))).toBe(false);
+
+    activeProcess.kill();
+    await activeProcess.exited;
+    activeProcess = null;
+
+    activeProcess = spawnProcess({
+      cmd: ["bun", rbssrBinPath, "dev"],
+      cwd: root,
+      stdout: "ignore",
+      stderr: "pipe",
+    });
+
+    await waitForHttpReady("http://127.0.0.1:3217");
   });
 });

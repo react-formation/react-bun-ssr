@@ -17,9 +17,6 @@ function resolveEnvName(): string {
 }
 
 export async function initDatadogRum(): Promise<void> {
-  if (process.env.NODE_ENV === 'development') {
-    return;
-  }
   if (typeof window === 'undefined') {
     return;
   }

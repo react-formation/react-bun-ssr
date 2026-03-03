@@ -5,9 +5,24 @@ import { SITE_NAME } from './lib/site';
 import { initDatadogRum } from './lib/datadog-rum';
 import styles from './root.module.css';
 
+
+const initAnalitycs = () => {
+  // @ts-ignore
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    // @ts-ignore
+    dataLayer.push(arguments);
+  }
+  // @ts-ignore
+  gtag('js', new Date());
+
+  // @ts-ignore
+  gtag('config', 'G-NGRFMCYB9Z');
+}
 export default function RootLayout() {
   useEffect(() => {
     void initDatadogRum();
+    void initAnalitycs()
   }, []);
 
   const handleSearchClick = (): void => {
@@ -81,9 +96,13 @@ export function head() {
         name="google-site-verification"
         content="sI7GYFWWtoQhNipsdQncDKnJiehzPk8prWjj3H7zFJU"
       />
+      
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <link rel="shortcut icon" href="/favicon.svg" />
       <link rel="stylesheet" href="/app.css" />
+
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>
+
     </>
   );
 }

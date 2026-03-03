@@ -11,6 +11,7 @@ Guidance for AI coding agents working in this repository.
 - `framework/`: framework runtime and build system.
 - `bin/rbssr.ts`: CLI entrypoint.
 - `app/`: docs web app routes/components/styles.
+- `app/package.json`: private docs app dependency manifest.
 - `app/routes/docs/**/*.md`: authored markdown docs as first-class routes.
 - `app/routes/docs/_sidebar.ts`: canonical docs nav structure.
 - `app/routes/docs/api/*.md`: generated API docs.
@@ -24,6 +25,12 @@ Guidance for AI coding agents working in this repository.
 - Bun `>= 1.3.10`.
 - If `bun` is not on PATH in non-interactive shells, use:
   - `export PATH="$HOME/.bun/bin:$PATH"`
+
+## Package ownership
+
+- Repo-root `package.json` is the published framework package manifest.
+- `app/package.json` owns docs-app runtime dependencies.
+- Keep repo-root workflows (`bun install`, `bun run docs:dev`, `bun run test`) unchanged unless the task explicitly requires changing contributor ergonomics.
 
 ## Runtime API policy
 

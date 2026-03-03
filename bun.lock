@@ -4,10 +4,6 @@
   "workspaces": {
     "": {
       "name": "react-bun-ssr",
-      "dependencies": {
-        "@datadog/browser-rum": "^6.28.1",
-        "@datadog/browser-rum-react": "^6.28.1",
-      },
       "devDependencies": {
         "@playwright/test": "^1.54.2",
         "@types/react": "^19",
@@ -22,6 +18,16 @@
         "react-dom": "^19",
       },
     },
+    "app": {
+      "name": "@react-bun-ssr/docs-app",
+      "dependencies": {
+        "@datadog/browser-rum": "^6.28.1",
+        "@datadog/browser-rum-react": "^6.28.1",
+        "react": "^19",
+        "react-bun-ssr": "file:..",
+        "react-dom": "^19",
+      },
+    },
   },
   "packages": {
     "@datadog/browser-core": ["@datadog/browser-core@6.28.1", "", {}, "sha512-h5y6aEyMTBZ091Y1mVLe2ta2YHiBa1qEEHliIp7+lb7rMZ1uWzYUzAu83bmTfvgI/yEZdHcVeTjxMucAncwK3g=="],
@@ -33,6 +39,8 @@
     "@datadog/browser-rum-react": ["@datadog/browser-rum-react@6.28.1", "", { "dependencies": { "@datadog/browser-core": "6.28.1", "@datadog/browser-rum-core": "6.28.1" }, "peerDependencies": { "react": "18 || 19", "react-router": "6 || 7", "react-router-dom": "6 || 7" }, "optionalPeers": ["react", "react-router", "react-router-dom"] }, "sha512-eyj0IDkspM/LAt/DvT4LpovntUHnbj47QYIdjX1EKEXH7WnpRDKDW272Efg4OfliRH0MNcnP1iZ0iqR3mh9bog=="],
 
     "@playwright/test": ["@playwright/test@1.58.2", "", { "dependencies": { "playwright": "1.58.2" }, "bin": { "playwright": "cli.js" } }, "sha512-akea+6bHYBBfA9uQqSYmlJXn61cTa+jbO87xVLCWbTqbWadRVmhxlXATaOjOgcBaWU4ePo0wB41KMFv3o35IXA=="],
+
+    "@react-bun-ssr/docs-app": ["@react-bun-ssr/docs-app@workspace:app"],
 
     "@types/node": ["@types/node@25.3.1", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-hj9YIJimBCipHVfHKRMnvmHg+wfhKc0o4mTtXh9pKBjC8TLJzz0nzGmLi5UJsYAUgSvXFHgb0V2oY10DUFtImw=="],
 
@@ -51,6 +59,8 @@
     "playwright-core": ["playwright-core@1.58.2", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg=="],
 
     "react": ["react@19.2.4", "", {}, "sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ=="],
+
+    "react-bun-ssr": ["react-bun-ssr@root:", {}],
 
     "react-dom": ["react-dom@19.2.4", "", { "dependencies": { "scheduler": "^0.27.0" }, "peerDependencies": { "react": "^19.2.4" } }, "sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ=="],
 

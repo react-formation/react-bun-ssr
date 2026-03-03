@@ -22,11 +22,13 @@ async function linkRuntimeDependencies(rootDir: string): Promise<void> {
   const repoRoot = path.resolve(import.meta.dir, "../../..");
   const nodeModulesDir = path.join(rootDir, "node_modules");
   await ensureDir(nodeModulesDir);
+  const reactPackageDir = path.dirname(Bun.resolveSync("react/package.json", repoRoot));
+  const reactDomPackageDir = path.dirname(Bun.resolveSync("react-dom/package.json", repoRoot));
 
   const links = [
     [repoRoot, path.join(nodeModulesDir, "react-bun-ssr")],
-    [path.join(repoRoot, "node_modules", "react"), path.join(nodeModulesDir, "react")],
-    [path.join(repoRoot, "node_modules", "react-dom"), path.join(nodeModulesDir, "react-dom")],
+    [reactPackageDir, path.join(nodeModulesDir, "react")],
+    [reactDomPackageDir, path.join(nodeModulesDir, "react-dom")],
   ] as const;
 
   for (const [target, linkPath] of links) {

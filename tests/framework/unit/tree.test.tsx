@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { renderToString } from "react-dom/server";
 import {
   Outlet,
+  createPageAppTree,
   createCatchAppTree,
   createErrorAppTree,
 } from "../../../framework/runtime/tree";
@@ -107,5 +108,31 @@ describe("tree error boundaries", () => {
     const html = renderToString(tree!);
     expect(html).toContain("preferred-not-found");
     expect(html).not.toContain("catch-fallback");
+  });
+
+  it("shares route contexts across duplicate framework module instances", async () => {
+    const duplicateTreeModule = await import("../../../app/node_modules/react-bun-ssr/framework/runtime/tree.tsx");
+    const DuplicateHookConsumer = () => {
+      const url = duplicateTreeModule.useRequestUrl();
+      return <h1>{url.pathname}</h1>;
+    };
+    const modules: RouteModuleBundle = {
+      root: {
+        default: () => <Outlet />,
+      },
+      layouts: [],
+      route: {
+        default: DuplicateHookConsumer,
+      },
+    };
+
+    const tree = createPageAppTree(modules, {
+      routeId: "index",
+      data: null,
+      params: {},
+      url: "http://localhost/docs/start/overview",
+    });
+
+    expect(renderToString(tree)).toContain("/docs/start/overview");
   });
 });

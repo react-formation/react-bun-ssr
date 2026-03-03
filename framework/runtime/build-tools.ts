@@ -23,7 +23,6 @@ const BUILD_OPTIMIZE_IMPORTS = [
   'react-bun-ssr/route',
   'react',
   'react-dom',
-  '@datadog/browser-rum-react',
 ];
 
 export interface ClientEntryFile {

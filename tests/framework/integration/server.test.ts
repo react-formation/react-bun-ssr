@@ -25,10 +25,12 @@ async function writeFixture(files: Record<string, string>): Promise<string> {
   const repoRoot = path.resolve(import.meta.dir, "../..");
   const nodeModulesDir = path.join(root, "node_modules");
   await ensureDir(nodeModulesDir);
+  const reactPackageDir = path.dirname(Bun.resolveSync("react/package.json", repoRoot));
+  const reactDomPackageDir = path.dirname(Bun.resolveSync("react-dom/package.json", repoRoot));
   for (const [target, linkPath] of [
     [repoRoot, path.join(nodeModulesDir, "react-bun-ssr")],
-    [path.join(repoRoot, "node_modules", "react"), path.join(nodeModulesDir, "react")],
-    [path.join(repoRoot, "node_modules", "react-dom"), path.join(nodeModulesDir, "react-dom")],
+    [reactPackageDir, path.join(nodeModulesDir, "react")],
+    [reactDomPackageDir, path.join(nodeModulesDir, "react-dom")],
   ] as const) {
     if (await existsPath(linkPath)) {
       continue;

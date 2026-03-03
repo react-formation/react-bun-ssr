@@ -147,11 +147,19 @@ bun run docs:dev
 
 That starts the docs site locally using the framework itself.
 
+Dependency ownership is split intentionally:
+
+- the repo-root `package.json` is the published framework manifest
+- [`app/package.json`](/Users/react-formation/code/my-app/app/package.json) owns docs-app runtime dependencies
+
+Contributors should still use the repo-root commands; the workspace split is there to keep npm package metadata accurate, not to change the day-to-day workflow.
+
 ## Project layout
 
 - `framework/`: runtime, renderer, route handling, build tooling, and CLI internals
 - `bin/rbssr.ts`: CLI entrypoint
 - `app/`: docs site routes, layouts, middleware, blog, and styles
+- `app/package.json`: private docs-app dependency manifest
 - `app/routes/docs/**/*.md`: authored documentation pages
 - `app/routes/blog/*.md`: authored blog posts
 - `scripts/`: generators and validation scripts

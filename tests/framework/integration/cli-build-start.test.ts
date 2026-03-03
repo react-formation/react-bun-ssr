@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { runBuild, runInit, runStart } from "../../../framework/cli/commands";
 import { existsPath, readText } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
-import { spawnProcess, waitForHttpReady } from "../helpers/process";
+import { runProcess, spawnProcess, waitForHttpReady } from "../helpers/process";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
@@ -82,13 +82,16 @@ describe("CLI build/start contracts", () => {
       `,
     }, "rbssr-cli-build-prod");
 
-    const previousNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    const buildResult = await runProcess({
+      cmd: ["bun", rbssrBinPath, "build"],
+      cwd: root,
+      env: {
+        NODE_ENV: "development",
+      },
+    });
 
-    try {
-      await runBuild(root);
-    } finally {
-      process.env.NODE_ENV = previousNodeEnv;
+    if (buildResult.exitCode !== 0) {
+      throw new Error(`rbssr build failed:\n${buildResult.stderr || buildResult.stdout}`);
     }
 
     const manifest = JSON.parse(await readText(path.join(root, "dist/manifest.json"))) as {

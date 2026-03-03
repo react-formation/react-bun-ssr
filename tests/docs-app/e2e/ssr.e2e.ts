@@ -32,6 +32,13 @@ test.describe('Documentation app', () => {
     page,
   }) => {
     await page.goto('/docs/start/overview');
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __rbssrSoftMarker?: number;
+        }
+      ).__rbssrSoftMarker = 123;
+    });
     const before = await page.evaluate(
       () => performance.getEntriesByType('navigation').length,
     );
@@ -50,8 +57,17 @@ test.describe('Documentation app', () => {
       () => performance.getEntriesByType('navigation').length,
     );
     const historyAfter = await page.evaluate(() => window.history.length);
+    const markerAfter = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __rbssrSoftMarker?: number;
+          }
+        ).__rbssrSoftMarker ?? null,
+    );
     expect(after).toBe(before);
     expect(historyAfter).toBe(historyBefore + 1);
+    expect(markerAfter).toBe(123);
   });
 
   test('supports programmatic soft navigation via useRouter', async ({

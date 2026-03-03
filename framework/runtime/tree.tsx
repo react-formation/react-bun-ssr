@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   type ComponentType,
+  type Context,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -15,8 +16,29 @@ interface RuntimeState {
   reset: () => void;
 }
 
-const RuntimeContext = createContext<RuntimeState | null>(null);
-const OutletContext = createContext<ReactNode>(null);
+const RUNTIME_CONTEXT_KEY = Symbol.for("react-bun-ssr.runtime-context");
+const OUTLET_CONTEXT_KEY = Symbol.for("react-bun-ssr.outlet-context");
+
+function getGlobalContext<T>(key: symbol, createValue: () => Context<T>): Context<T> {
+  const globalRegistry = globalThis as typeof globalThis & { [contextKey: symbol]: Context<T> | undefined };
+  const existing = globalRegistry[key];
+  if (existing) {
+    return existing;
+  }
+
+  const context = createValue();
+  globalRegistry[key] = context;
+  return context;
+}
+
+const RuntimeContext = getGlobalContext<RuntimeState | null>(
+  RUNTIME_CONTEXT_KEY,
+  () => createContext<RuntimeState | null>(null),
+);
+const OutletContext = getGlobalContext<ReactNode>(
+  OUTLET_CONTEXT_KEY,
+  () => createContext<ReactNode>(null),
+);
 const NOOP_RESET = () => undefined;
 
 function useRuntimeState(): RuntimeState {

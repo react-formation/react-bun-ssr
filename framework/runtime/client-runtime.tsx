@@ -129,6 +129,16 @@ interface RuntimeState {
   transitionAbortController: AbortController | null;
 }
 
+interface ClientRuntimeSingleton {
+  moduleRegistry: Map<string, RouteModuleBundle>;
+  pendingNavigationTransitions: Map<string, PendingNavigationTransition>;
+  navigationListeners: Set<(info: NavigateResult) => void>;
+  runtimeState: RuntimeState | null;
+  popstateBound: boolean;
+  navigationApiListenerBound: boolean;
+  navigationApiTransitionCounter: number;
+}
+
 declare global {
   interface Window {
     __RBSSR_DEFERRED__?: DeferredClientRuntime;
@@ -138,16 +148,34 @@ declare global {
 const NAVIGATION_API_PENDING_TIMEOUT_MS = 1_500;
 const NAVIGATION_API_PENDING_MATCH_WINDOW_MS = 10_000;
 const ROUTE_ANNOUNCER_ID = "__rbssr-route-announcer";
-const moduleRegistry = new Map<string, RouteModuleBundle>();
-const pendingNavigationTransitions = new Map<string, PendingNavigationTransition>();
-const navigationListeners = new Set<(info: NavigateResult) => void>();
-let runtimeState: RuntimeState | null = null;
-let popstateBound = false;
-let navigationApiListenerBound = false;
-let navigationApiTransitionCounter = 0;
+const CLIENT_RUNTIME_SINGLETON_KEY = Symbol.for("react-bun-ssr.client-runtime");
+
+function getClientRuntimeSingleton(): ClientRuntimeSingleton {
+  const globalRegistry = globalThis as typeof globalThis & {
+    [CLIENT_RUNTIME_SINGLETON_KEY]?: ClientRuntimeSingleton;
+  };
+  const existing = globalRegistry[CLIENT_RUNTIME_SINGLETON_KEY];
+  if (existing) {
+    return existing;
+  }
+
+  const singleton: ClientRuntimeSingleton = {
+    moduleRegistry: new Map(),
+    pendingNavigationTransitions: new Map(),
+    navigationListeners: new Set(),
+    runtimeState: null,
+    popstateBound: false,
+    navigationApiListenerBound: false,
+    navigationApiTransitionCounter: 0,
+  };
+  globalRegistry[CLIENT_RUNTIME_SINGLETON_KEY] = singleton;
+  return singleton;
+}
+
+const clientRuntimeSingleton = getClientRuntimeSingleton();
 
 function emitNavigation(info: NavigateResult): void {
-  for (const listener of navigationListeners) {
+  for (const listener of clientRuntimeSingleton.navigationListeners) {
     try {
       listener(info);
     } catch (error) {
@@ -304,18 +332,18 @@ function readNavigationDestinationHref(event: NavigateEventLike): string | null 
 }
 
 function clearPendingNavigationTransition(id: string): void {
-  const entry = pendingNavigationTransitions.get(id);
+  const entry = clientRuntimeSingleton.pendingNavigationTransitions.get(id);
   if (!entry) {
     return;
   }
 
   clearTimeout(entry.timeoutId);
-  pendingNavigationTransitions.delete(id);
+  clientRuntimeSingleton.pendingNavigationTransitions.delete(id);
 }
 
 function findPendingTransitionForEvent(event: NavigateEventLike): PendingNavigationTransition | null {
   if (isFrameworkNavigationInfo(event.info)) {
-    return pendingNavigationTransitions.get(event.info.id) ?? null;
+    return clientRuntimeSingleton.pendingNavigationTransitions.get(event.info.id) ?? null;
   }
 
   if (event.userInitiated) {
@@ -329,7 +357,7 @@ function findPendingTransitionForEvent(event: NavigateEventLike): PendingNavigat
 
   const now = Date.now();
   let bestMatch: PendingNavigationTransition | null = null;
-  for (const candidate of pendingNavigationTransitions.values()) {
+  for (const candidate of clientRuntimeSingleton.pendingNavigationTransitions.values()) {
     if (candidate.destinationHref !== destinationHref) {
       continue;
     }
@@ -372,11 +400,11 @@ function reviveDeferredPayload(payload: RenderPayload): RenderPayload {
 }
 
 function ensureRuntimeState(): RuntimeState {
-  if (!runtimeState) {
+  if (!clientRuntimeSingleton.runtimeState) {
     throw new Error("Client runtime is not initialized. Ensure hydrateInitialRoute() ran first.");
   }
 
-  return runtimeState;
+  return clientRuntimeSingleton.runtimeState;
 }
 
 function createTransitionUrl(toUrl: URL): URL {
@@ -480,7 +508,7 @@ function applyDeferredChunk(chunk: TransitionDeferredChunk): void {
 }
 
 async function ensureRouteModuleLoaded(routeId: string, snapshot: ClientRouterSnapshot): Promise<void> {
-  if (moduleRegistry.has(routeId)) {
+  if (clientRuntimeSingleton.moduleRegistry.has(routeId)) {
     return;
   }
 
@@ -968,8 +996,8 @@ async function navigateToInternal(
 }
 
 function nextNavigationTransitionId(): string {
-  navigationApiTransitionCounter += 1;
-  return `rbssr-nav-${Date.now()}-${navigationApiTransitionCounter}`;
+  clientRuntimeSingleton.navigationApiTransitionCounter += 1;
+  return `rbssr-nav-${Date.now()}-${clientRuntimeSingleton.navigationApiTransitionCounter}`;
 }
 
 function settlePendingNavigationTransition(
@@ -986,7 +1014,7 @@ function settlePendingNavigationTransition(
 }
 
 function cancelPendingNavigationTransition(id: string): void {
-  const pending = pendingNavigationTransitions.get(id);
+  const pending = clientRuntimeSingleton.pendingNavigationTransitions.get(id);
   if (!pending || pending.settled) {
     return;
   }
@@ -1022,7 +1050,7 @@ function createPendingNavigationTransition(options: {
 }): Promise<NavigateResult | null> {
   return new Promise(resolve => {
     const timeoutId = window.setTimeout(() => {
-      const pending = pendingNavigationTransitions.get(options.id);
+      const pending = clientRuntimeSingleton.pendingNavigationTransitions.get(options.id);
       if (!pending || pending.settled) {
         return;
       }
@@ -1038,7 +1066,7 @@ function createPendingNavigationTransition(options: {
       });
     }, NAVIGATION_API_PENDING_TIMEOUT_MS);
 
-    pendingNavigationTransitions.set(options.id, {
+    clientRuntimeSingleton.pendingNavigationTransitions.set(options.id, {
       id: options.id,
       destinationHref: options.toUrl.toString(),
       replace: options.replace,
@@ -1053,7 +1081,7 @@ function createPendingNavigationTransition(options: {
 }
 
 function bindNavigationApiNavigateListener(): void {
-  if (navigationApiListenerBound || typeof window === "undefined") {
+  if (clientRuntimeSingleton.navigationApiListenerBound || typeof window === "undefined") {
     return;
   }
 
@@ -1113,15 +1141,15 @@ function bindNavigationApiNavigateListener(): void {
     return;
   }
 
-  navigationApiListenerBound = true;
+  clientRuntimeSingleton.navigationApiListenerBound = true;
 }
 
 function bindPopstate(): void {
-  if (popstateBound || typeof window === "undefined") {
+  if (clientRuntimeSingleton.popstateBound || typeof window === "undefined") {
     return;
   }
 
-  popstateBound = true;
+  clientRuntimeSingleton.popstateBound = true;
   window.addEventListener("popstate", () => {
     const targetUrl = new URL(window.location.href);
     void navigateToInternal(targetUrl, {
@@ -1137,10 +1165,10 @@ export async function prefetchTo(to: string): Promise<void> {
     return;
   }
 
-  if (!runtimeState) {
+  if (!clientRuntimeSingleton.runtimeState) {
     return;
   }
-  const state = runtimeState;
+  const state = clientRuntimeSingleton.runtimeState;
   const toUrl = new URL(to, window.location.href);
   if (!isInternalUrl(toUrl)) {
     return;
@@ -1165,7 +1193,7 @@ export async function navigateWithNavigationApiOrFallback(
     return null;
   }
 
-  if (!runtimeState) {
+  if (!clientRuntimeSingleton.runtimeState) {
     hardNavigate(toUrl);
     return null;
   }
@@ -1220,7 +1248,7 @@ export async function navigateTo(to: string, options: NavigateOptions = {}): Pro
     return null;
   }
 
-  if (!runtimeState) {
+  if (!clientRuntimeSingleton.runtimeState) {
     hardNavigate(toUrl);
     return null;
   }
@@ -1229,27 +1257,27 @@ export async function navigateTo(to: string, options: NavigateOptions = {}): Pro
 }
 
 export function subscribeToNavigation(listener: (info: NavigateResult) => void): () => void {
-  navigationListeners.add(listener);
+  clientRuntimeSingleton.navigationListeners.add(listener);
   return () => {
-    navigationListeners.delete(listener);
+    clientRuntimeSingleton.navigationListeners.delete(listener);
   };
 }
 
 export function registerRouteModules(routeId: string, modules: RouteModuleBundle): void {
-  moduleRegistry.set(routeId, modules);
-  if (runtimeState) {
-    runtimeState.moduleRegistry.set(routeId, modules);
+  clientRuntimeSingleton.moduleRegistry.set(routeId, modules);
+  if (clientRuntimeSingleton.runtimeState) {
+    clientRuntimeSingleton.runtimeState.moduleRegistry.set(routeId, modules);
   }
 }
 
 export function hydrateInitialRoute(routeId: string): void {
-  if (typeof document === "undefined" || runtimeState) {
+  if (typeof document === "undefined" || clientRuntimeSingleton.runtimeState) {
     return;
   }
 
   const payload = reviveDeferredPayload(getScriptJson<RenderPayload>(RBSSR_PAYLOAD_SCRIPT_ID));
   const routerSnapshot = getScriptJson<ClientRouterSnapshot>(RBSSR_ROUTER_SCRIPT_ID);
-  const modules = moduleRegistry.get(routeId);
+  const modules = clientRuntimeSingleton.moduleRegistry.get(routeId);
   if (!modules) {
     throw new Error(`Missing module registry for initial route "${routeId}"`);
   }
@@ -1269,13 +1297,13 @@ export function hydrateInitialRoute(routeId: string): void {
   }
 
   const root = hydrateRoot(container, appTree);
-  runtimeState = {
+  clientRuntimeSingleton.runtimeState = {
     root,
     currentPayload: payload,
     currentRouteId: routeId,
     currentModules: modules,
     routerSnapshot,
-    moduleRegistry,
+    moduleRegistry: clientRuntimeSingleton.moduleRegistry,
     prefetchCache: new Map(),
     navigationToken: 0,
     transitionAbortController: null,

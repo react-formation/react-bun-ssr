@@ -4,6 +4,7 @@ FROM oven/bun:1.3.10 AS builder
 WORKDIR /app
 
 COPY package.json bun.lock ./
+COPY app/package.json ./app/package.json
 RUN bun install --frozen-lockfile
 
 COPY . .
@@ -13,6 +14,7 @@ FROM oven/bun:1.3.10 AS runtime
 WORKDIR /app
 
 COPY package.json bun.lock ./
+COPY app/package.json ./app/package.json
 RUN bun install --frozen-lockfile --production
 
 # Runtime needs framework and app sources in addition to dist artifacts.

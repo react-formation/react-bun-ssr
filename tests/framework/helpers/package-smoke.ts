@@ -30,6 +30,22 @@ export async function packFrameworkTarball(
   return path.join(outputDir, tarballName);
 }
 
+export async function readPackedPackageJson(tarballPath: string): Promise<Record<string, unknown>> {
+  const result = Bun.spawnSync({
+    cmd: ["tar", "-xOf", tarballPath, "package/package.json"],
+    cwd: REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
+    throw new Error(`Failed to read packed package.json from ${tarballPath}: ${stderr || result.exitCode}`);
+  }
+
+  return JSON.parse(new TextDecoder().decode(result.stdout)) as Record<string, unknown>;
+}
+
 export async function createConsumerPackageJson(options: {
   consumerDir: string;
   tarballPath: string;

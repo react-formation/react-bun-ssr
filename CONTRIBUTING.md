@@ -23,11 +23,19 @@ bun run docs:dev
 
 This boots the docs site built with the framework itself. The repo-root app is the primary product surface for local development.
 
+Dependency ownership is split:
+
+- repo-root `package.json` is the published framework manifest
+- `app/package.json` is a private docs-app manifest for app-only runtime dependencies
+
+You should still run install/build/test commands from the repo root.
+
 ## Where to make changes
 
 - Framework runtime, build system, and CLI: `framework/**`, `bin/**`
 - Authored docs: `app/routes/docs/**/*.md`
 - Blog posts: `app/routes/blog/*.md`
+- Docs-app dependency ownership: `app/package.json`
 - Docs navigation: `app/routes/docs/_sidebar.ts`
 - Generators and checks: `scripts/**`
 - Tests: `tests/framework/**`, `tests/docs-app/**`

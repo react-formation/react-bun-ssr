@@ -52,6 +52,30 @@ export default function TaskRoute() {
 
 A `.md` file under `app/routes` is a first-class page route. The framework compiles it into a generated wrapper module so SSR and hydration use the same output.
 
+## Colocated private files
+
+Files whose basename starts with `_` are ignored by route scanning, except for the reserved `_layout` and `_middleware` conventions.
+
+That gives you a simple way to colocate page-only helpers next to a route without creating accidental public URLs.
+
+```text
+app/routes/
+  tasks/
+    index.tsx
+    _card.tsx
+    _format-date.ts
+    _header.module.css
+```
+
+In that example:
+
+- `tasks/index.tsx` creates `/tasks`
+- `_card.tsx` does not create a route
+- `_format-date.ts` does not create a route
+- `_header.module.css` stays a normal colocated stylesheet
+
+Important: this rule applies to files, not folders. A folder like `_admin/` still behaves like a normal route segment and would map into the URL unless you use a route group like `(admin)`.
+
 ## 404 handling
 
 Routing also owns the not-found path. There are two main cases:
@@ -117,6 +141,8 @@ Resolution order is:
 - `.md` is supported as a page route.
 - `.mdx` route files are rejected explicitly.
 - `_layout` and `_middleware` participate in routing but do not become public URLs.
+- Other files that start with `_` are treated as private colocated files and do not become routes.
+- Folders that start with `_` still behave like normal route segments.
 - Route-group directories like `(marketing)` affect organization, not the URL.
 - Use `NotFound` for unmatched URLs and `notFound()` for matched routes with missing data.
 - The nearest `NotFound` export wins.

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import { runBuild, runInit, runStart } from "../../../framework/cli/commands";
-import { existsPath, readText } from "../../../framework/runtime/io";
+import { existsPath, readText, writeText } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { runProcess, spawnProcess, waitForHttpReady } from "../helpers/process";
 import { createTempDirRegistry } from "../helpers/temp-dir";
@@ -27,14 +27,71 @@ describe("CLI build/start contracts", () => {
     await runInit([], root);
 
     for (const relativePath of [
+      "package.json",
+      "tsconfig.json",
+      ".gitignore",
       "rbssr.config.ts",
       "app/root.tsx",
+      "app/root.module.css",
       "app/middleware.ts",
+      "app/public/favicon.svg",
       "app/routes/index.tsx",
       "app/routes/api/health.ts",
     ]) {
       expect(await existsPath(path.join(root, relativePath))).toBe(true);
     }
+
+    const generatedPackage = JSON.parse(await readText(path.join(root, "package.json"))) as {
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const frameworkPackage = await Bun.file("package.json").json() as {
+      version?: string;
+    };
+
+    expect(generatedPackage.scripts).toEqual({
+      dev: "rbssr dev",
+      build: "rbssr build",
+      start: "rbssr start",
+      typecheck: "bunx tsc --noEmit",
+    });
+    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe(frameworkPackage.version);
+    expect(generatedPackage.dependencies?.react).toBe("^19");
+    expect(generatedPackage.dependencies?.["react-dom"]).toBe("^19");
+    expect(generatedPackage.devDependencies?.typescript).toBeDefined();
+    expect(generatedPackage.devDependencies?.["bun-types"]).toBeDefined();
+  });
+
+  it("adds missing starter files without overwriting existing files unless forced", async () => {
+    const root = await tempDirs.create("rbssr-cli-init-merge");
+    const packageJsonPath = path.join(root, "package.json");
+    const customPackageJson = `${JSON.stringify({
+      name: "custom-app",
+      private: true,
+      scripts: {
+        dev: "custom-dev",
+      },
+    }, null, 2)}\n`;
+
+    await writeText(packageJsonPath, customPackageJson);
+
+    await runInit([], root);
+
+    expect(await readText(packageJsonPath)).toBe(customPackageJson);
+    expect(await existsPath(path.join(root, "tsconfig.json"))).toBe(true);
+    expect(await existsPath(path.join(root, ".gitignore"))).toBe(true);
+    expect(await existsPath(path.join(root, "app/public/favicon.svg"))).toBe(true);
+
+    await runInit(["--force"], root);
+
+    const generatedPackage = JSON.parse(await readText(packageJsonPath)) as {
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+    };
+
+    expect(generatedPackage.scripts?.dev).toBe("rbssr dev");
+    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBeDefined();
   });
 
   it("builds client and server artifacts with a package-safe server entrypoint", async () => {

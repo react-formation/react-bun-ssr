@@ -57,6 +57,25 @@ describe("scanRoutes", () => {
     expect(manifest.api.some(route => route.routePath === "/api/hello")).toBe(true);
   });
 
+  it("ignores colocated private files that start with an underscore", async () => {
+    const routesDir = await withFixture({
+      "index.tsx": "export default function Route(){return null}",
+      "_card.tsx": "export function Card(){return null}",
+      "_private/index.tsx": "export default function Visible(){return null}",
+      "tasks/index.tsx": "export default function Route(){return null}",
+      "tasks/_components/item.tsx": "export default function Visible(){return null}",
+      "tasks/_helper.tsx": "export default function Hidden(){return null}",
+      "api/hello.ts": "export function GET(){}",
+      "api/_helpers/format.ts": "export function GET(){}",
+      "api/_secret.ts": "export function GET(){}",
+    });
+
+    const manifest = await scanRoutes(routesDir);
+
+    expect(manifest.pages.map(route => route.routePath)).toEqual(["/tasks/_components/item", "/_private", "/tasks", "/"]);
+    expect(manifest.api.map(route => route.routePath)).toEqual(["/api/_helpers/format", "/api/hello"]);
+  });
+
   it("ranks static routes above dynamic routes", async () => {
     const routesDir = await withFixture({
       "users/[id].tsx": "export default function Route(){return null}",

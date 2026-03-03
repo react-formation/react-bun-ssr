@@ -38,7 +38,11 @@ That runs the documentation site built with the framework itself.
 
 ## What `rbssr init` gives you
 
+- `package.json` with Bun scripts and runtime dependencies
+- `tsconfig.json` with Bun-friendly TypeScript defaults
+- `.gitignore` with starter ignore rules
 - `app/root.tsx` as the document shell
+- `app/root.module.css` with default starter styling
 - `app/routes/` for file-based pages and APIs
 - `app/public/` for static assets
 - `rbssr.config.ts` for runtime configuration
@@ -46,10 +50,17 @@ That runs the documentation site built with the framework itself.
 ## First files to verify
 
 ```text
+package.json
+tsconfig.json
+.gitignore
 app/
   root.tsx
+  root.module.css
   routes/
     index.tsx
+    api/
+      health.ts
+  middleware.ts
   public/
     favicon.svg
 rbssr.config.ts

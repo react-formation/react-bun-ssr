@@ -114,7 +114,7 @@
     "slug": "start/quick-start",
     "title": "Quick Start Task Tracker App",
     "navTitle": "Quick Start",
-    "description": "Build the first Task Tracker route tree, loader, action, and API endpoint with complete working files.",
+    "description": "Build the first Task Tracker route tree, then layer in a shared layout and middleware with complete working files.",
     "section": "Start",
     "kind": "guide",
     "order": 3,
@@ -122,7 +122,9 @@
       "quickstart",
       "task-tracker",
       "loader",
-      "action"
+      "action",
+      "layout",
+      "middleware"
     ],
     "headings": [
       {
@@ -134,6 +136,21 @@
         "depth": 2,
         "id": "why-this-example-matters",
         "text": "Why this example matters"
+      },
+      {
+        "depth": 2,
+        "id": "add-a-shared-tasks-layout",
+        "text": "Add a shared tasks layout"
+      },
+      {
+        "depth": 2,
+        "id": "add-middleware-for-the-tasks-section",
+        "text": "Add middleware for the tasks section"
+      },
+      {
+        "depth": 2,
+        "id": "what-this-deeper-version-gives-you",
+        "text": "What this deeper version gives you"
       },
       {
         "depth": 2,
@@ -305,6 +322,11 @@
         "depth": 2,
         "id": "markdown-routes",
         "text": "Markdown routes"
+      },
+      {
+        "depth": 2,
+        "id": "colocated-private-files",
+        "text": "Colocated private files"
       },
       {
         "depth": 2,

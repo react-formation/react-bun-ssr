@@ -57,9 +57,15 @@ For the full setup walkthrough, read the installation guide:
 `rbssr init` scaffolds a small Bun-first SSR app:
 
 ```text
+package.json
+tsconfig.json
+.gitignore
 app/
   root.tsx
+  root.module.css
   middleware.ts
+  public/
+    favicon.svg
   routes/
     index.tsx
     api/
@@ -67,8 +73,13 @@ app/
 rbssr.config.ts
 ```
 
+- `package.json`: Bun scripts and framework/runtime dependencies
+- `tsconfig.json`: starter TypeScript config for Bun + JSX
+- `.gitignore`: minimal app-level ignore rules
 - `app/root.tsx`: document shell and top-level layout
+- `app/root.module.css`: starter CSS Module for layout and base presentation
 - `app/middleware.ts`: global request pipeline hook
+- `app/public/favicon.svg`: starter public asset
 - `app/routes/index.tsx`: first SSR page route
 - `app/routes/api/health.ts`: first API route
 - `rbssr.config.ts`: runtime configuration entrypoint

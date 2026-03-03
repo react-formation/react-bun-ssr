@@ -22,23 +22,51 @@ afterEach(async () => {
 describeConsumer("package smoke", () => {
   it("packs, installs, initializes, builds, and starts a consumer app", async () => {
     const tarballPath = await packFrameworkTarball(tempDirs);
-    const consumerDir = await prepareConsumerApp(tempDirs, tarballPath);
+    const bootstrapDir = await prepareConsumerApp(tempDirs, tarballPath);
+    const consumerDir = await tempDirs.create("rbssr-consumer-app");
     const port = 33_000 + Math.floor(Math.random() * 1_000);
 
     let result = await runProcess({
       cmd: ["bun", "install"],
-      cwd: consumerDir,
+      cwd: bootstrapDir,
     });
     expect(result.exitCode).toBe(0);
 
-    await assertConsumerCliBin(consumerDir);
-    const cliBin = resolveConsumerCliBin(consumerDir);
+    await assertConsumerCliBin(bootstrapDir);
+    const cliBin = resolveConsumerCliBin(bootstrapDir);
 
     result = await runProcess({
       cmd: [cliBin, "init"],
       cwd: consumerDir,
     });
     expect(result.exitCode).toBe(0);
+
+    const generatedPackage = JSON.parse(await readText(path.join(consumerDir, "package.json"))) as {
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+    };
+    const packedPackage = await Bun.file(Bun.resolveSync("react-bun-ssr/package.json", bootstrapDir)).json() as {
+      version?: string;
+    };
+
+    expect(generatedPackage.scripts).toEqual({
+      dev: "rbssr dev",
+      build: "rbssr build",
+      start: "rbssr start",
+      typecheck: "bunx tsc --noEmit",
+    });
+    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe(packedPackage.version);
+    expect(generatedPackage.dependencies?.react).toBe("^19");
+    expect(generatedPackage.dependencies?.["react-dom"]).toBe("^19");
+
+    generatedPackage.dependencies = {
+      ...generatedPackage.dependencies,
+      "react-bun-ssr": `file:${tarballPath}`,
+    };
+    await writeText(
+      path.join(consumerDir, "package.json"),
+      `${JSON.stringify(generatedPackage, null, 2)}\n`,
+    );
 
     await writeText(
       path.join(consumerDir, "rbssr.config.ts"),
@@ -52,7 +80,7 @@ describeConsumer("package smoke", () => {
     expect(result.exitCode).toBe(0);
 
     result = await runProcess({
-      cmd: [cliBin, "build"],
+      cmd: ["bun", "run", "build"],
       cwd: consumerDir,
     });
     expect(result.exitCode).toBe(0);
@@ -61,7 +89,7 @@ describeConsumer("package smoke", () => {
     expect(serverEntry).toContain('from "react-bun-ssr"');
 
     const serverProcess = spawnProcess({
-      cmd: ["bun", path.join(consumerDir, "dist/server/server.mjs")],
+      cmd: ["bun", "run", "start"],
       cwd: consumerDir,
       stdout: "pipe",
       stderr: "pipe",

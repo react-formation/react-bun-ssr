@@ -6,11 +6,11 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/blog/how-i-built-react-bun-ssr-with-ai</loc>
-    <lastmod>2026-03-01T14:30:27+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/blog/why-i-built-a-bun-native-ssr-framework</loc>
-    <lastmod>2026-03-01T14:30:27+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs</loc>
@@ -22,35 +22,35 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/overview</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr</loc>
-    <lastmod>2026-03-03T20:11:34+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr-route</loc>
-    <lastmod>2026-03-03T18:16:23+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/actions</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/error-handling</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/loaders</loc>
-    <lastmod>2026-03-01T14:56:59+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/deployment/bun-deployment</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/deployment/configuration</loc>
-    <lastmod>2026-03-03T20:11:34+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/deployment/troubleshooting</loc>
@@ -62,7 +62,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/rendering/head-meta</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/rendering/ssr-hydration</loc>
@@ -82,11 +82,11 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/middleware</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/navigation</loc>
-    <lastmod>2026-03-03T18:16:23+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/dev-build-lifecycle</loc>
@@ -94,11 +94,11 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/installation</loc>
-    <lastmod>2026-03-01T14:30:27+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/overview</loc>
-    <lastmod>2026-03-02T00:36:14+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/project-structure</loc>
@@ -106,34 +106,34 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/quick-start</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/styling/css-modules</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/styling/global-css</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/styling/public-assets</loc>
-    <lastmod>2026-03-03T20:11:34+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/tooling/build-output</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/tooling/cli</loc>
-    <lastmod>2026-03-02T00:36:14+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/tooling/dev-server</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/tooling/testing</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
 </urlset>

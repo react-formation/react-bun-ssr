@@ -155,8 +155,8 @@ That starts the docs site locally using the framework itself.
 - `app/routes/docs/**/*.md`: authored documentation pages
 - `app/routes/blog/*.md`: authored blog posts
 - `scripts/`: generators and validation scripts
-- `tests/`: unit and integration tests
-- `e2e/`: Playwright end-to-end tests
+- `tests/framework/`: framework runtime, CLI, build, unit/integration, and framework Playwright tests
+- `tests/docs-app/`: docs site, blog, analytics, and docs-app Playwright tests
 
 ## Contributing
 

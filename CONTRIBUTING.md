@@ -30,7 +30,7 @@ This boots the docs site built with the framework itself. The repo-root app is t
 - Blog posts: `app/routes/blog/*.md`
 - Docs navigation: `app/routes/docs/_sidebar.ts`
 - Generators and checks: `scripts/**`
-- Tests: `tests/**`, `e2e/**`
+- Tests: `tests/framework/**`, `tests/docs-app/**`
 
 ## Contributor workflow
 

@@ -97,8 +97,8 @@ export function createTestCommands(extraArgs: string[]): string[][] {
   }
 
   return [
-    ["bun", "test", "./tests/unit"],
-    ["bun", "test", "./tests/integration"],
+    ["bun", "test", "./tests/framework/unit", "./tests/docs-app/unit"],
+    ["bun", "test", "./tests/framework/integration", "./tests/docs-app/integration"],
     ["bun", "x", "playwright", "test"],
   ];
 }

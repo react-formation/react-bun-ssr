@@ -16,8 +16,8 @@ Guidance for AI coding agents working in this repository.
 - `app/routes/docs/api/*.md`: generated API docs.
 - `app/routes/docs/search-index.json`: generated search index.
 - `scripts/`: docs generation and validation scripts.
-- `tests/`: unit/integration tests.
-- `e2e/`: Playwright specs.
+- `tests/framework/`: framework unit/integration/e2e tests.
+- `tests/docs-app/`: docs app unit/integration/e2e tests.
 
 ## Environment assumptions
 

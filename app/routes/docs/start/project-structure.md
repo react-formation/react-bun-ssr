@@ -45,6 +45,7 @@ Author everything you own directly:
 
 - root document shell
 - route modules
+- colocated private route files like `_card.tsx`
 - route middleware
 - CSS Modules
 - public assets
@@ -78,6 +79,7 @@ Production build output:
 
 - Do not commit `.rbssr/`.
 - Treat `dist/` as build output, not source.
+- Files under `app/routes` that start with `_` are useful for colocation and do not create routes, except `_layout` and `_middleware`.
 - Keep server-only helpers out of browser-hydrated route modules unless they are imported dynamically inside loaders/actions.
 
 ## Related APIs

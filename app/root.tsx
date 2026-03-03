@@ -21,6 +21,9 @@ const initAnalitycs = () => {
 }
 export default function RootLayout() {
   useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
     void initDatadogRum();
     void initAnalitycs()
   }, []);
@@ -101,7 +104,7 @@ export function head() {
       <link rel="shortcut icon" href="/favicon.svg" />
       <link rel="stylesheet" href="/app.css" />
 
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>
+      {process.env.NODE_ENV !== 'development' && <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>}
 
     </>
   );

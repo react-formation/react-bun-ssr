@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   collectHeadElements,
@@ -38,12 +38,12 @@ const modules: RouteModuleBundle = {
 };
 
 describe("document and head contracts", () => {
-  it("orders head elements root -> layouts -> route and normalizes title children", () => {
+  it("orders head elements root -> layouts -> route, normalizes title children, and keeps only the deepest title", () => {
     const markup = renderToStaticMarkup(
       createElement("div", null, collectHeadElements(modules, basePayload)),
     );
 
-    expect(markup).toContain("<title>Root Title</title>");
+    expect(markup).not.toContain("<title>Root Title</title>");
     expect(markup).toContain('name="description" content="root-description"');
     expect(markup).toContain('property="layout:flag" content="on"');
     expect(markup).toContain('name="keywords" content="layout,docs"');
@@ -68,6 +68,44 @@ describe("document and head contracts", () => {
     expect(managedMarkup.indexOf("/client/root.css?v=3")).toBeLessThan(
       managedMarkup.indexOf("/client/route.css?v=3"),
     );
+  });
+
+  it("keeps the root title when nested modules do not provide one", () => {
+    const markup = renderToStaticMarkup(
+      createElement("div", null, collectHeadElements({
+        ...modules,
+        route: {
+          default: () => null,
+          meta: () => ({ robots: "index,follow" }),
+        },
+      }, basePayload)),
+    );
+
+    expect(markup).toContain("<title>Root Title</title>");
+    expect(markup).not.toContain("<title>Route 7</title>");
+  });
+
+  it("deduplicates title elements even when parent modules return fragments", () => {
+    const markup = renderToStaticMarkup(
+      createElement("div", null, collectHeadElements({
+        root: {
+          default: () => null,
+          head: () => createElement(Fragment, null,
+            createElement("title", null, "Root Title"),
+            createElement("meta", { name: "description", content: "root-description" }),
+          ),
+        },
+        layouts: [],
+        route: {
+          default: () => null,
+          head: () => createElement("title", null, "Route Title"),
+        },
+      }, basePayload)),
+    );
+
+    expect(markup).not.toContain("<title>Root Title</title>");
+    expect(markup).toContain("<title>Route Title</title>");
+    expect(markup).toContain('name="description" content="root-description"');
   });
 
   it("keeps streamed and string documents aligned on title, payload, router snapshot, and scripts", async () => {
@@ -102,7 +140,6 @@ describe("document and head contracts", () => {
     const streamedHtml = await new Response(stream).text();
 
     for (const fragment of [
-      "<title>Root Title</title>",
       "<title>Route 7</title>",
       "__RBSSR_PAYLOAD__",
       "__RBSSR_ROUTER__",
@@ -113,5 +150,8 @@ describe("document and head contracts", () => {
       expect(html).toContain(fragment);
       expect(streamedHtml).toContain(fragment);
     }
+
+    expect(html).not.toContain("<title>Root Title</title>");
+    expect(streamedHtml).not.toContain("<title>Root Title</title>");
   });
 });

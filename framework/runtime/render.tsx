@@ -1,6 +1,7 @@
 import {
   Children,
   cloneElement,
+  Fragment,
   isValidElement,
   Suspense,
   use,
@@ -28,6 +29,10 @@ import {
   createNotFoundAppTree,
   createPageAppTree,
 } from "./tree";
+
+function isTitleElement(node: ReactNode): node is ReactElement {
+  return isValidElement(node) && node.type === "title";
+}
 
 export function renderPageApp(modules: RouteModuleBundle, payload: RenderPayload): string {
   return renderToString(createPageAppTree(modules, payload));
@@ -84,6 +89,27 @@ function normalizeTitleChildren(node: ReactNode): ReactNode {
   return cloneElement(node, undefined, nextChildren);
 }
 
+function expandHeadNodes(node: ReactNode): ReactNode[] {
+  if (Array.isArray(node)) {
+    return node.flatMap(value => expandHeadNodes(value));
+  }
+
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return [];
+  }
+
+  if (!isValidElement(node)) {
+    return [node];
+  }
+
+  if (node.type === Fragment) {
+    const props = node.props as { children?: ReactNode };
+    return Children.toArray(props.children).flatMap(child => expandHeadNodes(child));
+  }
+
+  return [node];
+}
+
 function moduleHeadToElements(moduleValue: RouteModule, payload: RenderPayload, keyPrefix: string): ReactNode[] {
   const tags: ReactNode[] = [];
 
@@ -99,7 +125,7 @@ function moduleHeadToElements(moduleValue: RouteModule, payload: RenderPayload, 
     if (typeof headResult === "string") {
       tags.push(<title key={`${keyPrefix}:title`}>{headResult}</title>);
     } else if (headResult !== null && headResult !== undefined) {
-      const nodes = Children.toArray(normalizeTitleChildren(headResult));
+      const nodes = expandHeadNodes(normalizeTitleChildren(headResult));
       for (let index = 0; index < nodes.length; index += 1) {
         const node = nodes[index]!;
         if (isValidElement(node)) {
@@ -122,11 +148,26 @@ function moduleHeadToElements(moduleValue: RouteModule, payload: RenderPayload, 
 }
 
 export function collectHeadElements(modules: RouteModuleBundle, payload: RenderPayload): ReactNode[] {
-  return [
+  const elements = [
     ...moduleHeadToElements(modules.root, payload, "root"),
     ...modules.layouts.flatMap((layout, index) => moduleHeadToElements(layout, payload, `layout:${index}`)),
     ...moduleHeadToElements(modules.route, payload, "route"),
   ];
+
+  let lastTitleIndex = -1;
+  for (let index = 0; index < elements.length; index += 1) {
+    if (isTitleElement(elements[index])) {
+      lastTitleIndex = index;
+    }
+  }
+
+  if (lastTitleIndex === -1) {
+    return elements;
+  }
+
+  return elements.filter((element, index) => {
+    return !isTitleElement(element) || index === lastTitleIndex;
+  });
 }
 
 export function collectHeadMarkup(modules: RouteModuleBundle, payload: RenderPayload): string {

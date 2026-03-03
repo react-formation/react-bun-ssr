@@ -1,5 +1,5 @@
 ---
-title: Actions
+title: Form Actions and Mutations
 navTitle: Actions
 description: Process mutating requests, validate form data, redirect after success, and keep Task Tracker writes server-owned.
 section: Data

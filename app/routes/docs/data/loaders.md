@@ -1,5 +1,5 @@
 ---
-title: Loaders
+title: Server Loaders and Data Fetching
 navTitle: Loaders
 description: Fetch server data, return deferred values, and hydrate the same payload into the client route tree.
 section: Data

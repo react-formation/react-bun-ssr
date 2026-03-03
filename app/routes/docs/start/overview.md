@@ -1,5 +1,5 @@
 ---
-title: Overview
+title: react-bun-ssr Overview
 navTitle: Overview
 description: Learn what react-bun-ssr is, why it is Bun-first, and how the Task Tracker example maps to the framework primitives.
 section: Start

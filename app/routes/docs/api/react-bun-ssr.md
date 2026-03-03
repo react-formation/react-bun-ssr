@@ -1,5 +1,5 @@
 ---
-title: react-bun-ssr
+title: react-bun-ssr Package API
 navTitle: react-bun-ssr
 description: Public runtime exports from the root package entrypoint.
 section: API
@@ -8,7 +8,7 @@ kind: api
 tags: api,generated
 ---
 
-# react-bun-ssr
+# react-bun-ssr Package API
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 

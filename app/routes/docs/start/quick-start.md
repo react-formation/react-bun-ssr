@@ -1,5 +1,5 @@
 ---
-title: Quick Start
+title: Quick Start Task Tracker App
 navTitle: Quick Start
 description: Build the first Task Tracker route tree, loader, action, and API endpoint with complete working files.
 section: Start

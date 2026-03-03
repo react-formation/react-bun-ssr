@@ -29,7 +29,7 @@ describe("blog content", () => {
     const filePath = path.resolve(process.cwd(), "app/routes/blog/how-i-built-react-bun-ssr-with-ai.md");
     const source = await Bun.file(filePath).text();
 
-    expect(source).toContain("title: How I Built react-bun-ssr With AI and Kept the Engineering Bar High");
+    expect(source).toContain("title: How I Built react-bun-ssr With AI");
     expect(source).toContain("author: gaudiauj");
     expect(source).toContain("publishedAt: 2026-03-01");
     expect(source).toContain("https://bun.sh/");

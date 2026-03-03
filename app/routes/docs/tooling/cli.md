@@ -1,5 +1,5 @@
 ---
-title: CLI
+title: rbssr CLI Reference
 navTitle: CLI
 description: Use rbssr commands to initialize, develop, build, and preview a Bun-native SSR application.
 section: Tooling

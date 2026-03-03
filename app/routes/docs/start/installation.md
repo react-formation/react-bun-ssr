@@ -1,5 +1,5 @@
 ---
-title: Installation
+title: Installation and Setup
 navTitle: Installation
 description: Install Bun, prepare a project directory, and boot the framework with a minimal Bun-first setup.
 section: Start

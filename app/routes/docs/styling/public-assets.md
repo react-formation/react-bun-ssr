@@ -1,5 +1,5 @@
 ---
-title: Public Assets
+title: Static Public Assets
 navTitle: Public Assets
 description: Serve images, fonts, icons, and other static files from app/public with predictable URLs and production cache headers.
 section: Styling

@@ -1,5 +1,5 @@
 ---
-title: Head and Meta
+title: HTML Head and Metadata
 navTitle: Head and Meta
 description: Set titles and metadata per route so SSR, hydration, and client transitions keep SEO and announcements in sync.
 section: Rendering

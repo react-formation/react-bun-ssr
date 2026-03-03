@@ -52,6 +52,49 @@ describe("document and head contracts", () => {
     expect(markup.indexOf("layout:flag")).toBeLessThan(markup.indexOf("Route 7"));
   });
 
+  it("keeps only the deepest meta value for the same name or property", () => {
+    const markup = renderToStaticMarkup(
+      createElement("div", null, collectHeadElements({
+        root: {
+          default: () => null,
+          head: () => createElement(Fragment, null,
+            createElement("meta", { name: "description", content: "root-head-description" }),
+            createElement("meta", { property: "og:title", content: "root-og-title" }),
+          ),
+          meta: () => ({
+            description: "root-description",
+            robots: "index,follow",
+          }),
+        },
+        layouts: [
+          {
+            default: () => null,
+            meta: () => ({
+              description: "layout-description",
+            }),
+          },
+        ],
+        route: {
+          default: () => null,
+          head: () => createElement(Fragment, null,
+            createElement("meta", { property: "og:title", content: "route-og-title" }),
+          ),
+          meta: () => ({
+            description: "route-description",
+          }),
+        },
+      }, basePayload)),
+    );
+
+    expect(markup).not.toContain('content="root-head-description"');
+    expect(markup).not.toContain('content="root-description"');
+    expect(markup).not.toContain('content="layout-description"');
+    expect(markup).toContain('name="description" content="route-description"');
+    expect(markup).toContain('name="robots" content="index,follow"');
+    expect(markup).not.toContain('content="root-og-title"');
+    expect(markup).toContain('property="og:title" content="route-og-title"');
+  });
+
   it("renders meta output as meta name tags and appends managed stylesheet links in order", () => {
     const headMarkup = collectHeadMarkup(modules, basePayload);
     const managedMarkup = createManagedHeadMarkup({

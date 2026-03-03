@@ -1,5 +1,5 @@
 ---
-title: Why I Built a Bun-Native SSR Framework as an Alternative to Next.js and Remix
+title: Why I Built a Bun-Native SSR Framework
 description: Why I built react-bun-ssr as a Bun-native alternative to Next.js and Remix, what it already supports today, and what I plan to ship next.
 section: Blog
 author: gaudiauj

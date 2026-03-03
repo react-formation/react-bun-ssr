@@ -1,5 +1,5 @@
 ---
-title: How I Built react-bun-ssr With AI and Kept the Engineering Bar High
+title: How I Built react-bun-ssr With AI
 description: How I used AI to build react-bun-ssr faster, the constraints that kept the framework coherent, and the Bun-first architecture choices that made the workflow work.
 section: Blog
 author: gaudiauj

@@ -1,7 +1,7 @@
 [
   {
     "slug": "how-i-built-react-bun-ssr-with-ai",
-    "title": "How I Built react-bun-ssr With AI and Kept the Engineering Bar High",
+    "title": "How I Built react-bun-ssr With AI",
     "description": "How I used AI to build react-bun-ssr faster, the constraints that kept the framework coherent, and the Bun-first architecture choices that made the workflow work.",
     "author": "gaudiauj",
     "publishedAt": "2026-03-01",
@@ -73,7 +73,7 @@
   },
   {
     "slug": "why-i-built-a-bun-native-ssr-framework",
-    "title": "Why I Built a Bun-Native SSR Framework as an Alternative to Next.js and Remix",
+    "title": "Why I Built a Bun-Native SSR Framework",
     "description": "Why I built react-bun-ssr as a Bun-native alternative to Next.js and Remix, what it already supports today, and what I plan to ship next.",
     "author": "gaudiauj",
     "publishedAt": "2026-03-01",

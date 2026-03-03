@@ -1,5 +1,5 @@
 ---
-title: Middleware
+title: Route Middleware Pipeline
 navTitle: Middleware
 description: Run request pipeline logic globally and per route tree before loaders, actions, page rendering, and API handlers.
 section: Routing

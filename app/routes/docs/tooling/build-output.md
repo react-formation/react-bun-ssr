@@ -1,5 +1,5 @@
 ---
-title: Build Output
+title: Production Build Output
 navTitle: Build Output
 description: Inspect client assets, manifest data, copied public files, and the production server entry emitted by rbssr build.
 section: Tooling

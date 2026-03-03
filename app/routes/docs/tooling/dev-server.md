@@ -1,5 +1,5 @@
 ---
-title: Dev Server
+title: Development Server Workflow
 navTitle: Dev Server
 description: Understand watch behavior, rebuild signatures, transition endpoints, and dev-only reload semantics.
 section: Tooling

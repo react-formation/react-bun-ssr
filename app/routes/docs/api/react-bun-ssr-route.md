@@ -1,5 +1,5 @@
 ---
-title: react-bun-ssr/route
+title: react-bun-ssr/route API
 navTitle: react-bun-ssr/route
 description: Route module contracts, hooks, and helpers exposed to application routes.
 section: API
@@ -8,7 +8,7 @@ kind: api
 tags: api,generated
 ---
 
-# react-bun-ssr/route
+# react-bun-ssr/route API
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 

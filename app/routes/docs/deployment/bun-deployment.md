@@ -1,5 +1,5 @@
 ---
-title: Bun Deployment
+title: Deploying on Bun
 navTitle: Bun Deployment
 description: Ship the production build under Bun with a small deployment surface and no Node adapter layer.
 section: Deployment

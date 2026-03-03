@@ -1,5 +1,5 @@
 ---
-title: Configuration
+title: Deployment Configuration
 navTitle: Configuration
 description: Configure headers, ports, public paths, and server bytecode behavior through rbssr.config.ts.
 section: Deployment

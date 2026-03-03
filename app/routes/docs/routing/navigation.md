@@ -1,5 +1,5 @@
 ---
-title: Navigation
+title: Client Navigation and Links
 navTitle: Navigation
 description: Use Link, useRouter, prefetching, route announcements, and soft transitions for Bun-native SSR apps.
 section: Routing

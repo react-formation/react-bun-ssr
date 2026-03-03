@@ -34,6 +34,46 @@ function isTitleElement(node: ReactNode): node is ReactElement {
   return isValidElement(node) && node.type === "title";
 }
 
+function isMetaElement(node: ReactNode): node is ReactElement {
+  return isValidElement(node) && node.type === "meta";
+}
+
+function getMetaDedupeKey(node: ReactNode): string | null {
+  if (!isMetaElement(node)) {
+    return null;
+  }
+
+  const props = node.props as {
+    name?: string;
+    property?: string;
+    httpEquiv?: string;
+    charSet?: string;
+    itemProp?: string;
+  };
+
+  if (typeof props.name === "string" && props.name.length > 0) {
+    return `name:${props.name}`;
+  }
+
+  if (typeof props.property === "string" && props.property.length > 0) {
+    return `property:${props.property}`;
+  }
+
+  if (typeof props.httpEquiv === "string" && props.httpEquiv.length > 0) {
+    return `httpEquiv:${props.httpEquiv}`;
+  }
+
+  if (typeof props.itemProp === "string" && props.itemProp.length > 0) {
+    return `itemProp:${props.itemProp}`;
+  }
+
+  if (props.charSet !== undefined) {
+    return "charSet";
+  }
+
+  return null;
+}
+
 export function renderPageApp(modules: RouteModuleBundle, payload: RenderPayload): string {
   return renderToString(createPageAppTree(modules, payload));
 }
@@ -155,18 +195,29 @@ export function collectHeadElements(modules: RouteModuleBundle, payload: RenderP
   ];
 
   let lastTitleIndex = -1;
+  const lastMetaIndexes = new Map<string, number>();
   for (let index = 0; index < elements.length; index += 1) {
     if (isTitleElement(elements[index])) {
       lastTitleIndex = index;
     }
-  }
 
-  if (lastTitleIndex === -1) {
-    return elements;
+    const metaKey = getMetaDedupeKey(elements[index]);
+    if (metaKey) {
+      lastMetaIndexes.set(metaKey, index);
+    }
   }
 
   return elements.filter((element, index) => {
-    return !isTitleElement(element) || index === lastTitleIndex;
+    if (isTitleElement(element)) {
+      return lastTitleIndex === -1 || index === lastTitleIndex;
+    }
+
+    const metaKey = getMetaDedupeKey(element);
+    if (metaKey) {
+      return lastMetaIndexes.get(metaKey) === index;
+    }
+
+    return true;
   });
 }
 

@@ -15,6 +15,7 @@ interface ApiSymbolDoc {
 
 interface ApiDocFile {
   title: string;
+  navTitle?: string;
   description: string;
   section: string;
   order: number;
@@ -30,6 +31,7 @@ interface ApiEntrypoint {
   slug: string;
   source: string;
   title: string;
+  navTitle?: string;
   description: string;
   section: string;
   order: number;
@@ -339,7 +341,7 @@ function docMarkdown(file: ApiDocFile): string {
 
   return `---
 title: ${file.title}
-navTitle: ${file.title}
+navTitle: ${file.navTitle ?? file.title}
 description: ${file.description}
 section: ${file.section}
 order: ${file.order}
@@ -362,7 +364,8 @@ function buildApiDocs(): Record<string, string> {
     {
       slug: "react-bun-ssr",
       source: path.join(ROOT, "framework/runtime/index.ts"),
-      title: "react-bun-ssr",
+      title: "react-bun-ssr Package API",
+      navTitle: "react-bun-ssr",
       description: "Public runtime exports from the root package entrypoint.",
       section: "API",
       order: 3,
@@ -402,7 +405,8 @@ export function POST() {
     {
       slug: "react-bun-ssr-route",
       source: path.join(ROOT, "framework/runtime/route-api.ts"),
-      title: "react-bun-ssr/route",
+      title: "react-bun-ssr/route API",
+      navTitle: "react-bun-ssr/route",
       description: "Route module contracts, hooks, and helpers exposed to application routes.",
       section: "API",
       order: 4,
@@ -502,6 +506,7 @@ export default function DashboardPage() {
     const symbols = collectModuleExportDocs(checker, sourceFile);
     output[entry.slug] = docMarkdown({
       title: entry.title,
+      navTitle: entry.navTitle,
       description: entry.description,
       section: entry.section,
       order: entry.order,

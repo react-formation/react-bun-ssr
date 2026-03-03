@@ -1,5 +1,5 @@
 ---
-title: Error Handling
+title: Route Error Handling
 navTitle: Error Handling
 description: Model caught and uncaught errors with routeError, notFound, CatchBoundary, ErrorComponent, and lifecycle hooks.
 section: Data

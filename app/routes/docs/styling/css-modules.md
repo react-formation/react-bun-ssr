@@ -1,5 +1,5 @@
 ---
-title: CSS Modules
+title: CSS Modules Styling
 navTitle: CSS Modules
 description: Keep styling close to route and component code, and bridge framework-emitted markdown classes with scoped global selectors.
 section: Styling

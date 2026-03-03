@@ -1,5 +1,5 @@
 ---
-title: Testing
+title: Testing Bun SSR Apps
 navTitle: Testing
 description: Test the framework and your app across unit, integration, and e2e layers without losing SSR or routing coverage.
 section: Tooling

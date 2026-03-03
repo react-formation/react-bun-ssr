@@ -1,5 +1,5 @@
 ---
-title: Global CSS
+title: Global CSS Strategy
 navTitle: Global CSS
 description: Reserve global CSS for tokens, resets, typography primitives, and syntax highlighting rather than route-specific layout work.
 section: Styling

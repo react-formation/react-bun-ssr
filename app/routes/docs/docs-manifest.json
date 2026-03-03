@@ -1,7 +1,7 @@
 [
   {
     "slug": "start/overview",
-    "title": "Overview",
+    "title": "react-bun-ssr Overview",
     "navTitle": "Overview",
     "description": "Learn what react-bun-ssr is, why it is Bun-first, and how the Task Tracker example maps to the framework primitives.",
     "section": "Start",
@@ -59,7 +59,7 @@
   },
   {
     "slug": "start/installation",
-    "title": "Installation",
+    "title": "Installation and Setup",
     "navTitle": "Installation",
     "description": "Install Bun, prepare a project directory, and boot the framework with a minimal Bun-first setup.",
     "section": "Start",
@@ -112,7 +112,7 @@
   },
   {
     "slug": "start/quick-start",
-    "title": "Quick Start",
+    "title": "Quick Start Task Tracker App",
     "navTitle": "Quick Start",
     "description": "Build the first Task Tracker route tree, loader, action, and API endpoint with complete working files.",
     "section": "Start",
@@ -380,7 +380,7 @@
   },
   {
     "slug": "routing/middleware",
-    "title": "Middleware",
+    "title": "Route Middleware Pipeline",
     "navTitle": "Middleware",
     "description": "Run request pipeline logic globally and per route tree before loaders, actions, page rendering, and API handlers.",
     "section": "Routing",
@@ -440,7 +440,7 @@
   },
   {
     "slug": "routing/navigation",
-    "title": "Navigation",
+    "title": "Client Navigation and Links",
     "navTitle": "Navigation",
     "description": "Use Link, useRouter, prefetching, route announcements, and soft transitions for Bun-native SSR apps.",
     "section": "Routing",
@@ -489,7 +489,7 @@
   },
   {
     "slug": "data/loaders",
-    "title": "Loaders",
+    "title": "Server Loaders and Data Fetching",
     "navTitle": "Loaders",
     "description": "Fetch server data, return deferred values, and hydrate the same payload into the client route tree.",
     "section": "Data",
@@ -558,7 +558,7 @@
   },
   {
     "slug": "data/actions",
-    "title": "Actions",
+    "title": "Form Actions and Mutations",
     "navTitle": "Actions",
     "description": "Process mutating requests, validate form data, redirect after success, and keep Task Tracker writes server-owned.",
     "section": "Data",
@@ -602,7 +602,7 @@
   },
   {
     "slug": "data/error-handling",
-    "title": "Error Handling",
+    "title": "Route Error Handling",
     "navTitle": "Error Handling",
     "description": "Model caught and uncaught errors with routeError, notFound, CatchBoundary, ErrorComponent, and lifecycle hooks.",
     "section": "Data",
@@ -754,7 +754,7 @@
   },
   {
     "slug": "rendering/head-meta",
-    "title": "Head and Meta",
+    "title": "HTML Head and Metadata",
     "navTitle": "Head and Meta",
     "description": "Set titles and metadata per route so SSR, hydration, and client transitions keep SEO and announcements in sync.",
     "section": "Rendering",
@@ -798,7 +798,7 @@
   },
   {
     "slug": "styling/css-modules",
-    "title": "CSS Modules",
+    "title": "CSS Modules Styling",
     "navTitle": "CSS Modules",
     "description": "Keep styling close to route and component code, and bridge framework-emitted markdown classes with scoped global selectors.",
     "section": "Styling",
@@ -841,7 +841,7 @@
   },
   {
     "slug": "styling/global-css",
-    "title": "Global CSS",
+    "title": "Global CSS Strategy",
     "navTitle": "Global CSS",
     "description": "Reserve global CSS for tokens, resets, typography primitives, and syntax highlighting rather than route-specific layout work.",
     "section": "Styling",
@@ -884,7 +884,7 @@
   },
   {
     "slug": "styling/public-assets",
-    "title": "Public Assets",
+    "title": "Static Public Assets",
     "navTitle": "Public Assets",
     "description": "Serve images, fonts, icons, and other static files from app/public with predictable URLs and production cache headers.",
     "section": "Styling",
@@ -922,7 +922,7 @@
   },
   {
     "slug": "tooling/dev-server",
-    "title": "Dev Server",
+    "title": "Development Server Workflow",
     "navTitle": "Dev Server",
     "description": "Understand watch behavior, rebuild signatures, transition endpoints, and dev-only reload semantics.",
     "section": "Tooling",
@@ -961,7 +961,7 @@
   },
   {
     "slug": "tooling/cli",
-    "title": "CLI",
+    "title": "rbssr CLI Reference",
     "navTitle": "CLI",
     "description": "Use rbssr commands to initialize, develop, build, and preview a Bun-native SSR application.",
     "section": "Tooling",
@@ -1004,7 +1004,7 @@
   },
   {
     "slug": "tooling/testing",
-    "title": "Testing",
+    "title": "Testing Bun SSR Apps",
     "navTitle": "Testing",
     "description": "Test the framework and your app across unit, integration, and e2e layers without losing SSR or routing coverage.",
     "section": "Tooling",
@@ -1048,7 +1048,7 @@
   },
   {
     "slug": "tooling/build-output",
-    "title": "Build Output",
+    "title": "Production Build Output",
     "navTitle": "Build Output",
     "description": "Inspect client assets, manifest data, copied public files, and the production server entry emitted by rbssr build.",
     "section": "Tooling",
@@ -1091,7 +1091,7 @@
   },
   {
     "slug": "deployment/bun-deployment",
-    "title": "Bun Deployment",
+    "title": "Deploying on Bun",
     "navTitle": "Bun Deployment",
     "description": "Ship the production build under Bun with a small deployment surface and no Node adapter layer.",
     "section": "Deployment",
@@ -1130,7 +1130,7 @@
   },
   {
     "slug": "deployment/configuration",
-    "title": "Configuration",
+    "title": "Deployment Configuration",
     "navTitle": "Configuration",
     "description": "Configure headers, ports, public paths, and server bytecode behavior through rbssr.config.ts.",
     "section": "Deployment",
@@ -1222,7 +1222,7 @@
   },
   {
     "slug": "api/overview",
-    "title": "API Overview",
+    "title": "API Reference Overview",
     "navTitle": "Overview",
     "description": "Choose the right package entrypoint, understand the surface area, and jump from concepts to generated signatures quickly.",
     "section": "API",
@@ -1334,7 +1334,7 @@
   },
   {
     "slug": "api/react-bun-ssr",
-    "title": "react-bun-ssr",
+    "title": "react-bun-ssr Package API",
     "navTitle": "react-bun-ssr",
     "description": "Public runtime exports from the root package entrypoint.",
     "section": "API",
@@ -1581,7 +1581,7 @@
   },
   {
     "slug": "api/react-bun-ssr-route",
-    "title": "react-bun-ssr/route",
+    "title": "react-bun-ssr/route API",
     "navTitle": "react-bun-ssr/route",
     "description": "Route module contracts, hooks, and helpers exposed to application routes.",
     "section": "API",

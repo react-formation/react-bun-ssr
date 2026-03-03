@@ -19,6 +19,9 @@ import { Link, useRouter } from "react-bun-ssr/route";
 
 export default function TaskNav() {
   const router = useRouter();
+  router.onNavigate((nextUrl) => {
+    console.log("navigated to", nextUrl.pathname);
+  });
 
   return (
     <>
@@ -48,6 +51,8 @@ export default function TaskNav() {
 - Use `Link` for internal navigation.
 - Plain `<a>` stays a full browser navigation by design.
 - `useRouter().refresh()` is a hard reload.
+- `useRouter().onNavigate(listener)` runs after completed soft navigations, including browser back/forward transitions.
+- `listener` receives the resolved `nextUrl`.
 - `push()` and `replace()` prefer the Navigation API when available and fall back automatically.
 
 ## Related APIs

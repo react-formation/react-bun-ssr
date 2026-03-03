@@ -19,5 +19,5 @@ export type {
 export { defer, json, redirect } from "./helpers";
 export { isRouteErrorResponse, notFound, routeError } from "./route-errors";
 export { Link, type LinkProps } from "./link";
-export { useRouter, type Router, type RouterNavigateOptions } from "./router";
+export { useRouter, type Router, type RouterNavigateInfo, type RouterNavigateListener, type RouterNavigateOptions } from "./router";
 export { Outlet, useLoaderData, useParams, useRequestUrl, useRouteError } from "./tree";

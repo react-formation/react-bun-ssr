@@ -1,31 +1,23 @@
 import { useEffect } from 'react';
-import { Link, Outlet } from 'react-bun-ssr/route';
+import { Link, Outlet, useRouter } from 'react-bun-ssr/route';
 import DocsSearch, { openDocsSearch } from './components/docs-search';
 import { SITE_NAME } from './lib/site';
 import { initDatadogRum } from './lib/datadog-rum';
+import { initGoogleAnalytics, trackPageView } from './lib/google-analytics';
 import styles from './root.module.css';
 
-
-const initAnalitycs = () => {
-  // @ts-ignore
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    // @ts-ignore
-    dataLayer.push(arguments);
-  }
-  // @ts-ignore
-  gtag('js', new Date());
-
-  // @ts-ignore
-  gtag('config', 'G-NGRFMCYB9Z');
-}
 export default function RootLayout() {
+  const router = useRouter();
+  router.onNavigate((nextUrl) => {
+    trackPageView(nextUrl);
+  });
+
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       return;
     }
     void initDatadogRum();
-    void initAnalitycs()
+    initGoogleAnalytics();
   }, []);
 
   const handleSearchClick = (): void => {
@@ -99,12 +91,14 @@ export function head() {
         name="google-site-verification"
         content="sI7GYFWWtoQhNipsdQncDKnJiehzPk8prWjj3H7zFJU"
       />
-      
+
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <link rel="shortcut icon" href="/favicon.svg" />
       <link rel="stylesheet" href="/app.css" />
 
-      {process.env.NODE_ENV !== 'development' && <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>}
+      {process.env.NODE_ENV !== 'development' && (
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>
+      )}
 
     </>
   );

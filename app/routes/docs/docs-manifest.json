@@ -1532,6 +1532,16 @@
       },
       {
         "depth": 2,
+        "id": "routernavigateinfo",
+        "text": "RouterNavigateInfo"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigatelistener",
+        "text": "RouterNavigateListener"
+      },
+      {
+        "depth": 2,
         "id": "routernavigateoptions",
         "text": "RouterNavigateOptions"
       },
@@ -1736,6 +1746,16 @@
         "depth": 2,
         "id": "router",
         "text": "Router"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigateinfo",
+        "text": "RouterNavigateInfo"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigatelistener",
+        "text": "RouterNavigateListener"
       },
       {
         "depth": 2,

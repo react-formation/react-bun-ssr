@@ -207,7 +207,7 @@ export interface LinkProps
   replace?: boolean;
   scroll?: boolean;
   prefetch?: "intent" | "none";
-  onNavigate?: (info: NavigateInfo) => void;
+  onNavigate?: (info: RouterNavigateInfo) => void;
 }
 ```
 
@@ -417,7 +417,38 @@ export interface Router {
   back(): void;
   forward(): void;
   refresh(): void;
+  onNavigate(listener: RouterNavigateListener): void;
 }
+```
+
+## RouterNavigateInfo
+
+- Kind: interface
+- Source: `framework/runtime/router.ts`
+- Description: Navigation result payload delivered to `Link.onNavigate`, including the resolved `nextUrl`.
+- Learn more: [Navigation](/docs/routing/navigation)
+
+```ts
+export interface RouterNavigateInfo {
+  from: string;
+  to: string;
+  nextUrl: URL;
+  status: number;
+  kind: "page" | "not_found" | "catch" | "error";
+  redirected: boolean;
+  prefetched: boolean;
+}
+```
+
+## RouterNavigateListener
+
+- Kind: type
+- Source: `framework/runtime/router.ts`
+- Description: Listener signature accepted by `router.onNavigate`, receiving the resolved `nextUrl` after completed client-side navigations.
+- Learn more: [Navigation](/docs/routing/navigation)
+
+```ts
+export type RouterNavigateListener = (nextUrl: URL) => void;
 ```
 
 ## RouterNavigateOptions
@@ -481,7 +512,7 @@ useRouteError(): unknown
 
 - Kind: function
 - Source: `framework/runtime/router.ts`
-- Description: Returns a Next.js-style router object for programmatic client transitions.
+- Description: Returns a Next.js-style router object for programmatic client transitions and route-change listeners via `router.onNavigate(...)`.
 - Learn more: [Navigation](/docs/routing/navigation)
 
 ```ts

@@ -1508,11 +1508,19 @@
       "design",
       "hard",
       "reload",
+      "runs",
+      "after",
+      "completed",
+      "navigations",
+      "including",
+      "back",
+      "forward",
+      "receives",
+      "resolved",
       "prefer",
       "api",
       "available",
       "fall",
-      "back",
       "automatically",
       "move",
       "into",
@@ -4367,6 +4375,16 @@
       },
       {
         "depth": 2,
+        "id": "routernavigateinfo",
+        "text": "RouterNavigateInfo"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigatelistener",
+        "text": "RouterNavigateListener"
+      },
+      {
+        "depth": 2,
         "id": "routernavigateoptions",
         "text": "RouterNavigateOptions"
       },
@@ -4458,6 +4476,8 @@
       "routeerrorresponse",
       "routemodule",
       "router",
+      "routernavigateinfo",
+      "routernavigatelistener",
       "routernavigateoptions",
       "starthttpserver",
       "useloaderdata",
@@ -4640,8 +4660,17 @@
       "optional",
       "programmatic",
       "navigation",
-      "options",
+      "result",
+      "delivered",
+      "resolved",
+      "listener",
       "accepted",
+      "receiving",
+      "after",
+      "completed",
+      "side",
+      "navigations",
+      "options",
       "starts",
       "configured",
       "reads",
@@ -4651,7 +4680,10 @@
       "current",
       "matched",
       "js",
-      "transitions"
+      "transitions",
+      "change",
+      "listeners",
+      "via"
     ]
   },
   {
@@ -4824,6 +4856,16 @@
       },
       {
         "depth": 2,
+        "id": "routernavigateinfo",
+        "text": "RouterNavigateInfo"
+      },
+      {
+        "depth": 2,
+        "id": "routernavigatelistener",
+        "text": "RouterNavigateListener"
+      },
+      {
+        "depth": 2,
         "id": "routernavigateoptions",
         "text": "RouterNavigateOptions"
       },
@@ -4901,6 +4943,8 @@
       "routeerrorcontext",
       "routeerrorresponse",
       "router",
+      "routernavigateinfo",
+      "routernavigatelistener",
       "routernavigateoptions",
       "useparams",
       "userequesturl",
@@ -5046,8 +5090,18 @@
       "transition",
       "payloads",
       "programmatic",
-      "options",
+      "result",
+      "delivered",
+      "resolved",
+      "listener",
       "accepted",
+      "receiving",
+      "after",
+      "completed",
+      "client",
+      "side",
+      "navigations",
+      "options",
       "reads",
       "in",
       "components",
@@ -5055,8 +5109,10 @@
       "current",
       "matched",
       "js",
-      "client",
-      "transitions"
+      "transitions",
+      "change",
+      "listeners",
+      "via"
     ]
   },
   {

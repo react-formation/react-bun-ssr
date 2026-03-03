@@ -1,8 +1,34 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { goBack, goForward, reloadPage } from "./navigation-api";
 
 export interface RouterNavigateOptions {
   scroll?: boolean;
+}
+
+export interface RouterNavigateInfo {
+  from: string;
+  to: string;
+  nextUrl: URL;
+  status: number;
+  kind: "page" | "not_found" | "catch" | "error";
+  redirected: boolean;
+  prefetched: boolean;
+}
+
+export type RouterNavigateListener = (nextUrl: URL) => void;
+
+export function notifyRouterNavigateListeners(
+  listeners: readonly RouterNavigateListener[],
+  nextUrl: URL,
+): void {
+  for (const listener of listeners) {
+    try {
+      listener(nextUrl);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("[rbssr] router onNavigate listener failed", error);
+    }
+  }
 }
 
 export interface Router {
@@ -12,6 +38,7 @@ export interface Router {
   back(): void;
   forward(): void;
   refresh(): void;
+  onNavigate(listener: RouterNavigateListener): void;
 }
 
 function toAbsoluteHref(href: string): string {
@@ -28,9 +55,10 @@ const SERVER_ROUTER: Router = {
   back: () => undefined,
   forward: () => undefined,
   refresh: () => undefined,
+  onNavigate: () => undefined,
 };
 
-function createClientRouter(): Router {
+function createClientRouter(onNavigate: Router["onNavigate"]): Router {
   return {
     push: (href, options) => {
       const absoluteHref = toAbsoluteHref(href);
@@ -69,12 +97,55 @@ function createClientRouter(): Router {
     refresh: () => {
       reloadPage();
     },
+    onNavigate,
   };
 }
 
 export function useRouter(): Router {
+  const navigateListenersRef = useRef<RouterNavigateListener[]>([]);
+  const didEmitInitialNavigationRef = useRef(false);
+  navigateListenersRef.current = [];
+
+  const onNavigate = useCallback<Router["onNavigate"]>((listener) => {
+    navigateListenersRef.current.push(listener);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!didEmitInitialNavigationRef.current) {
+      didEmitInitialNavigationRef.current = true;
+      notifyRouterNavigateListeners(
+        navigateListenersRef.current,
+        new URL(window.location.href),
+      );
+    }
+
+    let unsubscribe: () => void = () => undefined;
+    let active = true;
+
+    void import("./client-runtime")
+      .then(runtime => {
+        if (!active) {
+          return;
+        }
+
+        unsubscribe = runtime.subscribeToNavigation((info) => {
+          notifyRouterNavigateListeners(navigateListenersRef.current, info.nextUrl);
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
+
   return useMemo(
-    () => (typeof window === "undefined" ? SERVER_ROUTER : createClientRouter()),
-    [],
+    () => (typeof window === "undefined" ? SERVER_ROUTER : createClientRouter(onNavigate)),
+    [onNavigate],
   );
 }

@@ -199,6 +199,14 @@ const SYMBOL_DETAILS: Record<
     description: "Programmatic navigation contract returned by `useRouter`.",
     links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
+  RouterNavigateInfo: {
+    description: "Navigation result payload delivered to `Link.onNavigate`, including the resolved `nextUrl`.",
+    links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
+  },
+  RouterNavigateListener: {
+    description: "Listener signature accepted by `router.onNavigate`, receiving the resolved `nextUrl` after completed client-side navigations.",
+    links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
+  },
   RouterNavigateOptions: {
     description: "Options accepted by `router.push()` and `router.replace()`.",
     links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
@@ -221,7 +229,7 @@ const SYMBOL_DETAILS: Record<
     links: [{ label: "File-Based Routing", href: "/docs/routing/file-based-routing" }],
   },
   useRouter: {
-    description: "Returns a Next.js-style router object for programmatic client transitions.",
+    description: "Returns a Next.js-style router object for programmatic client transitions and route-change listeners via `router.onNavigate(...)`.",
     links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
   useRequestUrl: {

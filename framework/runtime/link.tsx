@@ -4,15 +4,7 @@ import type {
   MouseEvent,
   TouchEvent,
 } from "react";
-
-interface NavigateInfo {
-  from: string;
-  to: string;
-  status: number;
-  kind: "page" | "not_found" | "catch" | "error";
-  redirected: boolean;
-  prefetched: boolean;
-}
+import type { RouterNavigateInfo } from "./router";
 
 export interface LinkProps
   extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
@@ -20,7 +12,7 @@ export interface LinkProps
   replace?: boolean;
   scroll?: boolean;
   prefetch?: "intent" | "none";
-  onNavigate?: (info: NavigateInfo) => void;
+  onNavigate?: (info: RouterNavigateInfo) => void;
 }
 
 function shouldHandleNavigation(event: MouseEvent<HTMLAnchorElement>): boolean {
@@ -89,7 +81,7 @@ async function prefetch(href: string): Promise<void> {
 async function navigate(href: string, options: {
   replace?: boolean;
   scroll?: boolean;
-  onNavigate?: (info: NavigateInfo) => void;
+  onNavigate?: (info: RouterNavigateInfo) => void;
 }): Promise<void> {
   if (typeof window === "undefined") {
     return;

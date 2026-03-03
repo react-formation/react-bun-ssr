@@ -60,6 +60,7 @@ interface NavigateOptions {
 interface NavigateResult {
   from: string;
   to: string;
+  nextUrl: URL;
   status: number;
   kind: "page" | "not_found" | "catch" | "error";
   redirected: boolean;
@@ -139,10 +140,22 @@ const NAVIGATION_API_PENDING_MATCH_WINDOW_MS = 10_000;
 const ROUTE_ANNOUNCER_ID = "__rbssr-route-announcer";
 const moduleRegistry = new Map<string, RouteModuleBundle>();
 const pendingNavigationTransitions = new Map<string, PendingNavigationTransition>();
+const navigationListeners = new Set<(info: NavigateResult) => void>();
 let runtimeState: RuntimeState | null = null;
 let popstateBound = false;
 let navigationApiListenerBound = false;
 let navigationApiTransitionCounter = 0;
+
+function emitNavigation(info: NavigateResult): void {
+  for (const listener of navigationListeners) {
+    try {
+      listener(info);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("[rbssr] router navigation listener failed", error);
+    }
+  }
+}
 
 function pickOptionalClientModuleExport<T>(
   moduleValue: Record<string, unknown>,
@@ -810,6 +823,7 @@ async function renderTransitionInitial(
   return {
     from: options.fromPath,
     to: toUrl.pathname + toUrl.search + toUrl.hash,
+    nextUrl: new URL(toUrl.toString()),
     status: chunk.status,
     kind: chunk.kind,
     redirected: options.redirected ?? false,
@@ -941,6 +955,7 @@ async function navigateToInternal(
       fromPath: currentPath,
     });
     options.onNavigate?.(result);
+    emitNavigation(result);
     return result;
   } catch {
     hardNavigate(toUrl);
@@ -1211,6 +1226,13 @@ export async function navigateTo(to: string, options: NavigateOptions = {}): Pro
   }
 
   return navigateToInternal(toUrl, options);
+}
+
+export function subscribeToNavigation(listener: (info: NavigateResult) => void): () => void {
+  navigationListeners.add(listener);
+  return () => {
+    navigationListeners.delete(listener);
+  };
 }
 
 export function registerRouteModules(routeId: string, modules: RouteModuleBundle): void {

@@ -22,11 +22,14 @@ export function parseFlags(args: string[]): CliFlags {
 
 export function createProductionServerEntrypointSource(): string {
   return `import path from "node:path";
-import config from "../../rbssr.config.ts";
 import { startHttpServer } from "react-bun-ssr";
+
+process.env.NODE_ENV = "production";
 
 const rootDir = path.resolve(path.dirname(Bun.fileURLToPath(import.meta.url)), "../..");
 process.chdir(rootDir);
+const configModule = await import("../../rbssr.config.ts");
+const config = configModule.default;
 
 const manifestPath = path.resolve(rootDir, "dist/manifest.json");
 const manifest = await Bun.file(manifestPath).json();
@@ -53,6 +56,7 @@ export function createDevHotEntrypointSource(options: {
 
   return `import { runHotDevChild } from ${runtimeModulePath};
 
+process.env.NODE_ENV = "development";
 process.chdir(${cwd});
 await runHotDevChild({
   cwd: ${cwd},

@@ -198,7 +198,10 @@ export function createDevClientWatch(options: {
       stdin: "ignore",
       stdout: "inherit",
       stderr: "inherit",
-      env: process.env,
+      env: {
+        ...process.env,
+        NODE_ENV: "development",
+      },
     });
 
     void state.process.exited.then((exitCode) => {

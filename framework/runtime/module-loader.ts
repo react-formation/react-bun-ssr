@@ -29,21 +29,26 @@ export interface RouteModuleLoadOptions {
   cacheBustKey?: string;
   serverBytecode?: boolean;
   devSourceImports?: boolean;
+  nodeEnv?: "development" | "production";
 }
 
 export function createServerModuleCacheKey(options: {
   absoluteFilePath: string;
   cacheBustKey?: string;
   serverBytecode: boolean;
+  nodeEnv?: "development" | "production";
 }): string {
-  return `${options.absoluteFilePath}|${options.cacheBustKey ?? 'prod'}|bytecode:${options.serverBytecode ? '1' : '0'}|bun:${Bun.version}`;
+  const nodeEnv = options.nodeEnv ?? (process.env.NODE_ENV === "production" ? "production" : "development");
+  return `${options.absoluteFilePath}|${options.cacheBustKey ?? 'prod'}|bytecode:${options.serverBytecode ? '1' : '0'}|env:${nodeEnv}|bun:${Bun.version}`;
 }
 
 export function createServerBuildConfig(options: {
   absoluteFilePath: string;
   outDir: string;
   serverBytecode: boolean;
+  nodeEnv?: "development" | "production";
 }): Bun.BuildConfig {
+  const nodeEnv = options.nodeEnv ?? (process.env.NODE_ENV === "production" ? "production" : "development");
   return {
     entrypoints: [options.absoluteFilePath],
     outdir: options.outDir,
@@ -56,6 +61,9 @@ export function createServerBuildConfig(options: {
     minify: false,
     naming: 'entry-[hash].[ext]',
     external: SERVER_BUILD_EXTERNAL,
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    },
   };
 }
 
@@ -128,10 +136,12 @@ async function buildServerModule(
 
   const cacheBustKey = options.cacheBustKey;
   const serverBytecode = options.serverBytecode ?? true;
+  const nodeEnv = options.nodeEnv ?? (process.env.NODE_ENV === "production" ? "production" : "development");
   const cacheKey = createServerModuleCacheKey({
     absoluteFilePath,
     cacheBustKey,
     serverBytecode,
+    nodeEnv,
   });
   const existing = serverBundlePathCache.get(cacheKey);
   if (existing) {
@@ -153,6 +163,7 @@ async function buildServerModule(
         absoluteFilePath,
         outDir,
         serverBytecode,
+        nodeEnv,
       }),
     );
 
@@ -169,6 +180,7 @@ async function buildServerModule(
           absoluteFilePath,
           outDir,
           serverBytecode: false,
+          nodeEnv,
         }),
       );
 

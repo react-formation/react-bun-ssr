@@ -25,6 +25,21 @@ function log(message: string): void {
   console.log(`[rbssr] ${message}`);
 }
 
+async function withNodeEnv<T>(nodeEnv: "development" | "production", run: () => Promise<T>): Promise<T> {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = nodeEnv;
+
+  try {
+    return await run();
+  } finally {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  }
+}
+
 async function getConfig(cwd: string): Promise<{ userConfig: FrameworkConfig; resolved: ResolvedConfig }> {
   const userConfig = await loadUserConfig(cwd);
   const resolved = resolveConfig(userConfig, cwd);
@@ -48,41 +63,47 @@ export async function runInit(args: string[], cwd = process.cwd()): Promise<void
 }
 
 export async function runBuild(cwd = process.cwd()): Promise<void> {
-  const { resolved } = await getConfig(cwd);
+  await withNodeEnv("production", async () => {
+    const userConfig = await loadUserConfig(cwd);
+    const resolved = resolveConfig({
+      ...userConfig,
+      mode: "production",
+    }, cwd);
 
-  const distClientDir = path.join(resolved.distDir, "client");
-  const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
+    const distClientDir = path.join(resolved.distDir, "client");
+    const generatedDir = path.resolve(cwd, ".rbssr/generated/client-entries");
 
-  await Promise.all([
-    ensureCleanDirectory(resolved.distDir),
-    ensureCleanDirectory(generatedDir),
-  ]);
+    await Promise.all([
+      ensureCleanDirectory(resolved.distDir),
+      ensureCleanDirectory(generatedDir),
+    ]);
 
-  const routeManifest = await buildRouteManifest(resolved);
-  const entries = await generateClientEntries({
-    config: resolved,
-    manifest: routeManifest,
-    generatedDir,
+    const routeManifest = await buildRouteManifest(resolved);
+    const entries = await generateClientEntries({
+      config: resolved,
+      manifest: routeManifest,
+      generatedDir,
+    });
+
+    const routeAssets = await bundleClientEntries({
+      entries,
+      outDir: distClientDir,
+      dev: false,
+      publicPrefix: "/client/",
+    });
+
+    await copyDirRecursive(resolved.publicDir, distClientDir);
+
+    const buildManifest = createBuildManifest(routeAssets);
+    await writeText(
+      path.join(resolved.distDir, "manifest.json"),
+      JSON.stringify(buildManifest, null, 2),
+    );
+
+    await writeProductionServerEntrypoint({ distDir: resolved.distDir });
+
+    log(`build complete: ${resolved.distDir}`);
   });
-
-  const routeAssets = await bundleClientEntries({
-    entries,
-    outDir: distClientDir,
-    dev: false,
-    publicPrefix: "/client/",
-  });
-
-  await copyDirRecursive(resolved.publicDir, distClientDir);
-
-  const buildManifest = createBuildManifest(routeAssets);
-  await writeText(
-    path.join(resolved.distDir, "manifest.json"),
-    JSON.stringify(buildManifest, null, 2),
-  );
-
-  await writeProductionServerEntrypoint({ distDir: resolved.distDir });
-
-  log(`build complete: ${resolved.distDir}`);
 }
 
 export async function runDev(cwd = process.cwd()): Promise<void> {
@@ -121,6 +142,7 @@ export async function runDev(cwd = process.cwd()): Promise<void> {
       stderr: "inherit",
       env: {
         ...process.env,
+        NODE_ENV: "development",
         RBSSR_DEV_LAUNCHER: "1",
         RBSSR_DEV_CHILD: "1",
       },

@@ -338,6 +338,9 @@ export async function bundleClientEntries(options: {
     sourcemap: dev ? 'inline' : 'external',
     minify: !dev,
     naming: dev ? '[name].[ext]' : '[name]-[hash].[ext]',
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(dev ? "development" : "production"),
+    },
   });
 
   if (!result.success) {

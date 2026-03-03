@@ -630,15 +630,18 @@ export function createServer(
 
     const routeAdapter = await getRouteAdapter(activeConfig);
     const devCacheBustKey = dev ? String(runtimeOptions.reloadVersion?.() ?? 0) : undefined;
+    const nodeEnv: "development" | "production" = dev ? "development" : "production";
     const routeModuleLoadOptions = {
       cacheBustKey: devCacheBustKey,
       serverBytecode: activeConfig.serverBytecode,
       devSourceImports: false,
+      nodeEnv,
     };
     const requestModuleLoadOptions = {
       cacheBustKey: undefined,
       serverBytecode: activeConfig.serverBytecode,
       devSourceImports: dev,
+      nodeEnv,
     };
     const routeAssetsById = resolveAllRouteAssets({
       dev,

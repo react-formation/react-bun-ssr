@@ -1,5 +1,5 @@
 export const SITE_NAME = "react-bun-ssr";
-export const DEFAULT_SITE_URL = "https://react-bun-ssr.fly.dev";
+export const DEFAULT_SITE_URL = "https://react-bun-ssr.dev";
 
 function normalizeSiteUrl(value: string): string {
   const normalized = value.trim().replace(/\/+$/, "");

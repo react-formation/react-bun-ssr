@@ -3,17 +3,17 @@ react-bun-ssr
 react-bun-ssr is a Bun-native SSR React framework. It focuses on file-based routing, loaders and actions, streaming SSR, deferred data, client transitions, markdown routes, and a Bun-first runtime and build pipeline.
 
 Primary docs
-- Docs home: https://react-bun-ssr.fly.dev/docs
-- Quick start: https://react-bun-ssr.fly.dev/docs/start/quick-start
-- Overview: https://react-bun-ssr.fly.dev/docs/start/overview
-- File-based routing: https://react-bun-ssr.fly.dev/docs/routing/file-based-routing
-- Loaders: https://react-bun-ssr.fly.dev/docs/data/loaders
-- Head and meta: https://react-bun-ssr.fly.dev/docs/rendering/head-meta
-- Deployment on Bun: https://react-bun-ssr.fly.dev/docs/deployment/bun-deployment
-- API overview: https://react-bun-ssr.fly.dev/docs/api/overview
-- Package API: https://react-bun-ssr.fly.dev/docs/api/react-bun-ssr
-- Route API: https://react-bun-ssr.fly.dev/docs/api/react-bun-ssr-route
+- Docs home: https://react-bun-ssr.dev/docs
+- Quick start: https://react-bun-ssr.dev/docs/start/quick-start
+- Overview: https://react-bun-ssr.dev/docs/start/overview
+- File-based routing: https://react-bun-ssr.dev/docs/routing/file-based-routing
+- Loaders: https://react-bun-ssr.dev/docs/data/loaders
+- Head and meta: https://react-bun-ssr.dev/docs/rendering/head-meta
+- Deployment on Bun: https://react-bun-ssr.dev/docs/deployment/bun-deployment
+- API overview: https://react-bun-ssr.dev/docs/api/overview
+- Package API: https://react-bun-ssr.dev/docs/api/react-bun-ssr
+- Route API: https://react-bun-ssr.dev/docs/api/react-bun-ssr-route
 
 Project links
 - GitHub: https://github.com/react-formation/react-bun-ssr
-- Blog: https://react-bun-ssr.fly.dev/blog
+- Blog: https://react-bun-ssr.dev/blog

@@ -2,9 +2,9 @@
 
 `react-bun-ssr` is a Bun-native SSR React framework with file-based routing, loaders, actions, middleware, streaming, soft navigation, and first-class markdown routes.
 
-- Documentation: https://react-bun-ssr.fly.dev/docs
-- API reference: https://react-bun-ssr.fly.dev/docs/api/overview
-- Blog: https://react-bun-ssr.fly.dev/blog
+- Documentation: https://react-bun-ssr.dev/docs
+- API reference: https://react-bun-ssr.dev/docs/api/overview
+- Blog: https://react-bun-ssr.dev/blog
 - Repository: https://github.com/react-formation/react-bun-ssr
 
 ## Why react-bun-ssr?
@@ -50,7 +50,7 @@ http://127.0.0.1:3000
 
 For the full setup walkthrough, read the installation guide:
 
-- https://react-bun-ssr.fly.dev/docs/start/installation
+- https://react-bun-ssr.dev/docs/start/installation
 
 ## What `rbssr init` gives you
 
@@ -75,7 +75,7 @@ rbssr.config.ts
 
 The quickest follow-up is:
 
-- https://react-bun-ssr.fly.dev/docs/start/quick-start
+- https://react-bun-ssr.dev/docs/start/quick-start
 
 ## How it works
 
@@ -85,7 +85,7 @@ Routes live under `app/routes`. Page routes, API routes, dynamic params, and mar
 
 Read more:
 
-- https://react-bun-ssr.fly.dev/docs/routing/file-based-routing
+- https://react-bun-ssr.dev/docs/routing/file-based-routing
 
 ### Request pipeline
 
@@ -93,8 +93,8 @@ For a page request, the framework resolves the matching route, runs global and n
 
 Read more:
 
-- https://react-bun-ssr.fly.dev/docs/routing/middleware
-- https://react-bun-ssr.fly.dev/docs/data/loaders
+- https://react-bun-ssr.dev/docs/routing/middleware
+- https://react-bun-ssr.dev/docs/data/loaders
 
 ### Rendering model
 
@@ -102,8 +102,8 @@ SSR is the default model. HTML responses stream, deferred loader data is support
 
 Read more:
 
-- https://react-bun-ssr.fly.dev/docs/rendering/streaming-deferred
-- https://react-bun-ssr.fly.dev/docs/routing/navigation
+- https://react-bun-ssr.dev/docs/rendering/streaming-deferred
+- https://react-bun-ssr.dev/docs/routing/navigation
 
 ### Bun-first runtime
 
@@ -111,7 +111,7 @@ Bun provides the runtime, server, bundler, markdown support, and file APIs that 
 
 Read more:
 
-- https://react-bun-ssr.fly.dev/docs/api/bun-runtime-apis
+- https://react-bun-ssr.dev/docs/api/bun-runtime-apis
 
 ## Core commands
 
@@ -132,7 +132,7 @@ Repository maintenance commands:
 
 CLI reference:
 
-- https://react-bun-ssr.fly.dev/docs/tooling/cli
+- https://react-bun-ssr.dev/docs/tooling/cli
 
 ## Working on this repository
 
@@ -184,6 +184,6 @@ fly deploy
 
 Full deployment docs:
 
-- https://react-bun-ssr.fly.dev/docs/deployment/bun-deployment
-- https://react-bun-ssr.fly.dev/docs/deployment/configuration
-- https://react-bun-ssr.fly.dev/docs/deployment/troubleshooting
+- https://react-bun-ssr.dev/docs/deployment/bun-deployment
+- https://react-bun-ssr.dev/docs/deployment/configuration
+- https://react-bun-ssr.dev/docs/deployment/troubleshooting

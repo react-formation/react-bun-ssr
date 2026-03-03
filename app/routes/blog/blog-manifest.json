@@ -16,7 +16,7 @@
     ],
     "excerpt": "I built with AI assistance, but the useful part of that sentence is not the AI part. The useful part is how the work was constrained. AI helped me move faster across implementation, documentation, refactors, and test cov",
     "readingMinutes": 7,
-    "canonicalUrl": "https://react-bun-ssr.fly.dev/blog/how-i-built-react-bun-ssr-with-ai",
+    "canonicalUrl": "https://react-bun-ssr.dev/blog/how-i-built-react-bun-ssr-with-ai",
     "headings": [
       {
         "depth": 2,
@@ -88,7 +88,7 @@
     ],
     "excerpt": "I built because I wanted a serious SSR framework in the React ecosystem that does not start from Node assumptions and does not force every project into the shape of Next.js or Remix. Next.js and Remix both matter. They p",
     "readingMinutes": 4,
-    "canonicalUrl": "https://react-bun-ssr.fly.dev/blog/why-i-built-a-bun-native-ssr-framework",
+    "canonicalUrl": "https://react-bun-ssr.dev/blog/why-i-built-a-bun-native-ssr-framework",
     "headings": [
       {
         "depth": 2,

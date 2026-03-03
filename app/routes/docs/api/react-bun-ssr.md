@@ -405,7 +405,7 @@ export interface RequestContext {
 ```ts
 export interface ResponseHeaderRule {
   source: string;
-  headers: Record<string, string>;
+  headers: Record<string, string | null>;
 }
 ```
 

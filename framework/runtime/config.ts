@@ -71,15 +71,20 @@ function toHeaderRules(config: FrameworkConfig): ResolvedResponseHeaderRule[] {
       throw new Error(`[rbssr config] \`headers[${index}].headers\` must include at least one header.`);
     }
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string | null> = {};
     for (const [key, value] of entries) {
       if (typeof key !== "string" || key.trim().length === 0) {
         throw new Error(`[rbssr config] \`headers[${index}].headers\` contains an empty header name.`);
       }
 
+      if (value === null) {
+        headers[key] = null;
+        continue;
+      }
+
       if (typeof value !== "string" || value.trim().length === 0) {
         throw new Error(
-          `[rbssr config] \`headers[${index}].headers.${key}\` must be a non-empty string value.`,
+          `[rbssr config] \`headers[${index}].headers.${key}\` must be a non-empty string value or null.`,
         );
       }
 

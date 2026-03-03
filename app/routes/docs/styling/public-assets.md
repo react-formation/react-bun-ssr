@@ -34,7 +34,7 @@ The framework now applies static cache defaults in production:
 - hashed JS/CSS bundles: `public, max-age=31536000, immutable`
 - other static files: `public, max-age=3600`
 
-You can override those defaults with `headers` rules in `rbssr.config.ts`.
+You can override those defaults with `headers` rules in `rbssr.config.ts`. Use `null` to remove a default header entirely for a matching path.
 
 ## Related APIs
 

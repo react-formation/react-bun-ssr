@@ -123,7 +123,7 @@ export interface ApiRouteModule {
 
 export interface ResponseHeaderRule {
   source: string;
-  headers: Record<string, string>;
+  headers: Record<string, string | null>;
 }
 
 export interface ResolvedResponseHeaderRule extends ResponseHeaderRule {

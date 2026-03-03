@@ -4,4 +4,12 @@ export default defineConfig({
   appDir: "app",
   port: 3000,
   host: "0.0.0.0",
+  headers: [
+    {
+      source: "/sitemap.xml",
+      headers: {
+        "cache-control": null,
+      },
+    },
+  ],
 });

@@ -227,6 +227,11 @@ function applyConfiguredHeaders(options: {
     }
 
     for (const [name, value] of Object.entries(rule.headers)) {
+      if (value === null) {
+        headers.delete(name);
+        continue;
+      }
+
       headers.set(name, value);
     }
   }

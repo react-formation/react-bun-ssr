@@ -241,6 +241,14 @@ This route is **native markdown**.`,
       appDir: path.join(cwd, "app"),
       distDir: path.join(cwd, "dist"),
       mode: "production",
+      headers: [
+        {
+          source: "/sitemap.xml",
+          headers: {
+            "cache-control": null,
+          },
+        },
+      ],
     });
 
     const jsResponse = await server.fetch(
@@ -268,14 +276,14 @@ This route is **native markdown**.`,
 
     const sitemapGet = await server.fetch(new Request("http://localhost/sitemap.xml"));
     expect(sitemapGet.status).toBe(200);
-    expect(sitemapGet.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(sitemapGet.headers.get("cache-control")).toBeNull();
     expect(sitemapGet.headers.get("content-type")?.includes("xml")).toBe(true);
 
     const sitemapHead = await server.fetch(
       new Request("http://localhost/sitemap.xml", { method: "HEAD" }),
     );
     expect(sitemapHead.status).toBe(200);
-    expect(sitemapHead.headers.get("cache-control")).toBe("public, max-age=3600");
+    expect(sitemapHead.headers.get("cache-control")).toBeNull();
     expect(await sitemapHead.text()).toBe("");
 
     const robotsGet = await server.fetch(new Request("http://localhost/robots.txt"));

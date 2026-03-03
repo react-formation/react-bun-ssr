@@ -53,6 +53,23 @@ describe("resolveConfig response header rules", () => {
     expect(resolved.headerRules[2]?.matcher.test("/client/nested/app.js")).toBe(false);
   });
 
+  it("allows null header values so config can remove defaults", () => {
+    const resolved = resolveConfig({
+      headers: [
+        {
+          source: "/sitemap.xml",
+          headers: {
+            "cache-control": null,
+          },
+        },
+      ],
+    });
+
+    expect(resolved.headerRules).toHaveLength(1);
+    expect(resolved.headerRules[0]?.headers["cache-control"]).toBeNull();
+    expect(resolved.headerRules[0]?.matcher.test("/sitemap.xml")).toBe(true);
+  });
+
   it("rejects invalid source and headers fields", () => {
     expect(() => resolveConfig({
       headers: [{ source: "api/**", headers: { "x-test": "1" } }],

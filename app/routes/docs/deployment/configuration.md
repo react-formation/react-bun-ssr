@@ -40,6 +40,7 @@ export default defineConfig({
 ## Cache policy defaults
 
 Production static assets receive cache headers automatically. User header rules override framework defaults.
+Set a header value to `null` when you want to remove a framework default for a specific path, such as dropping `cache-control` from `/sitemap.xml`.
 
 ## Related APIs
 

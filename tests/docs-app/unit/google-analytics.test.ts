@@ -129,4 +129,37 @@ describe("google analytics page tracking", () => {
       },
     ]);
   });
+
+  it("does not initialize analytics on hidden framework test routes", () => {
+    process.env.NODE_ENV = "production";
+    const windowValue = setTestDom({
+      href: "https://react-bun-ssr.dev/framework-test",
+      title: "Framework test routes",
+    });
+
+    initGoogleAnalytics();
+
+    expect(windowValue.dataLayer).toHaveLength(0);
+    expect(windowValue.__RBSSR_GA_INITIALIZED__).toBeUndefined();
+  });
+
+  it("does not emit page_view events for hidden framework test routes", () => {
+    process.env.NODE_ENV = "production";
+    const windowValue = setTestDom({
+      href: "https://react-bun-ssr.dev/docs",
+      title: "Docs",
+    });
+
+    initGoogleAnalytics();
+
+    windowValue.location.href = "https://react-bun-ssr.dev/framework-test/deferred-reject";
+    windowValue.location.pathname = "/framework-test/deferred-reject";
+    windowValue.location.search = "";
+    document.title = "Deferred rejection route";
+
+    trackPageView(new URL(windowValue.location.href));
+
+    expect(windowValue.dataLayer).toHaveLength(2);
+    expect(windowValue.dataLayer.some((entry) => toCommand(entry)?.[0] === "event")).toBe(false);
+  });
 });

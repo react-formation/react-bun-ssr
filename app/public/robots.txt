@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /framework-test
 
 Sitemap: https://react-bun-ssr.dev/sitemap.xml

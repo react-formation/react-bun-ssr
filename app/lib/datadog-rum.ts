@@ -1,3 +1,5 @@
+import { isFrameworkTestPath } from "./internal-routes";
+
 let datadogRumInitPromise: Promise<void> | null = null;
 
 interface DatadogDeferredRuntime {
@@ -18,6 +20,10 @@ function resolveEnvName(): string {
 
 export async function initDatadogRum(): Promise<void> {
   if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (isFrameworkTestPath(window.location.pathname)) {
     return;
   }
 
@@ -46,6 +52,7 @@ export async function initDatadogRum(): Promise<void> {
       sessionReplaySampleRate: 20,
       trackResources: true,
       trackUserInteractions: true,
+      defaultPrivacyLevel:'allow',
       trackLongTasks: true,
       plugins: [reactPlugin({ router: false })],
     });

@@ -1,3 +1,5 @@
+import { isFrameworkTestPath } from "./internal-routes";
+
 const GOOGLE_ANALYTICS_ID = "G-NGRFMCYB9Z";
 
 type GoogleAnalyticsCommand = [command: string, ...params: unknown[]];
@@ -41,6 +43,10 @@ export function initGoogleAnalytics(): void {
     return;
   }
 
+  if (isFrameworkTestPath(window.location.pathname)) {
+    return;
+  }
+
   ensureGoogleAnalyticsRuntime();
 
   if (window.__RBSSR_GA_INITIALIZED__) {
@@ -64,8 +70,9 @@ export function trackPageView(url: URL): void {
   if (typeof window === "undefined" || isDevelopment()) {
     return;
   }
-
-
+  if (isFrameworkTestPath(url.pathname)) {
+    return;
+  }
 
   initGoogleAnalytics();
 

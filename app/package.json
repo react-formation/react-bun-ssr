@@ -3,8 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@datadog/browser-rum": "^6.28.1",
-    "@datadog/browser-rum-react": "^6.28.1",
     "react": "^19",
     "react-bun-ssr": "file:..",
     "react-dom": "^19"

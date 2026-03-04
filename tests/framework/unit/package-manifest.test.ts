@@ -22,7 +22,10 @@ describe("package dependency ownership", () => {
     expect(appPackage.dependencies?.["react-bun-ssr"]).toBe("file:..");
     expect(appPackage.dependencies?.["react"]).toBe("^19");
     expect(appPackage.dependencies?.["react-dom"]).toBe("^19");
-    expect(appPackage.dependencies?.["@datadog/browser-rum"]).toBe("^6.28.1");
-    expect(appPackage.dependencies?.["@datadog/browser-rum-react"]).toBe("^6.28.1");
+    expect(Object.keys(appPackage.dependencies ?? {}).sort()).toEqual([
+      "react",
+      "react-bun-ssr",
+      "react-dom",
+    ]);
   });
 });

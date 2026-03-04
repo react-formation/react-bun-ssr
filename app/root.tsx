@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Link, Outlet, useRouter } from 'react-bun-ssr/route';
 import DocsSearch, { openDocsSearch } from './components/docs-search';
 import { SITE_NAME } from './lib/site';
-import { initDatadogRum } from './lib/datadog-rum';
 import { initGoogleAnalytics, trackPageView } from './lib/google-analytics';
 import styles from './root.module.css';
 
@@ -16,7 +15,6 @@ export default function RootLayout() {
     if (process.env.NODE_ENV === 'development') {
       return;
     }
-    void initDatadogRum();
     initGoogleAnalytics();
   }, []);
 
@@ -95,11 +93,6 @@ export function head() {
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       <link rel="shortcut icon" href="/favicon.svg" />
       <link rel="stylesheet" href="/app.css" />
-
-      {process.env.NODE_ENV !== 'development' && (
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-NGRFMCYB9Z"></script>
-      )}
-
     </>
   );
 }

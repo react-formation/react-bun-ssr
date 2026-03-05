@@ -18,24 +18,41 @@ function linkDirectory(target: string, linkPath: string): void {
   }
 }
 
+function copyDirectory(source: string, destination: string): void {
+  const result = Bun.spawnSync({
+    cmd: ["cp", "-R", source, destination],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
+    throw new Error(`Failed to copy directory ${source} -> ${destination}: ${stderr || result.exitCode}`);
+  }
+}
+
 async function linkRuntimeDependencies(rootDir: string): Promise<void> {
   const repoRoot = path.resolve(import.meta.dir, "../../..");
   const nodeModulesDir = path.join(rootDir, "node_modules");
   await ensureDir(nodeModulesDir);
+
+  const frameworkLinkPath = path.join(nodeModulesDir, "react-bun-ssr");
+  if (!(await existsPath(frameworkLinkPath))) {
+    linkDirectory(repoRoot, frameworkLinkPath);
+  }
+
   const reactPackageDir = path.dirname(Bun.resolveSync("react/package.json", repoRoot));
   const reactDomPackageDir = path.dirname(Bun.resolveSync("react-dom/package.json", repoRoot));
-
-  const links = [
-    [repoRoot, path.join(nodeModulesDir, "react-bun-ssr")],
+  const copies = [
     [reactPackageDir, path.join(nodeModulesDir, "react")],
     [reactDomPackageDir, path.join(nodeModulesDir, "react-dom")],
   ] as const;
 
-  for (const [target, linkPath] of links) {
-    if (await existsPath(linkPath)) {
+  for (const [source, destination] of copies) {
+    if (await existsPath(destination)) {
       continue;
     }
-    linkDirectory(target, linkPath);
+    copyDirectory(source, destination);
   }
 }
 

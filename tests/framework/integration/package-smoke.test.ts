@@ -1,6 +1,6 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
-import { readText, writeText } from "../../../framework/runtime/io";
+import { existsPath, readText, writeText } from "../../../framework/runtime/io";
 import {
   assertConsumerCliBin,
   packFrameworkTarball,
@@ -48,6 +48,14 @@ describeConsumer("package smoke", () => {
     const packedPackage = await Bun.file(Bun.resolveSync("react-bun-ssr/package.json", bootstrapDir)).json() as {
       version?: string;
     };
+    const installedDoctypeStreamPath = path.join(
+      bootstrapDir,
+      "node_modules",
+      "react-bun-ssr",
+      "framework",
+      "runtime",
+      "doctype-stream.ts",
+    );
 
     expect(generatedPackage.scripts).toEqual({
       dev: "rbssr dev",
@@ -58,6 +66,7 @@ describeConsumer("package smoke", () => {
     expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe(packedPackage.version);
     expect(generatedPackage.dependencies?.react).toBe("^19");
     expect(generatedPackage.dependencies?.["react-dom"]).toBe("^19");
+    expect(await existsPath(installedDoctypeStreamPath)).toBe(true);
 
     generatedPackage.dependencies = {
       ...generatedPackage.dependencies,

@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import {
+  createRouterNavigateListenerStore,
   notifyRouterNavigateListeners,
   useRouter,
   type Router,
@@ -96,5 +97,65 @@ describe("useRouter", () => {
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
     expect(secondListener).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps previously committed listeners active until a new render cycle commits", () => {
+    const store = createRouterNavigateListenerStore();
+    const firstListener = mock(() => undefined);
+    const secondListener = mock(() => undefined);
+    const firstUrl = new URL("https://react-bun-ssr.dev/docs/start/overview");
+    const secondUrl = new URL("https://react-bun-ssr.dev/docs/routing/navigation");
+
+    store.clearRenderListeners();
+    store.registerRenderListener(firstListener);
+    store.promoteRenderListenersToActive();
+
+    store.clearRenderListeners();
+    store.registerRenderListener(secondListener);
+
+    notifyRouterNavigateListeners(store.getActiveListeners(), firstUrl);
+    expect(firstListener).toHaveBeenCalledTimes(1);
+    expect(secondListener).toHaveBeenCalledTimes(0);
+
+    store.promoteRenderListenersToActive();
+
+    notifyRouterNavigateListeners(store.getActiveListeners(), secondUrl);
+    expect(firstListener).toHaveBeenCalledTimes(1);
+    expect(secondListener).toHaveBeenCalledTimes(1);
+    expect(secondListener).toHaveBeenCalledWith(secondUrl);
+  });
+
+  it("emits initial navigation to listeners registered in the first render cycle", () => {
+    const store = createRouterNavigateListenerStore();
+    const listener = mock(() => undefined);
+    const nextUrl = new URL("https://react-bun-ssr.dev/docs");
+
+    store.clearRenderListeners();
+    store.registerRenderListener(listener);
+    store.promoteRenderListenersToActive();
+
+    notifyRouterNavigateListeners(store.getActiveListeners(), nextUrl);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(nextUrl);
+  });
+
+  it("does not duplicate listeners across rerenders with render-time registration", () => {
+    const store = createRouterNavigateListenerStore();
+    const listener = mock(() => undefined);
+    const nextUrl = new URL("https://react-bun-ssr.dev/docs/data/loaders");
+
+    store.clearRenderListeners();
+    store.registerRenderListener(listener);
+    store.promoteRenderListenersToActive();
+
+    store.clearRenderListeners();
+    store.registerRenderListener(listener);
+    store.promoteRenderListenersToActive();
+
+    notifyRouterNavigateListeners(store.getActiveListeners(), nextUrl);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(nextUrl);
   });
 });

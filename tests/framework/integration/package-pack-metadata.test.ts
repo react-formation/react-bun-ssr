@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { packFrameworkTarball, readPackedPackageJson } from "../helpers/package-smoke";
+import {
+  listPackedTarballFiles,
+  packFrameworkTarball,
+  readPackedPackageJson,
+} from "../helpers/package-smoke";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
@@ -11,6 +15,7 @@ afterEach(async () => {
 describe("packed package metadata", () => {
   it("omits docs-app dependencies from the published framework manifest", async () => {
     const tarballPath = await packFrameworkTarball(tempDirs);
+    const packedFiles = await listPackedTarballFiles(tarballPath);
     const packedPackage = await readPackedPackageJson(tarballPath) as {
       name?: string;
       exports?: Record<string, unknown>;
@@ -27,5 +32,7 @@ describe("packed package metadata", () => {
     expect(packedPackage.peerDependencies?.["react-dom"]).toBe("^19");
     expect(packedPackage.dependencies?.["@datadog/browser-rum"]).toBeUndefined();
     expect(packedPackage.dependencies?.["@datadog/browser-rum-react"]).toBeUndefined();
+    expect(packedFiles).toContain("package/framework/runtime/render.tsx");
+    expect(packedFiles).toContain("package/framework/runtime/doctype-stream.ts");
   });
 });

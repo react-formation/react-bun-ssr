@@ -17,6 +17,33 @@ export interface RouterNavigateInfo {
 
 export type RouterNavigateListener = (nextUrl: URL) => void;
 
+export interface RouterNavigateListenerStore {
+  clearRenderListeners(): void;
+  registerRenderListener(listener: RouterNavigateListener): void;
+  promoteRenderListenersToActive(): void;
+  getActiveListeners(): readonly RouterNavigateListener[];
+}
+
+export function createRouterNavigateListenerStore(): RouterNavigateListenerStore {
+  let renderListeners: RouterNavigateListener[] = [];
+  let activeListeners: RouterNavigateListener[] = [];
+
+  return {
+    clearRenderListeners() {
+      renderListeners = [];
+    },
+    registerRenderListener(listener) {
+      renderListeners.push(listener);
+    },
+    promoteRenderListenersToActive() {
+      activeListeners = renderListeners;
+    },
+    getActiveListeners() {
+      return activeListeners;
+    },
+  };
+}
+
 export function notifyRouterNavigateListeners(
   listeners: readonly RouterNavigateListener[],
   nextUrl: URL,
@@ -102,13 +129,21 @@ function createClientRouter(onNavigate: Router["onNavigate"]): Router {
 }
 
 export function useRouter(): Router {
-  const navigateListenersRef = useRef<RouterNavigateListener[]>([]);
+  const navigateListenerStoreRef = useRef<RouterNavigateListenerStore | null>(null);
+  if (navigateListenerStoreRef.current === null) {
+    navigateListenerStoreRef.current = createRouterNavigateListenerStore();
+  }
+  const navigateListenerStore = navigateListenerStoreRef.current;
   const didEmitInitialNavigationRef = useRef(false);
-  navigateListenersRef.current = [];
+  navigateListenerStore.clearRenderListeners();
 
   const onNavigate = useCallback<Router["onNavigate"]>((listener) => {
-    navigateListenersRef.current.push(listener);
+    navigateListenerStoreRef.current?.registerRenderListener(listener);
   }, []);
+
+  useEffect(() => {
+    navigateListenerStoreRef.current?.promoteRenderListenersToActive();
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -118,7 +153,7 @@ export function useRouter(): Router {
     if (!didEmitInitialNavigationRef.current) {
       didEmitInitialNavigationRef.current = true;
       notifyRouterNavigateListeners(
-        navigateListenersRef.current,
+        navigateListenerStore.getActiveListeners(),
         new URL(window.location.href),
       );
     }
@@ -133,7 +168,10 @@ export function useRouter(): Router {
         }
 
         unsubscribe = runtime.subscribeToNavigation((info) => {
-          notifyRouterNavigateListeners(navigateListenersRef.current, info.nextUrl);
+          notifyRouterNavigateListeners(
+            navigateListenerStoreRef.current?.getActiveListeners() ?? [],
+            info.nextUrl,
+          );
         });
       })
       .catch(() => undefined);

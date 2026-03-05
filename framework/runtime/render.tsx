@@ -10,6 +10,7 @@ import {
 } from "react";
 import { renderToReadableStream, renderToStaticMarkup, renderToString } from "react-dom/server";
 import type { DeferredSettleEntry } from "./deferred";
+import { prependDoctypeStream } from "./doctype-stream";
 import type {
   ClientRouterSnapshot,
   HydrationDocumentAssets,
@@ -361,36 +362,6 @@ function HtmlDocument(options: {
   );
 }
 
-function prependDoctype(stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  const doctype = encoder.encode("<!doctype html>");
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      controller.enqueue(doctype);
-      const reader = stream.getReader();
-
-      try {
-        while (true) {
-          const result = await reader.read();
-          if (result.done) {
-            break;
-          }
-          controller.enqueue(result.value);
-        }
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      } finally {
-        reader.releaseLock();
-      }
-    },
-    cancel(reason) {
-      void stream.cancel(reason);
-    },
-  });
-}
-
 export async function renderDocumentStream(options: {
   appTree: ReactElement;
   payload: RenderPayload;
@@ -410,7 +381,7 @@ export async function renderDocumentStream(options: {
     />,
   );
 
-  return prependDoctype(stream);
+  return prependDoctypeStream(stream);
 }
 
 export function renderDocument(options: {

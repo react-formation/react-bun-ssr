@@ -80,7 +80,7 @@ export function sha256Short(input: HashInput): string {
 }
 
 export async function ensureDir(dirPath: string): Promise<void> {
-  runPosix(["mkdir", "-p", dirPath], `Failed to create directory: ${dirPath}`);
+  await runPosix(["mkdir", "-p", dirPath], `Failed to create directory: ${dirPath}`);
 }
 
 export async function ensureCleanDir(dirPath: string): Promise<void> {
@@ -89,7 +89,7 @@ export async function ensureCleanDir(dirPath: string): Promise<void> {
 }
 
 export async function removePath(targetPath: string): Promise<void> {
-  runPosix(["rm", "-rf", targetPath], `Failed to remove path: ${targetPath}`);
+  await runPosix(["rm", "-rf", targetPath], `Failed to remove path: ${targetPath}`);
 }
 
 export async function listEntries(dirPath: string): Promise<FileEntry[]> {
@@ -127,20 +127,23 @@ export async function makeTempDir(prefix: string): Promise<string> {
   return dirPath;
 }
 
-function runPosix(cmd: string[], context: string): void {
-  const result = Bun.spawnSync({
+async function runPosix(cmd: string[], context: string): Promise<void> {
+  const result = Bun.spawn({
     cmd,
     stdout: "pipe",
     stderr: "pipe",
   });
 
-  if (result.exitCode === 0) {
+  const exitCode = await result.exited;
+  if (exitCode === 0) {
     return;
   }
 
-  const decoder = new TextDecoder();
-  const stderr = result.stderr.length > 0 ? decoder.decode(result.stderr).trim() : "";
-  const stdout = result.stdout.length > 0 ? decoder.decode(result.stdout).trim() : "";
-  const details = stderr || stdout || `exit code ${result.exitCode}`;
+  const [stderr, stdout] = await Promise.all([
+    result.stderr ? new Response(result.stderr).text() : Promise.resolve(""),
+    result.stdout ? new Response(result.stdout).text() : Promise.resolve(""),
+  ]);
+
+  const details = stderr.trim() || stdout.trim() || `exit code ${exitCode}`;
   throw new Error(`[io] ${context} (${cmd.join(" ")}): ${details}`);
 }

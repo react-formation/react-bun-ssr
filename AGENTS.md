@@ -47,6 +47,7 @@ Guidance for AI coding agents working in this repository.
 3. Keep docs site as the primary product surface (no demo-first reintroduction).
 4. Prefer small, targeted patches over broad rewrites.
 5. Use promise.all when possible.
+6. Use Bun api rather than node when possible
 
 ## Server/client boundary rules
 
@@ -58,6 +59,8 @@ Guidance for AI coding agents working in this repository.
 
 - Dev snapshots: `rbssr dev` serves server modules from `.rbssr/dev/server-snapshots/*`.
   - Files outside `app/` that are imported by server modules must be mirrored in snapshot logic.
+- After adding new files under `framework/**`, run `bun install` to refresh Bun's self-package snapshot in `node_modules/.bun/*`.
+  - Without a refresh, local `node_modules/.bun/react-bun-ssr@root/*` mirrors can miss new files and report false import failures.
 - Hydration mismatch can happen if server markup and client markup drift across rebuild versions.
 - `<title>` must resolve to a single string child value.
 

@@ -15,10 +15,7 @@ const tempDirs: string[] = [];
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map(dir => removePath(dir)));
-  process.env.PATH = ORIGINAL_PATH;
 });
-
-const ORIGINAL_PATH = process.env.PATH ?? "";
 
 async function createRoot(prefix: string): Promise<string> {
   const root = await makeTempDir(prefix);
@@ -185,12 +182,11 @@ describe("buildSitemap", () => {
     await writeText(docsIndex, "export default function Docs(){ return null; }");
     await writeText(blogIndex, "export default function Blog(){ return null; }");
 
-    process.env.PATH = "";
-
     const sitemap = await buildSitemap({
       rootDir: root,
       docsManifest: [],
       blogManifest: [],
+      gitExecutable: "__rbssr_missing_git_binary__",
     });
 
     expect(sitemap[0]?.pathname).toBe("/blog");

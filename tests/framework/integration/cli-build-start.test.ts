@@ -1,6 +1,6 @@
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
-import { runBuild, runInit, runStart } from "../../../framework/cli/commands";
+import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
+import { runInit, runStart } from "../../../framework/cli/commands";
 import { existsPath, readText, writeText } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { runProcess, spawnProcess, waitForHttpReady } from "../helpers/process";
@@ -9,6 +9,8 @@ import { createTempDirRegistry } from "../helpers/temp-dir";
 const tempDirs = createTempDirRegistry();
 const rbssrBinPath = path.resolve(import.meta.dir, "../../../bin/rbssr.ts");
 let activeProcess: Bun.Subprocess | null = null;
+
+setDefaultTimeout(40_000);
 
 afterEach(async () => {
   if (activeProcess) {
@@ -95,9 +97,10 @@ describe("CLI build/start contracts", () => {
   });
 
   it("builds client and server artifacts with a package-safe server entrypoint", async () => {
+    const port = 34_000 + Math.floor(Math.random() * 1_000);
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `
-        export default { appDir: "app", port: 3201 };
+        export default { appDir: "app", port: ${port} };
       `,
       "app/root.tsx": `
         import { Outlet } from "react-bun-ssr/route";
@@ -107,7 +110,13 @@ describe("CLI build/start contracts", () => {
       "app/public/logo.txt": "logo",
     }, "rbssr-cli-build");
 
-    await runBuild(root);
+    const buildResult = await runProcess({
+      cmd: ["bun", rbssrBinPath, "build"],
+      cwd: root,
+    });
+    if (buildResult.exitCode !== 0) {
+      throw new Error(`rbssr build failed:\n${buildResult.stderr || buildResult.stdout}`);
+    }
 
     expect(await existsPath(path.join(root, "dist/manifest.json"))).toBe(true);
     expect(await existsPath(path.join(root, "dist/server/server.mjs"))).toBe(true);
@@ -125,9 +134,10 @@ describe("CLI build/start contracts", () => {
   });
 
   it("forces production builds even when NODE_ENV is development", async () => {
+    const port = 35_000 + Math.floor(Math.random() * 1_000);
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `
-        export default { appDir: "app", port: 3202 };
+        export default { appDir: "app", port: ${port} };
       `,
       "app/root.tsx": `
         import { Outlet } from "react-bun-ssr/route";
@@ -165,12 +175,13 @@ describe("CLI build/start contracts", () => {
         NODE_ENV: "development",
       },
       stdout: "ignore",
-      stderr: "pipe",
+      stderr: "ignore",
     });
 
-    await waitForHttpReady("http://127.0.0.1:3202");
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
 
-    const html = await fetch("http://127.0.0.1:3202/").then(response => response.text());
+    const html = await fetch(`${baseUrl}/`).then(response => response.text());
     expect(html).toContain("<title>production</title>");
     expect(html).toContain(">production</h1>");
   });

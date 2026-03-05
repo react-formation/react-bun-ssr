@@ -9,9 +9,14 @@ export async function packFrameworkTarball(
   registry: TempDirRegistry,
 ): Promise<string> {
   const outputDir = await registry.create("rbssr-pack");
+  const npmCacheDir = await registry.create("rbssr-npm-cache");
   const result = await runProcess({
     cmd: ["npm", "pack", "--pack-destination", outputDir],
     cwd: REPO_ROOT,
+    env: {
+      NPM_CONFIG_CACHE: npmCacheDir,
+      npm_config_cache: npmCacheDir,
+    },
   });
 
   if (result.exitCode !== 0) {
@@ -28,6 +33,26 @@ export async function packFrameworkTarball(
   }
 
   return path.join(outputDir, tarballName);
+}
+
+export async function listPackedTarballFiles(tarballPath: string): Promise<string[]> {
+  const result = Bun.spawnSync({
+    cmd: ["tar", "-tf", tarballPath],
+    cwd: REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
+    throw new Error(`Failed to list packed files from ${tarballPath}: ${stderr || result.exitCode}`);
+  }
+
+  return new TextDecoder()
+    .decode(result.stdout)
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
 }
 
 export async function readPackedPackageJson(tarballPath: string): Promise<Record<string, unknown>> {

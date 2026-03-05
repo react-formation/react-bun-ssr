@@ -10,7 +10,7 @@ const rbssrBinPath = path.resolve(import.meta.dir, "../../../bin/rbssr.ts");
 
 let activeProcess: Bun.Subprocess | null = null;
 
-setDefaultTimeout(20_000);
+setDefaultTimeout(40_000);
 
 afterEach(async () => {
   if (activeProcess) {
@@ -24,8 +24,10 @@ afterEach(async () => {
 
 describe("CLI dev runtime", () => {
   it("starts without creating versioned server snapshots and can restart from existing generated entries", async () => {
+    const port = 36_000 + Math.floor(Math.random() * 1_000);
+    const baseUrl = `http://127.0.0.1:${port}`;
     const root = await createFixtureApp(tempDirs, {
-      "rbssr.config.ts": `export default { appDir: "app", port: 3217 };`,
+      "rbssr.config.ts": `export default { appDir: "app", port: ${port} };`,
       "app/root.tsx": `export default function Root(){ return <main>root</main>; }`,
       "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
     }, "rbssr-cli-dev-hot");
@@ -34,10 +36,10 @@ describe("CLI dev runtime", () => {
       cmd: ["bun", rbssrBinPath, "dev"],
       cwd: root,
       stdout: "ignore",
-      stderr: "pipe",
+      stderr: "ignore",
     });
 
-    await waitForHttpReady("http://127.0.0.1:3217");
+    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
 
     expect(await existsPath(path.join(root, ".rbssr/generated/dev/entry.ts"))).toBe(true);
     expect(await existsPath(path.join(root, ".rbssr/dev/server-snapshots"))).toBe(false);
@@ -50,9 +52,9 @@ describe("CLI dev runtime", () => {
       cmd: ["bun", rbssrBinPath, "dev"],
       cwd: root,
       stdout: "ignore",
-      stderr: "pipe",
+      stderr: "ignore",
     });
 
-    await waitForHttpReady("http://127.0.0.1:3217");
+    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
   });
 });

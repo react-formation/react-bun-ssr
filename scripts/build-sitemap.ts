@@ -26,6 +26,7 @@ export interface BuildSitemapOptions {
   publicDir?: string;
   docsManifest?: DocManifestEntry[];
   blogManifest?: BlogManifestEntry[];
+  gitExecutable?: string;
 }
 
 function toPosixPath(value: string): string {
@@ -59,11 +60,15 @@ function resolvePaths(options: BuildSitemapOptions) {
   };
 }
 
-async function resolveLastmod(filePath: string, rootDir: string): Promise<string> {
+async function resolveLastmod(
+  filePath: string,
+  rootDir: string,
+  gitExecutable = "git",
+): Promise<string> {
   const relativePath = toPosixPath(path.relative(rootDir, filePath));
   try {
     const gitResult = Bun.spawnSync({
-      cmd: ["git", "-C", rootDir, "log", "-1", "--format=%cI", "--", relativePath],
+      cmd: [gitExecutable, "-C", rootDir, "log", "-1", "--format=%cI", "--", relativePath],
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -162,7 +167,7 @@ export async function buildSitemap(options: BuildSitemapOptions = {}): Promise<S
     sortedEntries.map(async entry => ({
       pathname: entry.pathname,
       absoluteUrl: toAbsoluteUrl(entry.pathname),
-      lastmod: await resolveLastmod(entry.sourceFile, paths.rootDir),
+      lastmod: await resolveLastmod(entry.sourceFile, paths.rootDir, options.gitExecutable),
       sourceFile: entry.sourceFile,
     })),
   );

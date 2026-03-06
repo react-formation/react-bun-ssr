@@ -68,6 +68,7 @@ import {
   sanitizeErrorMessage,
   stableHash,
 } from "./utils";
+import { sortRoutesBySpecificity } from "./route-order";
 
 type ResponseKind = "static" | "html" | "api" | "internal-dev" | "internal-transition";
 
@@ -374,8 +375,8 @@ function resolveAllRouteAssets(options: {
   return options.runtimeOptions.buildManifest?.routes ?? {};
 }
 
-function toClientRouteSnapshots(routes: PageRouteDefinition[]): ClientRouteSnapshot[] {
-  return routes.map(route => ({
+export function toClientRouteSnapshots(routes: PageRouteDefinition[]): ClientRouteSnapshot[] {
+  return sortRoutesBySpecificity([...routes]).map(route => ({
     id: route.id,
     routePath: route.routePath,
     segments: route.segments,

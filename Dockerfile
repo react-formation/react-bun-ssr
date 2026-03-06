@@ -6,7 +6,8 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY app/package.json ./app/package.json
 COPY framework ./framework
-RUN bun install --frozen-lockfile
+COPY bin ./bin
+RUN bun link && bun install --frozen-lockfile
 
 COPY . .
 RUN bun run docs:build
@@ -17,7 +18,8 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY app/package.json ./app/package.json
 COPY framework ./framework
-RUN bun install --frozen-lockfile --production
+COPY bin ./bin
+RUN bun link && bun install --frozen-lockfile --production
 
 # Runtime needs framework and app sources in addition to dist artifacts.
 COPY --from=builder /app/dist ./dist

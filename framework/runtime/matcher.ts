@@ -6,8 +6,10 @@ import type {
   RouteSegment,
 } from "./types";
 
-// Bun FileSystemRouter is the runtime matcher used by the server.
-// This matcher is retained for lightweight unit coverage and internal utilities.
+// Bun FileSystemRouter is the runtime matcher used by the server for projected routes.
+// This matcher is used by server fallbacks and client transition matching.
+// It intentionally does first-match linear scanning and expects routes to be pre-ordered
+// by specificity (higher score first, then longer segment length, then routePath).
 function normalizePathname(pathname: string): string[] {
   if (!pathname || pathname === "/") {
     return [];

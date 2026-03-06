@@ -10,7 +10,7 @@
     "typecheck": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "react-bun-ssr": "file:../..",
+    "react-bun-ssr": "link:react-bun-ssr",
     "react": "^19",
     "react-dom": "^19"
   },

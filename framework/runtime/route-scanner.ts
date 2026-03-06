@@ -14,6 +14,7 @@ import {
   toRouteId,
   trimFileExtension,
 } from "./utils";
+import { sortRoutesBySpecificity } from "./route-order";
 
 const PAGE_FILE_RE = /\.(tsx|jsx|ts|js|md|mdx)$/;
 const LAYOUT_FILE_RE = /\.(tsx|jsx|ts|js)$/;
@@ -101,22 +102,6 @@ function getAncestorDirs(relativeDir: string): string[] {
   }
 
   return result;
-}
-
-function sortRoutes<T extends { score: number; segments: RouteSegment[]; routePath: string }>(
-  routes: T[],
-): T[] {
-  return routes.sort((a, b) => {
-    if (a.score !== b.score) {
-      return b.score - a.score;
-    }
-
-    if (a.segments.length !== b.segments.length) {
-      return b.segments.length - a.segments.length;
-    }
-
-    return a.routePath.localeCompare(b.routePath);
-  });
 }
 
 export async function scanRoutes(
@@ -236,7 +221,7 @@ export async function scanRoutes(
   const pageRoutes = await Promise.all(pageRouteTasks);
 
   return {
-    pages: sortRoutes(pageRoutes),
-    api: sortRoutes(apiRoutes),
+    pages: sortRoutesBySpecificity(pageRoutes),
+    api: sortRoutesBySpecificity(apiRoutes),
   };
 }

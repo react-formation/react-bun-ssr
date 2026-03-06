@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { matchClientPageRoute } from "../../../framework/runtime/client-transition-core";
 import { matchApiRoute, matchPageRoute } from "../../../framework/runtime/matcher";
 
 const pages = [
@@ -56,6 +57,32 @@ describe("matcher", () => {
   it("respects route ranking for static routes", () => {
     const match = matchPageRoute(pages, "/users/new");
     expect(match?.route.id).toBe("users_new");
+  });
+
+  it("matches in declaration order when routes are unsorted", () => {
+    const unsortedClientRoutes = [
+      {
+        id: "blog_slug",
+        routePath: "/blog/:slug",
+        segments: [
+          { kind: "static" as const, value: "blog" },
+          { kind: "dynamic" as const, value: "slug" },
+        ],
+        score: 50,
+      },
+      {
+        id: "blog_new",
+        routePath: "/blog/new",
+        segments: [
+          { kind: "static" as const, value: "blog" },
+          { kind: "static" as const, value: "new" },
+        ],
+        score: 60,
+      },
+    ];
+
+    const match = matchClientPageRoute(unsortedClientRoutes, "/blog/new");
+    expect(match?.route.id).toBe("blog_slug");
   });
 
   it("matches catchall segments", () => {

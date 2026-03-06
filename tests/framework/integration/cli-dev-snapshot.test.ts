@@ -1,6 +1,6 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
-import { existsPath } from "../../../framework/runtime/io";
+import { ensureDir, existsPath } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { spawnProcess, waitForHttpReady } from "../helpers/process";
 import { createTempDirRegistry } from "../helpers/temp-dir";
@@ -11,6 +11,19 @@ const rbssrBinPath = path.resolve(import.meta.dir, "../../../bin/rbssr.ts");
 let activeProcess: Bun.Subprocess | null = null;
 
 setDefaultTimeout(40_000);
+
+function linkDirectory(target: string, linkPath: string): void {
+  const result = Bun.spawnSync({
+    cmd: ["ln", "-s", target, linkPath],
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (result.exitCode !== 0) {
+    const stderr = result.stderr.length > 0 ? new TextDecoder().decode(result.stderr).trim() : "";
+    throw new Error(`Failed to create symlink ${linkPath} -> ${target}: ${stderr || result.exitCode}`);
+  }
+}
 
 afterEach(async () => {
   if (activeProcess) {
@@ -47,6 +60,29 @@ describe("CLI dev runtime", () => {
     activeProcess.kill();
     await activeProcess.exited;
     activeProcess = null;
+
+    activeProcess = spawnProcess({
+      cmd: ["bun", rbssrBinPath, "dev"],
+      cwd: root,
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+
+    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
+  });
+
+  it("starts when app/node_modules contains a linked framework cycle", async () => {
+    const port = 36_000 + Math.floor(Math.random() * 1_000);
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const root = await createFixtureApp(tempDirs, {
+      "rbssr.config.ts": `export default { appDir: "app", port: ${port} };`,
+      "app/root.tsx": `export default function Root(){ return <main>root</main>; }`,
+      "app/routes/index.tsx": `export default function Index(){ return <h1>home</h1>; }`,
+    }, "rbssr-cli-dev-linked-app");
+
+    const appNodeModulesDir = path.join(root, "app/node_modules");
+    await ensureDir(appNodeModulesDir);
+    linkDirectory(root, path.join(appNodeModulesDir, "react-bun-ssr"));
 
     activeProcess = spawnProcess({
       cmd: ["bun", rbssrBinPath, "dev"],

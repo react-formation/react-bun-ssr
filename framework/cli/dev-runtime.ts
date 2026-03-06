@@ -43,6 +43,10 @@ function toAbsoluteAppPath(appDir: string, relativePath: string): string {
   return path.join(appDir, relativePath);
 }
 
+function toNormalizedWatchPath(fileName?: string | Buffer | null): string {
+  return typeof fileName === "string" ? normalizeSlashes(fileName) : "";
+}
+
 interface DevHotData {
   bunServer?: Bun.Server<undefined>;
   reloadToken?: number;
@@ -88,9 +92,11 @@ export async function runHotDevChild(options: {
   let nextClientBuildReason: DevReloadReason | null = null;
   let stopping = false;
 
-  const watchers: FSWatcher[] = [];
   let structuralSyncTimer: ReturnType<typeof setTimeout> | undefined;
   let structuralSyncQueue: Promise<void> = Promise.resolve();
+  let routesWatcher: FSWatcher | null = null;
+  let appWatcher: FSWatcher | null = null;
+  let configWatcher: FSWatcher | null = null;
 
   const publishReload = (reason: DevReloadReason): void => {
     reloadToken += 1;
@@ -253,11 +259,7 @@ export async function runHotDevChild(options: {
     process.exit(RBSSR_DEV_RESTART_EXIT_CODE);
   };
 
-  const handleAppEvent = (eventType: string, fileName?: string | Buffer | null): void => {
-    const relativePath = typeof fileName === "string"
-      ? normalizeSlashes(fileName)
-      : "";
-
+  const handleAppEvent = (eventType: string, relativePath: string): void => {
     if (!relativePath) {
       scheduleStructuralSync();
       return;
@@ -289,10 +291,29 @@ export async function runHotDevChild(options: {
     });
   };
 
-  const addWatcher = (watcher: FSWatcher | null): void => {
-    if (watcher) {
-      watchers.push(watcher);
+  const ensureRoutesWatcher = async (): Promise<void> => {
+    if (routesWatcher || !(await existsPath(resolved.routesDir))) {
+      return;
     }
+
+    try {
+      routesWatcher = watch(resolved.routesDir, { recursive: true }, (eventType, fileName) => {
+        const nestedPath = toNormalizedWatchPath(fileName);
+        const relativePath = nestedPath ? `routes/${nestedPath}` : "routes";
+        handleAppEvent(eventType, relativePath);
+      });
+    } catch {
+      log(`recursive route watching unavailable for ${resolved.routesDir}; route topology updates may require a restart`);
+    }
+  };
+
+  const refreshRoutesWatcher = async (): Promise<void> => {
+    if (routesWatcher) {
+      routesWatcher.close();
+      routesWatcher = null;
+    }
+
+    await ensureRoutesWatcher();
   };
 
   const cleanup = async (options: {
@@ -303,9 +324,12 @@ export async function runHotDevChild(options: {
       structuralSyncTimer = undefined;
     }
 
-    for (const watcher of watchers.splice(0, watchers.length)) {
-      watcher.close();
-    }
+    routesWatcher?.close();
+    routesWatcher = null;
+    appWatcher?.close();
+    appWatcher = null;
+    configWatcher?.close();
+    configWatcher = null;
 
     if (clientWatch) {
       await clientWatch.stop();
@@ -318,30 +342,37 @@ export async function runHotDevChild(options: {
     }
   };
 
+  await refreshRoutesWatcher();
+
   try {
-    addWatcher(
-      watch(resolved.appDir, { recursive: true }, (eventType, fileName) => {
-        handleAppEvent(eventType, fileName);
-      }),
-    );
+    appWatcher = watch(resolved.appDir, (eventType, fileName) => {
+      const relativePath = toNormalizedWatchPath(fileName);
+      if (relativePath === "routes" && eventType === "rename") {
+        void refreshRoutesWatcher();
+      }
+
+      handleAppEvent(eventType, relativePath);
+    });
   } catch {
-    log(`recursive file watching unavailable for ${resolved.appDir}; dev route topology updates may require a restart`);
+    log(`top-level app watching unavailable for ${resolved.appDir}; route topology updates may require a restart`);
   }
 
   try {
-    addWatcher(
-      watch(options.cwd, (eventType, fileName) => {
-        if (typeof fileName !== "string" || !isConfigFileName(fileName)) {
-          return;
-        }
-        if (eventType === "rename" || eventType === "change") {
-          void restartForConfigChange();
-        }
-      }),
-    );
+    configWatcher = watch(options.cwd, (eventType, fileName) => {
+      const configFileName = toNormalizedWatchPath(fileName);
+      if (!configFileName || !isConfigFileName(configFileName)) {
+        return;
+      }
+      if (eventType === "rename" || eventType === "change") {
+        void restartForConfigChange();
+      }
+    });
   } catch {
     log(`config file watching unavailable for ${options.cwd}; config changes may require a manual restart`);
   }
+
+  await enqueueStructuralSync("bootstrap");
+  await refreshRoutesWatcher();
 
   if (import.meta.hot) {
     import.meta.hot.dispose(async (data: DevHotData) => {
@@ -351,8 +382,6 @@ export async function runHotDevChild(options: {
       await cleanup({ preserveServer: true });
     });
   }
-
-  await enqueueStructuralSync("bootstrap");
 
   if (hotData.bunServer && bunServer) {
     publishReload("server-runtime");

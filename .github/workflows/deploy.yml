@@ -38,3 +38,143 @@ jobs:
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Enforce regional machine baseline
+        shell: bash
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          FLY_APP: react-bun-ssr
+        run: |
+          set -euo pipefail
+
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq is required but not installed."
+            exit 1
+          fi
+
+          refresh_machines() {
+            MACHINES_JSON="$(flyctl machine list --app "$FLY_APP" --json)"
+          }
+
+          region_count() {
+            local region="$1"
+            jq -r --arg region "$region" '[.[] | select(.region == $region)] | length' <<<"$MACHINES_JSON"
+          }
+
+          scale_region_to() {
+            local region="$1"
+            local target="$2"
+            flyctl scale count "$target" --app "$FLY_APP" --region "$region" --yes
+          }
+
+          enforce_floor_cap() {
+            local region="$1"
+            local floor="$2"
+            local cap="$3"
+            local count
+
+            count="$(region_count "$region")"
+
+            if (( count < floor )); then
+              echo "Scaling $region up from $count to floor $floor"
+              scale_region_to "$region" "$floor"
+              return 0
+            fi
+
+            if (( count > cap )); then
+              echo "Scaling $region down from $count to cap $cap"
+              scale_region_to "$region" "$cap"
+              return 0
+            fi
+
+            echo "Region $region already within bounds ($count)"
+            return 1
+          }
+
+          select_region_machine() {
+            local region="$1"
+            jq -r --arg region "$region" '
+              [.[] | select(.region == $region) | .id]
+              | sort
+              | .[0] // empty
+            ' <<<"$MACHINES_JSON"
+          }
+
+          select_extra_sjc_machines() {
+            jq -r '
+              [.[] | select(.region == "sjc") | .id]
+              | sort
+              | .[1:] // []
+              | .[]
+            ' <<<"$MACHINES_JSON"
+          }
+
+          machine_state() {
+            local machine_id="$1"
+            jq -r --arg machine_id "$machine_id" '
+              .[] | select(.id == $machine_id) | .state // empty
+            ' <<<"$MACHINES_JSON"
+          }
+
+          ensure_started() {
+            local machine_id="$1"
+            local state
+            state="$(machine_state "$machine_id")"
+
+            if [[ "$state" == "started" ]]; then
+              echo "Machine already started: $machine_id"
+              return
+            fi
+
+            echo "Starting machine $machine_id (state=$state)"
+            flyctl machine start "$machine_id" --app "$FLY_APP"
+          }
+
+          refresh_machines
+          scaled=false
+
+          if enforce_floor_cap "cdg" 1 2; then
+            scaled=true
+          fi
+
+          if enforce_floor_cap "sjc" 1 2; then
+            scaled=true
+          fi
+
+          if [[ "$scaled" == "true" ]]; then
+            refresh_machines
+          fi
+
+          CDG_MACHINE_ID="$(select_region_machine "cdg")"
+          SJC_PINNED_ID="$(select_region_machine "sjc")"
+
+          if [[ -z "$CDG_MACHINE_ID" || -z "$SJC_PINNED_ID" ]]; then
+            echo "Missing baseline machines after regional enforcement."
+            echo "cdg machine: ${CDG_MACHINE_ID:-<none>}"
+            echo "sjc machine: ${SJC_PINNED_ID:-<none>}"
+            exit 1
+          fi
+
+          echo "Ensuring baseline cdg machine is started: $CDG_MACHINE_ID"
+          ensure_started "$CDG_MACHINE_ID"
+
+          echo "Pinning baseline sjc machine to always-on: $SJC_PINNED_ID"
+          flyctl machine update "$SJC_PINNED_ID" --app "$FLY_APP" --autostop=off --autostart --yes
+          refresh_machines
+          ensure_started "$SJC_PINNED_ID"
+
+          while IFS= read -r machine_id; do
+            if [[ -z "$machine_id" ]]; then
+              continue
+            fi
+
+            echo "Restoring autoscale settings for extra sjc machine: $machine_id"
+            flyctl machine update "$machine_id" --app "$FLY_APP" --autostop=suspend --autostart --yes
+          done < <(select_extra_sjc_machines)
+
+          refresh_machines
+          echo "Regional summary:"
+          jq -r '
+            ["cdg", "sjc"][] as $region
+            | "  \($region): \( [ .[] | select(.region == $region) ] | length ) machine(s)"
+          ' <<<"$MACHINES_JSON"

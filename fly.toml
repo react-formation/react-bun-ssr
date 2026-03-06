@@ -12,6 +12,8 @@ primary_region = "cdg"
   force_https = true
   auto_stop_machines = "suspend"
   auto_start_machines = true
+  # Fly applies this baseline only in the primary region (cdg).
+  # sjc baseline enforcement is handled in the deploy workflow.
   min_machines_running = 1
   processes = ["app"]
 

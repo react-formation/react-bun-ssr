@@ -83,8 +83,13 @@ describe("client transition core", () => {
   it("applies redirect depth and same-url navigation guards", () => {
     expect(shouldHardNavigateForRedirectDepth(8)).toBe(false);
     expect(shouldHardNavigateForRedirectDepth(9)).toBe(true);
+
+    // Inputs are full client location strings: pathname + search + hash.
     expect(shouldSkipSoftNavigation("/docs", "/docs", {})).toBe(true);
+    expect(shouldSkipSoftNavigation("/search?q=foo", "/search?q=foo", {})).toBe(true);
+    expect(shouldSkipSoftNavigation("/search?q=foo", "/search?q=bar", {})).toBe(false);
     expect(shouldSkipSoftNavigation("/docs", "/docs", { isPopState: true })).toBe(false);
+    expect(shouldSkipSoftNavigation("/docs", "/docs", { historyManagedByNavigationApi: true })).toBe(false);
     expect(shouldSkipSoftNavigation("/docs", "/blog", {})).toBe(false);
   });
 

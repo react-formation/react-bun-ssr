@@ -1,6 +1,6 @@
 {
   "name": "react-bun-ssr",
-  "version": "0.1.1-rc.0",
+  "version": "0.3.1",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -12,7 +12,23 @@
     "type": "git",
     "url": "git+https://github.com/react-formation/react-bun-ssr.git"
   },
-  "homepage": "https://github.com/react-formation/react-bun-ssr",
+  "description": "Bun-native SSR React framework with file-based routing, loaders, actions, streaming SSR. No Node adapter layer.",
+  "keywords": [
+    "bun",
+    "ssr",
+    "react",
+    "framework",
+    "file-based-routing",
+    "streaming",
+    "hydration",
+    "loaders",
+    "actions",
+    "markdown",
+    "rbssr",
+    "server-rendering",
+    "bun-native"
+  ],
+  "homepage": "https://react-bun-ssr.dev",
   "bugs": {
     "url": "https://github.com/react-formation/react-bun-ssr/issues"
   },
@@ -27,6 +43,7 @@
     "framework",
     "README.md"
   ],
+  "license": "MIT",
   "bin": {
     "rbssr": "bin/rbssr.ts"
   },

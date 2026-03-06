@@ -6,7 +6,7 @@
       "name": "rbssr-sandbox-starter",
       "dependencies": {
         "react": "^19",
-        "react-bun-ssr": "link:react-bun-ssr",
+        "react-bun-ssr": "^0.3.1",
         "react-dom": "^19",
       },
       "devDependencies": {
@@ -30,7 +30,7 @@
 
     "react": ["react@19.2.4", "", {}, "sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ=="],
 
-    "react-bun-ssr": ["react-bun-ssr@link:react-bun-ssr", { "bin": { "rbssr": "bin/rbssr.ts" } }],
+    "react-bun-ssr": ["react-bun-ssr@0.3.2", "", { "peerDependencies": { "react": "^19", "react-dom": "^19" }, "bin": { "rbssr": "bin/rbssr.ts" } }, "sha512-J7aS57tzTNySrHSeTCHPqUMO8wVkv+u8wpDAdCi2LLlj/Sjvh1tFYBPTvQjNSyq4XDCyH6MghA3SZoH53gSgVw=="],
 
     "react-dom": ["react-dom@19.2.4", "", { "dependencies": { "scheduler": "^0.27.0" }, "peerDependencies": { "react": "^19.2.4" } }, "sha512-AXJdLo8kgMbimY95O2aKQqsz2iWi9jMgKJhRBAxECE4IFxfcazB2LmzloIoibJI3C12IlY20+KFaLv+71bUJeQ=="],
 

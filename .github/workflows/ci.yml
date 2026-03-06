@@ -65,13 +65,13 @@ jobs:
       - name: Register framework link
         run: bun link
 
+      - name: Install sandbox starter deps
+        working-directory: examples/sandbox-starter
+        run: bun install --frozen-lockfile
+
       - name: Link framework into sandbox starter
         working-directory: examples/sandbox-starter
         run: bun link react-bun-ssr
-
-      - name: Install sandbox starter deps
-        working-directory: examples/sandbox-starter
-        run: bun install
 
       - name: Build sandbox starter
         working-directory: examples/sandbox-starter

@@ -35,6 +35,9 @@ jobs:
           node --version
           npm --version
 
+      - name: Register framework link
+        run: bun link
+
       - name: Install
         run: bun install --frozen-lockfile
 

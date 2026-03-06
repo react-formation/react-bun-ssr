@@ -164,6 +164,7 @@ This repository contains both the framework and the official docs site built wit
 ```bash
 git clone git@github.com:react-formation/react-bun-ssr.git
 cd react-bun-ssr
+bun link
 bun install
 bun run docs:dev
 ```

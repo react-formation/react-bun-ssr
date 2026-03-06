@@ -19,7 +19,7 @@ describe("package dependency ownership", () => {
     };
 
     expect(appPackage.private).toBe(true);
-    expect(appPackage.dependencies?.["react-bun-ssr"]).toBe("file:..");
+    expect(appPackage.dependencies?.["react-bun-ssr"]).toBe("link:react-bun-ssr");
     expect(appPackage.dependencies?.["react"]).toBe("^19");
     expect(appPackage.dependencies?.["react-dom"]).toBe("^19");
     expect(Object.keys(appPackage.dependencies ?? {}).sort()).toEqual([

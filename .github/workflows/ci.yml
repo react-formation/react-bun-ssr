@@ -27,6 +27,9 @@ jobs:
         with:
           bun-version: "1.3.10"
 
+      - name: Register framework link
+        run: bun link
+
       - name: Install
         run: bun install --frozen-lockfile
 
@@ -77,6 +80,9 @@ jobs:
         with:
           bun-version: "1.3.10"
 
+      - name: Register framework link
+        run: bun link
+
       - name: Install
         run: bun install --frozen-lockfile
 
@@ -98,6 +104,9 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.10"
+
+      - name: Register framework link
+        run: bun link
 
       - name: Install
         run: bun install --frozen-lockfile

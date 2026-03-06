@@ -17,6 +17,7 @@ export PATH="$HOME/.bun/bin:$PATH"
 ```bash
 git clone git@github.com:react-formation/react-bun-ssr.git
 cd react-bun-ssr
+bun link
 bun install
 bun run docs:dev
 ```

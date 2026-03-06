@@ -4,7 +4,7 @@
   "type": "module",
   "dependencies": {
     "react": "^19",
-    "react-bun-ssr": "file:..",
+    "react-bun-ssr": "link:react-bun-ssr",
     "react-dom": "^19"
   }
 }

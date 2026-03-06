@@ -1,10 +1,17 @@
 # react-bun-ssr
 
+[![npm version](https://img.shields.io/npm/v/react-bun-ssr)](https://www.npmjs.com/package/react-bun-ssr)
+[![CI](https://github.com/react-formation/react-bun-ssr/actions/workflows/ci.yml/badge.svg)](https://github.com/react-formation/react-bun-ssr/actions/workflows/ci.yml)
+
 `react-bun-ssr` is a Bun-native SSR React framework with file-based routing, loaders, actions, middleware, streaming, soft navigation, and first-class markdown routes.
+
+> **Stability: Experimental (early alpha).**
+> Expect breaking changes across minor releases while core APIs and ergonomics are still being shaped.
 
 - Documentation: https://react-bun-ssr.dev/docs
 - API reference: https://react-bun-ssr.dev/docs/api/overview
 - Blog: https://react-bun-ssr.dev/blog
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
 - Repository: https://github.com/react-formation/react-bun-ssr
 
 ## Why react-bun-ssr?
@@ -30,6 +37,11 @@ Prerequisites:
 
 - Bun `>= 1.3.10`
 - `rbssr` available on PATH in the workflow you use to start a new app
+
+Try in browser:
+
+- StackBlitz (primary): https://stackblitz.com/github/react-formation/react-bun-ssr/tree/main/examples/sandbox-starter
+- CodeSandbox (fallback): https://codesandbox.io/s/github/react-formation/react-bun-ssr/tree/main/examples/sandbox-starter
 
 Minimal setup:
 
@@ -189,20 +201,3 @@ Contributions should keep framework behavior, docs, tests, and generated artifac
 - The release workflow derives the published package version from the Git tag and rewrites `package.json` in the release job before publishing.
 - npm publishing uses trusted publishing with GitHub OIDC instead of an `NPM_TOKEN`.
 - npm package settings must have a trusted publisher configured for `react-formation / react-bun-ssr / release.yml`.
-
-## Deploying
-
-Fly.io deployment support is already documented and used by this project.
-
-Happy path:
-
-```bash
-fly auth login
-fly deploy
-```
-
-Full deployment docs:
-
-- https://react-bun-ssr.dev/docs/deployment/bun-deployment
-- https://react-bun-ssr.dev/docs/deployment/configuration
-- https://react-bun-ssr.dev/docs/deployment/troubleshooting

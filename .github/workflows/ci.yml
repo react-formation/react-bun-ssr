@@ -45,6 +45,25 @@ jobs:
       - name: Docs build
         run: bun run docs:build
 
+  sandbox-starter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.10"
+
+      - name: Install sandbox starter deps
+        working-directory: examples/sandbox-starter
+        run: bun install
+
+      - name: Build sandbox starter
+        working-directory: examples/sandbox-starter
+        run: bun run build
+
   e2e-main:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: quality

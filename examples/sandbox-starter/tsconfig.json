@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "types": [
+      "bun-types"
+    ]
+  },
+  "include": [
+    "app",
+    "rbssr.config.ts"
+  ]
+}

@@ -1,15 +1,23 @@
 import {
   createContext,
+  useCallback,
   useContext,
   type ComponentType,
   type Context,
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { Params, RenderPayload, RouteErrorResponse, RouteModuleBundle } from "./types";
+import type {
+  ActionResponseEnvelope,
+  Params,
+  RenderPayload,
+  RouteErrorResponse,
+  RouteModuleBundle,
+} from "./types";
+import { markRouteActionStub, type RouteActionStateHandler } from "./action-stub";
 
 interface RuntimeState {
-  data: unknown;
+  loaderData: unknown;
   params: Params;
   url: URL;
   error?: unknown;
@@ -50,7 +58,115 @@ function useRuntimeState(): RuntimeState {
 }
 
 export function useLoaderData<T = unknown>(): T {
-  return useRuntimeState().data as T;
+  return useRuntimeState().loaderData as T;
+}
+
+function isActionResponseEnvelope(value: unknown): value is ActionResponseEnvelope {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as {
+    type?: unknown;
+    status?: unknown;
+  };
+  return typeof candidate.type === "string" && typeof candidate.status === "number";
+}
+
+async function handleActionRedirect(location: string): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const redirectUrl = new URL(location, window.location.href);
+  if (redirectUrl.origin !== window.location.origin) {
+    window.location.assign(redirectUrl.toString());
+    return;
+  }
+
+  try {
+    const runtime = await import("./client-runtime");
+    await runtime.navigateWithNavigationApiOrFallback(redirectUrl.toString(), {
+      replace: true,
+    });
+  } catch {
+    window.location.assign(redirectUrl.toString());
+  }
+}
+
+async function submitRouteAction<TState>(options: {
+  previousState: TState;
+  formData: FormData;
+  routeTarget: string;
+}): Promise<TState> {
+  if (typeof window === "undefined") {
+    return options.previousState;
+  }
+
+  const endpoint = new URL("/__rbssr/action", window.location.origin);
+  endpoint.searchParams.set("to", options.routeTarget);
+
+  const response = await fetch(endpoint.toString(), {
+    method: "POST",
+    body: options.formData,
+    credentials: "same-origin",
+    headers: {
+      accept: "application/json",
+    },
+  });
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error("Action endpoint returned a non-JSON response.");
+  }
+
+  if (!isActionResponseEnvelope(payload)) {
+    throw new Error("Action endpoint returned an invalid envelope.");
+  }
+
+  if (payload.type === "data") {
+    return payload.data as TState;
+  }
+
+  if (payload.type === "redirect") {
+    await handleActionRedirect(payload.location);
+    return options.previousState;
+  }
+
+  if (payload.type === "catch") {
+    throw payload.error;
+  }
+
+  throw new Error(payload.message);
+}
+
+export function createRouteAction<TState = unknown>(): RouteActionStateHandler<TState> {
+  return markRouteActionStub(async (previousState: TState, formData: FormData) => {
+    const routeTarget = typeof window === "undefined"
+      ? "/"
+      : window.location.pathname + window.location.search + window.location.hash;
+
+    return submitRouteAction({
+      previousState,
+      formData,
+      routeTarget,
+    });
+  });
+}
+
+export function useRouteAction<TState = unknown>(): RouteActionStateHandler<TState> {
+  const requestUrl = useRequestUrl();
+  const routeTarget = requestUrl.pathname + requestUrl.search + requestUrl.hash;
+
+  return useCallback((previousState: TState, formData: FormData) => {
+    return submitRouteAction({
+      previousState,
+      formData,
+      routeTarget,
+    });
+  }, [routeTarget]);
 }
 
 export function useParams<T extends Params = Params>(): T {
@@ -83,7 +199,7 @@ export function createRouteTree(
   } = {},
 ): ReactElement {
   const runtimeState: RuntimeState = {
-    data: payload.data,
+    loaderData: payload.loaderData,
     params: payload.params,
     url: new URL(payload.url),
     error: options.error ?? payload.error,

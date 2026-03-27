@@ -38,11 +38,6 @@ Prerequisites:
 - Bun `>= 1.3.10`
 - `rbssr` available on PATH in the workflow you use to start a new app
 
-Try in browser:
-
-- StackBlitz (primary): https://stackblitz.com/github/react-formation/react-bun-ssr/tree/main/examples/sandbox-starter
-- CodeSandbox (fallback): https://codesandbox.io/s/github/react-formation/react-bun-ssr/tree/main/examples/sandbox-starter
-
 Minimal setup:
 
 ```bash
@@ -118,6 +113,43 @@ Read more:
 
 - https://react-bun-ssr.dev/docs/routing/middleware
 - https://react-bun-ssr.dev/docs/data/loaders
+
+### Actions with React `useActionState`
+
+Page mutations use React 19 form actions (`useActionState`) with an explicit route stub:
+
+```tsx
+// app/routes/login.tsx
+import { useActionState } from "react";
+import { createRouteAction } from "react-bun-ssr/route";
+
+type LoginState = { error?: string };
+export const action = createRouteAction<LoginState>();
+
+export default function LoginPage() {
+  const [state, formAction, pending] = useActionState(action, {});
+  return (
+    <form action={formAction}>
+      {state.error ? <p>{state.error}</p> : null}
+      <button disabled={pending}>Sign in</button>
+    </form>
+  );
+}
+```
+
+```tsx
+// app/routes/login.server.tsx
+import { redirect } from "react-bun-ssr";
+import type { Action } from "react-bun-ssr/route";
+
+export const action: Action = async (ctx) => {
+  const email = String(ctx.formData?.get("email") ?? "").trim();
+  if (!email) return { error: "Email is required" };
+  return redirect("/dashboard");
+};
+```
+
+`createRouteAction` is the preferred pattern. `useRouteAction` remains available for backward compatibility.
 
 ### Rendering model
 

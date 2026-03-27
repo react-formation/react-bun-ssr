@@ -70,7 +70,8 @@ rbssr.config.ts
 
 - Bun `>= 1.3.10` is the baseline.
 - The framework expects Bun for dev, build, and production runtime.
-- Route code that also hydrates in the browser should avoid top-level server-only imports.
+- Keep browser-hydrated route UI modules client-safe.
+- Put Bun-only code in `*.server.ts` or `*.server.tsx` route companions and server-only route files.
 
 ## Related APIs
 

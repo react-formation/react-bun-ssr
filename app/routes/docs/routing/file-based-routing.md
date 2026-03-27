@@ -17,12 +17,15 @@ Routing is driven by files under `app/routes`. The shape is close to Next-style 
 ```text
 app/routes/
   index.tsx
+  index.server.tsx
   tasks/
     index.tsx
+    _layout.server.tsx
     [id].tsx
     [...filters].tsx
   api/
-    tasks.ts
+    tasks.server.ts
+  _middleware.server.ts
   docs/
     start/
       overview.md
@@ -36,6 +39,23 @@ This resolves to:
 - `/tasks/*filters`
 - `/api/tasks`
 - `/docs/start/overview`
+
+## Server-only route files and companions
+
+Use `*.server.ts` / `*.server.tsx` when you need Bun-only imports like `bun:sqlite`, password hashing, or storage clients.
+
+Supported patterns:
+
+- `app/root.server.tsx` as a server companion for `app/root.tsx`
+- `app/routes/**/_layout.server.tsx` as a server companion for `_layout.tsx`
+- `app/routes/login.server.tsx` as a server companion for `login.tsx`
+- `app/middleware.server.ts` for global middleware
+- `app/routes/**/_middleware.server.ts` for nested middleware
+- `app/routes/api/**.server.ts` for API handlers
+
+Server companions can export only server lifecycle symbols (`loader`, `action`, `middleware`, `head`, `meta`, `onError`, `onCatch`). The base module stays client-safe and owns the component export.
+
+If both the base route module and its companion export the same server symbol, startup/build fails with a clear duplicate-export error.
 
 ## Dynamic params
 
@@ -141,6 +161,8 @@ Resolution order is:
 - `.md` is supported as a page route.
 - `.mdx` route files are rejected explicitly.
 - `_layout` and `_middleware` participate in routing but do not become public URLs.
+- `.server` suffixes are stripped from route IDs and URL paths.
+- `*.server` companions and server-only files are excluded from client entry generation.
 - Other files that start with `_` are treated as private colocated files and do not become routes.
 - Folders that start with `_` still behave like normal route segments.
 - Route-group directories like `(marketing)` affect organization, not the URL.

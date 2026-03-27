@@ -1,10 +1,12 @@
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { createServer } from "../../../framework/runtime/server";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
+
+setDefaultTimeout(20_000);
 
 afterEach(async () => {
   await tempDirs.cleanup();

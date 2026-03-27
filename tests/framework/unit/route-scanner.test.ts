@@ -103,4 +103,53 @@ describe("scanRoutes", () => {
 
     expect(message).toContain(".mdx route files are not supported yet");
   });
+
+  it("supports page companion files and server-only api files", async () => {
+    const routesDir = await withFixture({
+      "index.tsx": "export default function Route(){return null}",
+      "index.server.tsx": "export function loader(){ return { ok: true }; }",
+      "api/session.server.ts": "export function GET(){}",
+    });
+
+    const manifest = await scanRoutes(routesDir);
+    const indexRoute = manifest.pages.find(route => route.routePath === "/");
+    expect(indexRoute).toBeDefined();
+    expect(indexRoute?.serverFilePath?.endsWith("index.server.tsx")).toBe(true);
+    expect(manifest.api.map(route => route.routePath)).toEqual(["/api/session"]);
+    expect(manifest.api[0]?.id).toBe("api__session");
+    expect(manifest.api[0]?.filePath.endsWith("session.server.ts")).toBe(true);
+  });
+
+  it("rejects route companion files without a base page route module", async () => {
+    const routesDir = await withFixture({
+      "admin.server.tsx": "export function loader(){ return null; }",
+    });
+
+    let message = "";
+    try {
+      await scanRoutes(routesDir);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+
+    expect(message).toContain("without base route module");
+  });
+
+  it("rejects api and middleware plain/server collisions", async () => {
+    const routesDir = await withFixture({
+      "index.tsx": "export default function Route(){return null}",
+      "api/hello.ts": "export function GET(){}",
+      "api/hello.server.ts": "export function GET(){}",
+    });
+
+    await expect(scanRoutes(routesDir)).rejects.toThrow("API route collision");
+
+    const middlewareRoutesDir = await withFixture({
+      "index.tsx": "export default function Route(){return null}",
+      "tasks/_middleware.ts": "export const middleware = async (ctx,next)=>next();",
+      "tasks/_middleware.server.ts": "export const middleware = async (ctx,next)=>next();",
+    });
+
+    await expect(scanRoutes(middlewareRoutesDir)).rejects.toThrow("Middleware file collision");
+  });
 });

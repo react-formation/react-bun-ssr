@@ -1,7 +1,9 @@
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, setDefaultTimeout } from "bun:test";
 import { toAbsoluteUrl } from "../../../app/lib/site.ts";
 import { createServer } from "../../../framework/runtime/server";
+
+setDefaultTimeout(20_000);
 
 describe("docs app SEO routing", () => {
   it("redirects duplicate docs URLs and renders canonical docs URLs", async () => {

@@ -374,7 +374,7 @@ function findPendingTransitionForEvent(event: NavigateEventLike): PendingNavigat
 }
 
 function reviveDeferredPayload(payload: RenderPayload): RenderPayload {
-  const sourceData = payload.data;
+  const sourceData = payload.loaderData;
   if (!sourceData || Array.isArray(sourceData) || typeof sourceData !== "object") {
     return payload;
   }
@@ -394,7 +394,7 @@ function reviveDeferredPayload(payload: RenderPayload): RenderPayload {
 
   return {
     ...payload,
-    data: revivedData,
+    loaderData: revivedData,
   };
 }
 
@@ -713,7 +713,7 @@ async function navigateToInternal(
           matchedModules,
           {
             routeId: matched.route.id,
-            data: null,
+            loaderData: null,
             params: matched.params,
             url: toUrl.toString(),
           },

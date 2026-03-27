@@ -52,14 +52,15 @@ Framework docs:
 
 **Bun APIs:** `Bun.Cookie`, `Bun.CookieMap`
 
-**Framework usage:** the framework parses cookies into `ctx.cookies`, but it does **not** currently expose Bun’s `CookieMap` directly. Public route contexts expose a normalized `Map<string, string>`.
+**Framework usage:** request cookies are exposed as `ctx.cookies` (`Map<string, string>`), and response cookie mutations are exposed through `ctx.response.cookies`.
 
 **Classification:** `Framework-facing`
 
 This distinction matters:
 
 - Bun’s native HTTP server can expose cookie helpers like `req.cookies` backed by `CookieMap`
-- `react-bun-ssr` currently exposes `cookies` as a framework abstraction over cookie parsing
+- `react-bun-ssr` exposes request cookies through `ctx.cookies`
+- `react-bun-ssr` exposes staged response cookie mutations through `ctx.response.cookies`
 - application route code should treat `ctx.cookies` as `Map<string, string>`, not as `Bun.CookieMap`
 
 ```tsx

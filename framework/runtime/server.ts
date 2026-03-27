@@ -8,6 +8,7 @@ import {
 } from "./deferred";
 import { statPath } from "./io";
 import type {
+  ActionResponseEnvelope,
   ActionContext,
   BuildRouteAsset,
   ClientRouteSnapshot,
@@ -69,8 +70,9 @@ import {
   stableHash,
 } from "./utils";
 import { sortRoutesBySpecificity } from "./route-order";
+import { applyResponseContext, createResponseContext } from "./response-context";
 
-type ResponseKind = "static" | "html" | "api" | "internal-dev" | "internal-transition";
+type ResponseKind = "static" | "html" | "api" | "internal-dev" | "internal-transition" | "internal-action";
 
 const HASHED_CLIENT_CHUNK_RE = /^\/client\/.+-[A-Za-z0-9]{6,}\.(?:js|css)$/;
 const STATIC_IMMUTABLE_CACHE = "public, max-age=31536000, immutable";
@@ -192,7 +194,7 @@ function applyFrameworkDefaultHeaders(options: {
 }): void {
   const { headers, dev, kind, pathname } = options;
 
-  if (kind === "internal-dev" || kind === "internal-transition") {
+  if (kind === "internal-dev" || kind === "internal-transition" || kind === "internal-action") {
     if (!headers.has("cache-control")) {
       headers.set("cache-control", "no-store");
     }
@@ -330,6 +332,22 @@ async function parseActionBody(request: Request): Promise<Pick<ActionContext, "f
   }
 
   return {};
+}
+
+function createRequestContext(options: {
+  request: Request;
+  url: URL;
+  params: RequestContext["params"];
+}): RequestContext {
+  const cookies = parseCookieHeader(options.request.headers.get("cookie"));
+  return {
+    request: options.request,
+    url: options.url,
+    params: options.params,
+    cookies,
+    locals: {},
+    response: createResponseContext(cookies),
+  };
 }
 
 async function loadRootOnlyModule(
@@ -505,6 +523,63 @@ function createTransitionStream(options: {
   });
 }
 
+function toActionEnvelopeResponse(
+  envelope: ActionResponseEnvelope,
+  options: {
+    status?: number;
+    headers?: HeadersInit;
+  } = {},
+): Response {
+  const headers = new Headers(options.headers);
+  headers.set("content-type", "application/json; charset=utf-8");
+
+  return new Response(JSON.stringify(envelope), {
+    status: options.status ?? envelope.status,
+    headers,
+  });
+}
+
+async function readActionResponsePayload(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    return await response.text();
+  } catch {
+    return null;
+  }
+}
+
+function resolveResponseRedirect(response: Response): { location: string; status: number } | null {
+  const location = response.headers.get("location");
+  if (!location || !isRedirectStatus(response.status)) {
+    return null;
+  }
+
+  return {
+    location,
+    status: response.status,
+  };
+}
+
+function isActionResponseEnvelopePayload(value: unknown): value is ActionResponseEnvelope {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as {
+    type?: unknown;
+    status?: unknown;
+  };
+  return typeof candidate.type === "string" && typeof candidate.status === "number";
+}
+
 export function createServer(
   config: FrameworkConfig = {},
   runtimeOptions: ServerRuntimeOptions = {},
@@ -583,9 +658,16 @@ export function createServer(
     const devClientDir = path.resolve(resolvedConfig.cwd, ".rbssr/dev/client");
 
     const url = new URL(request.url);
-    const finalize = (response: Response, kind: ResponseKind): Response => {
+    const finalize = (
+      response: Response,
+      kind: ResponseKind,
+      requestContext?: RequestContext,
+    ): Response => {
+      const finalResponse = requestContext
+        ? applyResponseContext(response, requestContext.response)
+        : response;
       return finalizeResponseHeaders({
-        response,
+        response: finalResponse,
         request,
         pathname: url.pathname,
         kind,
@@ -644,7 +726,7 @@ export function createServer(
       nodeEnv,
     };
     const requestModuleLoadOptions = {
-      cacheBustKey: undefined,
+      cacheBustKey: devCacheBustKey,
       serverBytecode: activeConfig.serverBytecode,
       devSourceImports: dev,
       nodeEnv,
@@ -662,6 +744,267 @@ export function createServer(
       routeAssets: routeAssetsById,
       devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
     });
+
+    if (request.method.toUpperCase() === "POST" && url.pathname === "/__rbssr/action") {
+      const toParam = url.searchParams.get("to");
+      if (!toParam) {
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "error",
+            status: 400,
+            message: "Missing required `to` query parameter.",
+          }, { status: 400 }),
+          "internal-action",
+        );
+      }
+
+      let targetUrl: URL;
+      try {
+        targetUrl = new URL(toParam, url);
+      } catch {
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "error",
+            status: 400,
+            message: "Invalid `to` URL.",
+          }, { status: 400 }),
+          "internal-action",
+        );
+      }
+
+      if (targetUrl.origin !== url.origin) {
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "error",
+            status: 400,
+            message: "Cross-origin action targets are not allowed.",
+          }, { status: 400 }),
+          "internal-action",
+        );
+      }
+
+      const actionPageMatch = routeAdapter.matchPage(targetUrl.pathname);
+      if (!actionPageMatch) {
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "error",
+            status: 404,
+            message: "No page route matched the action target.",
+          }, { status: 404 }),
+          "internal-action",
+        );
+      }
+
+      const [routeModules, globalMiddleware, nestedMiddleware, actionBody] = await Promise.all([
+        loadRouteModules({
+          rootFilePath: activeConfig.rootModule,
+          layoutFiles: actionPageMatch.route.layoutFiles,
+          routeFilePath: actionPageMatch.route.filePath,
+          routeServerFilePath: actionPageMatch.route.serverFilePath,
+          ...routeModuleLoadOptions,
+        }),
+        loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
+        loadNestedMiddleware(actionPageMatch.route.middlewareFiles, requestModuleLoadOptions),
+        parseActionBody(request.clone()),
+      ]);
+
+      const moduleMiddleware = extractRouteMiddleware(routeModules.route);
+      const actionRequest = new Request(targetUrl.toString(), {
+        method: request.method,
+        headers: request.headers,
+      });
+      const requestContext = createRequestContext({
+        request: actionRequest,
+        url: targetUrl,
+        params: actionPageMatch.params,
+      });
+      const contextBase = toRouteErrorContextBase({
+        requestContext,
+        routeId: actionPageMatch.route.id,
+        phase: "action",
+        dev,
+      });
+
+      try {
+        const middlewareResponse = await runMiddlewareChain(
+          [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
+          requestContext,
+          async () => {
+            if (!routeModules.route.action) {
+              return toActionEnvelopeResponse({
+                type: "error",
+                status: 405,
+                message:
+                  "Method Not Allowed: route has no server action export. " +
+                  "Define a server action (for example in a *.server.tsx companion) " +
+                  "and call it from useActionState(action, initialState) with createRouteAction().",
+              }, { status: 405 });
+            }
+
+            const actionCtx: ActionContext = {
+              ...requestContext,
+              ...actionBody,
+            };
+            const actionResult = await routeModules.route.action(actionCtx);
+
+            if (isDeferredLoaderResult(actionResult)) {
+              return toActionEnvelopeResponse({
+                type: "error",
+                status: 500,
+                message: "defer() is only supported in route loaders.",
+              }, { status: 500 });
+            }
+
+            if (isRedirectResult(actionResult)) {
+              return toActionEnvelopeResponse({
+                type: "redirect",
+                status: actionResult.status ?? 302,
+                location: actionResult.location,
+              }, { status: 200 });
+            }
+
+            if (isResponse(actionResult)) {
+              const responseRedirect = resolveResponseRedirect(actionResult);
+              if (responseRedirect) {
+                return toActionEnvelopeResponse({
+                  type: "redirect",
+                  status: responseRedirect.status,
+                  location: responseRedirect.location,
+                }, {
+                  headers: actionResult.headers,
+                  status: 200,
+                });
+              }
+
+              const data = await readActionResponsePayload(actionResult.clone());
+              return toActionEnvelopeResponse({
+                type: "data",
+                status: actionResult.status,
+                data,
+              }, {
+                headers: actionResult.headers,
+                status: 200,
+              });
+            }
+
+            return toActionEnvelopeResponse({
+              type: "data",
+              status: 200,
+              data: actionResult,
+            }, { status: 200 });
+          },
+        );
+        const middlewareRedirect = resolveResponseRedirect(middlewareResponse);
+        if (middlewareRedirect) {
+          return finalize(
+            toActionEnvelopeResponse({
+              type: "redirect",
+              status: middlewareRedirect.status,
+              location: middlewareRedirect.location,
+            }, {
+              headers: middlewareResponse.headers,
+              status: 200,
+            }),
+            "internal-action",
+            requestContext,
+          );
+        }
+
+        const parsedPayload = await readActionResponsePayload(middlewareResponse.clone());
+        if (isActionResponseEnvelopePayload(parsedPayload)) {
+          return finalize(middlewareResponse, "internal-action", requestContext);
+        }
+
+        if (middlewareResponse.status >= 400) {
+          const message = typeof parsedPayload === "string"
+            ? parsedPayload
+            : sanitizeErrorMessage(parsedPayload, !dev);
+          return finalize(
+            toActionEnvelopeResponse({
+              type: "error",
+              status: middlewareResponse.status,
+              message,
+            }, {
+              headers: middlewareResponse.headers,
+              status: 200,
+            }),
+            "internal-action",
+            requestContext,
+          );
+        }
+
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "data",
+            status: middlewareResponse.status,
+            data: parsedPayload,
+          }, {
+            headers: middlewareResponse.headers,
+            status: 200,
+          }),
+          "internal-action",
+          requestContext,
+        );
+      } catch (error) {
+        const redirectResponse = resolveThrownRedirect(error);
+        if (redirectResponse) {
+          const location = redirectResponse.headers.get("location");
+          if (location) {
+            return finalize(
+              toActionEnvelopeResponse({
+                type: "redirect",
+                status: redirectResponse.status,
+                location,
+              }, {
+                headers: redirectResponse.headers,
+                status: 200,
+              }),
+              "internal-action",
+              requestContext,
+            );
+          }
+        }
+
+        const caught = toRouteErrorResponse(error);
+        if (caught) {
+          await notifyCatchHooks({
+            modules: routeModules,
+            context: {
+              ...contextBase,
+              error: caught,
+            },
+          });
+
+          return finalize(
+            toActionEnvelopeResponse({
+              type: "catch",
+              status: caught.status,
+              error: toCaughtErrorPayload(caught, !dev),
+            }, { status: 200 }),
+            "internal-action",
+            requestContext,
+          );
+        }
+
+        await notifyErrorHooks({
+          modules: routeModules,
+          context: {
+            ...contextBase,
+            error,
+          },
+        });
+
+        return finalize(
+          toActionEnvelopeResponse({
+            type: "error",
+            status: 500,
+            message: sanitizeErrorMessage(error, !dev),
+          }, { status: 200 }),
+          "internal-action",
+          requestContext,
+        );
+      }
+    }
 
     if (request.method.toUpperCase() === "GET" && url.pathname === "/__rbssr/transition") {
       const toParam = url.searchParams.get("to");
@@ -691,7 +1034,7 @@ export function createServer(
         };
         const payload = {
           routeId: "__not_found__",
-          data: null,
+          loaderData: null,
           params: {},
           url: targetUrl.toString(),
         };
@@ -723,6 +1066,7 @@ export function createServer(
           rootFilePath: activeConfig.rootModule,
           layoutFiles: transitionPageMatch.route.layoutFiles,
           routeFilePath: transitionPageMatch.route.filePath,
+          routeServerFilePath: transitionPageMatch.route.serverFilePath,
           ...routeModuleLoadOptions,
         }),
         loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
@@ -735,13 +1079,11 @@ export function createServer(
         headers: request.headers,
       });
 
-      const requestContext: RequestContext = {
+      const requestContext = createRequestContext({
         request: transitionRequest,
         url: targetUrl,
         params: transitionPageMatch.params,
-        cookies: parseCookieHeader(request.headers.get("cookie")),
-        locals: {},
-      };
+      });
 
       let transitionInitialChunk: TransitionInitialChunk | undefined;
       let deferredSettleEntries: DeferredSettleEntry[] = [];
@@ -753,8 +1095,8 @@ export function createServer(
           [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
           requestContext,
           async () => {
-            let dataForRender: unknown = null;
-            let dataForPayload: unknown = null;
+            let loaderDataForRender: unknown = null;
+            let loaderDataForPayload: unknown = null;
 
             if (routeModules.route.loader) {
               transitionPhase = "loader";
@@ -771,24 +1113,24 @@ export function createServer(
 
               if (isDeferredLoaderResult(loaderResult)) {
                 const prepared = prepareDeferredPayload(transitionPageMatch.route.id, loaderResult);
-                dataForRender = prepared.dataForRender;
-                dataForPayload = prepared.dataForPayload;
+                loaderDataForRender = prepared.dataForRender;
+                loaderDataForPayload = prepared.dataForPayload;
                 deferredSettleEntries = prepared.settleEntries;
               } else {
-                dataForRender = loaderResult;
-                dataForPayload = loaderResult;
+                loaderDataForRender = loaderResult;
+                loaderDataForPayload = loaderResult;
               }
             }
 
             const renderPayload = {
               routeId: transitionPageMatch.route.id,
-              data: dataForRender,
+              loaderData: loaderDataForRender,
               params: transitionPageMatch.params,
               url: targetUrl.toString(),
             };
             const payload = {
               ...renderPayload,
-              data: dataForPayload,
+              loaderData: loaderDataForPayload,
             };
             transitionInitialChunk = {
               type: "initial",
@@ -818,7 +1160,7 @@ export function createServer(
               controlChunk: toRedirectChunk(location, redirectResponse.status),
               sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
             });
-            return finalize(toTransitionStreamResponse(stream, redirectResponse.headers), "internal-transition");
+            return finalize(toTransitionStreamResponse(stream, redirectResponse.headers), "internal-transition", requestContext);
           }
         }
 
@@ -832,7 +1174,7 @@ export function createServer(
         if (caught) {
           const payload = {
             routeId: transitionPageMatch.route.id,
-            data: null,
+            loaderData: null,
             params: transitionPageMatch.params,
             url: targetUrl.toString(),
             error: toCaughtErrorPayload(caught, !dev),
@@ -863,7 +1205,7 @@ export function createServer(
             initialChunk,
             sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
           });
-          return finalize(toTransitionStreamResponse(stream), "internal-transition");
+          return finalize(toTransitionStreamResponse(stream), "internal-transition", requestContext);
         }
 
         await notifyErrorHooks({
@@ -875,7 +1217,7 @@ export function createServer(
         });
         const renderPayload = {
           routeId: transitionPageMatch.route.id,
-          data: null,
+          loaderData: null,
           params: transitionPageMatch.params,
           url: targetUrl.toString(),
           error: toUncaughtErrorPayload(error, !dev),
@@ -899,7 +1241,7 @@ export function createServer(
           initialChunk,
           sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
         });
-        return finalize(toTransitionStreamResponse(stream), "internal-transition");
+        return finalize(toTransitionStreamResponse(stream), "internal-transition", requestContext);
       }
 
       const redirectLocation = middlewareResponse.headers.get("location");
@@ -908,7 +1250,7 @@ export function createServer(
           controlChunk: toRedirectChunk(redirectLocation, middlewareResponse.status),
           sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
         });
-        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
+        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition", requestContext);
       }
 
       if (!transitionInitialChunk) {
@@ -916,7 +1258,7 @@ export function createServer(
           controlChunk: toDocumentChunk(targetUrl.toString(), middlewareResponse.status),
           sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
         });
-        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
+        return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition", requestContext);
       }
 
       const stream = createTransitionStream({
@@ -924,7 +1266,7 @@ export function createServer(
         deferredSettleEntries,
         sanitizeDeferredError: message => sanitizeErrorMessage(message, !dev),
       });
-      return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition");
+      return finalize(toTransitionStreamResponse(stream, middlewareResponse.headers), "internal-transition", requestContext);
     }
 
     const apiMatch = routeAdapter.matchApi(url.pathname);
@@ -942,13 +1284,11 @@ export function createServer(
         }), "api");
       }
 
-      const requestContext: RequestContext = {
+      const requestContext = createRequestContext({
         request,
         url,
         params: apiMatch.params,
-        cookies: parseCookieHeader(request.headers.get("cookie")),
-        locals: {},
-      };
+      });
 
       const [globalMiddleware, routeMiddleware] = await Promise.all([
         loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
@@ -976,12 +1316,12 @@ export function createServer(
       } catch (error) {
         const redirectResponse = resolveThrownRedirect(error);
         if (redirectResponse) {
-          return finalize(redirectResponse, "api");
+          return finalize(redirectResponse, "api", requestContext);
         }
 
         const caught = toRouteErrorResponse(error);
         if (caught) {
-          return finalize(toRouteErrorHttpResponse(toCaughtErrorPayload(caught, !dev)), "api");
+          return finalize(toRouteErrorHttpResponse(toCaughtErrorPayload(caught, !dev)), "api", requestContext);
         }
 
         const apiErrorHook = (apiModule as Record<string, unknown>).onError;
@@ -1007,9 +1347,9 @@ export function createServer(
             error: sanitizeErrorMessage(error, !dev),
           },
           { status: 500 },
-        ), "api");
+        ), "api", requestContext);
       }
-      return finalize(response, "api");
+      return finalize(response, "api", requestContext);
     }
 
     const pageMatch = routeAdapter.matchPage(url.pathname);
@@ -1025,7 +1365,7 @@ export function createServer(
 
       const payload = {
         routeId: "__not_found__",
-        data: null,
+        loaderData: null,
         params: {},
         url: url.toString(),
       };
@@ -1053,11 +1393,29 @@ export function createServer(
       return finalize(toHtmlStreamResponse(stream, 404), "html");
     }
 
+    if (isMutatingMethod(request.method)) {
+      return finalize(
+        new Response(
+          "Page route mutations are not supported via document requests. " +
+            "Use useActionState(action, initialState) with createRouteAction() " +
+            "(or useRouteAction for backwards compatibility).",
+          {
+            status: 405,
+            headers: {
+              allow: "GET, HEAD",
+            },
+          },
+        ),
+        "html",
+      );
+    }
+
     const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
       loadRouteModules({
         rootFilePath: activeConfig.rootModule,
         layoutFiles: pageMatch.route.layoutFiles,
         routeFilePath: pageMatch.route.filePath,
+        routeServerFilePath: pageMatch.route.serverFilePath,
         ...routeModuleLoadOptions,
       }),
       loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
@@ -1065,13 +1423,11 @@ export function createServer(
     ]);
     const moduleMiddleware = extractRouteMiddleware(routeModules.route);
 
-    const requestContext: RequestContext = {
+    const requestContext = createRequestContext({
       request,
       url,
       params: pageMatch.params,
-      cookies: parseCookieHeader(request.headers.get("cookie")),
-      locals: {},
-    };
+    });
 
     const routeAssets = routeAssetsById[pageMatch.route.id] ?? null;
     let pagePhase: RouteErrorPhase = "middleware";
@@ -1099,7 +1455,7 @@ export function createServer(
 
         const basePayload = {
           routeId: pageMatch.route.id,
-          data: null,
+          loaderData: null,
           params: pageMatch.params,
           url: url.toString(),
         };
@@ -1155,7 +1511,7 @@ export function createServer(
 
       const renderPayload = {
         routeId: pageMatch.route.id,
-        data: null,
+        loaderData: null,
         params: pageMatch.params,
         url: url.toString(),
       };
@@ -1188,75 +1544,55 @@ export function createServer(
         [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
         requestContext,
         async () => {
-          const method = request.method.toUpperCase();
-          let dataForRender: unknown = null;
-          let dataForPayload: unknown = null;
+          let loaderDataForRender: unknown = null;
+          let loaderDataForPayload: unknown = null;
           let deferredSettleEntries: DeferredSettleEntry[] = [];
 
-          if (isMutatingMethod(method)) {
-            if (!routeModules.route.action) {
-              return new Response("Method Not Allowed", { status: 405 });
+          const resolveLoaderData = async (): Promise<Response | null> => {
+            if (!routeModules.route.loader) {
+              return null;
             }
 
-            pagePhase = "action";
-            const body = await parseActionBody(request.clone());
-            const actionCtx: ActionContext = {
-              ...requestContext,
-              ...body,
-            };
+            pagePhase = "loader";
+            const loaderCtx: LoaderContext = requestContext;
+            const loaderResult = await routeModules.route.loader(loaderCtx);
 
-            const actionResult = await routeModules.route.action(actionCtx);
-
-            if (isResponse(actionResult)) {
-              return actionResult;
+            if (isResponse(loaderResult)) {
+              return loaderResult;
             }
 
-            if (isRedirectResult(actionResult)) {
-              return toRedirectResponse(actionResult.location, actionResult.status);
+            if (isRedirectResult(loaderResult)) {
+              return toRedirectResponse(loaderResult.location, loaderResult.status);
             }
 
-            if (isDeferredLoaderResult(actionResult)) {
-              return new Response("defer() is only supported in route loaders", { status: 500 });
+            if (isDeferredLoaderResult(loaderResult)) {
+              const prepared = prepareDeferredPayload(pageMatch.route.id, loaderResult);
+              loaderDataForRender = prepared.dataForRender;
+              loaderDataForPayload = prepared.dataForPayload;
+              deferredSettleEntries = prepared.settleEntries;
+            } else {
+              loaderDataForRender = loaderResult;
+              loaderDataForPayload = loaderResult;
             }
 
-            dataForRender = actionResult;
-            dataForPayload = actionResult;
-          } else {
-            if (routeModules.route.loader) {
-              pagePhase = "loader";
-              const loaderCtx: LoaderContext = requestContext;
-              const loaderResult = await routeModules.route.loader(loaderCtx);
+            return null;
+          };
 
-              if (isResponse(loaderResult)) {
-                return loaderResult;
-              }
-
-              if (isRedirectResult(loaderResult)) {
-                return toRedirectResponse(loaderResult.location, loaderResult.status);
-              }
-
-              if (isDeferredLoaderResult(loaderResult)) {
-                const prepared = prepareDeferredPayload(pageMatch.route.id, loaderResult);
-                dataForRender = prepared.dataForRender;
-                dataForPayload = prepared.dataForPayload;
-                deferredSettleEntries = prepared.settleEntries;
-              } else {
-                dataForRender = loaderResult;
-                dataForPayload = loaderResult;
-              }
-            }
+          const loaderResponse = await resolveLoaderData();
+          if (loaderResponse) {
+            return loaderResponse;
           }
 
           const renderPayload = {
             routeId: pageMatch.route.id,
-            data: dataForRender,
+            loaderData: loaderDataForRender,
             params: pageMatch.params,
             url: url.toString(),
           };
 
           const clientPayload = {
             ...renderPayload,
-            data: dataForPayload,
+            loaderData: loaderDataForPayload,
           };
 
           let appTree: ReturnType<typeof createPageAppTree>;
@@ -1287,14 +1623,14 @@ export function createServer(
     } catch (error) {
       const redirectResponse = resolveThrownRedirect(error);
       if (redirectResponse) {
-        return finalize(redirectResponse, "html");
+        return finalize(redirectResponse, "html", requestContext);
       }
 
       const fallbackResponse = await renderFailureDocument(error, pagePhase);
-      return finalize(fallbackResponse, "html");
+      return finalize(fallbackResponse, "html", requestContext);
     }
 
-    return finalize(response, "html");
+    return finalize(response, "html", requestContext);
   };
 
   return {

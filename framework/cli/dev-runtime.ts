@@ -26,11 +26,18 @@ function isConfigFileName(fileName: string): boolean {
 }
 
 function isTopLevelAppRuntimeFile(relativePath: string): boolean {
-  return /^root\.(tsx|jsx|ts|js)$/.test(relativePath) || /^middleware\.(tsx|jsx|ts|js)$/.test(relativePath);
+  return /^root(?:\.server)?\.(tsx|jsx|ts|js)$/.test(relativePath)
+    || /^middleware(?:\.server)?\.(tsx|jsx|ts|js)$/.test(relativePath);
 }
 
 function isMarkdownRouteFile(relativePath: string): boolean {
   return /^routes\/.+\.md$/.test(relativePath);
+}
+
+function isServerOnlyRuntimeFile(relativePath: string): boolean {
+  return /^root\.server\.(tsx|jsx|ts|js)$/.test(relativePath)
+    || /^middleware\.server\.(tsx|jsx|ts|js)$/.test(relativePath)
+    || /^routes\/.+\.server\.(tsx|jsx|ts|js)$/.test(relativePath);
 }
 
 function isStructuralAppPath(relativePath: string): boolean {
@@ -265,8 +272,18 @@ export async function runHotDevChild(options: {
       return;
     }
 
+    if (eventType === "rename" && isServerOnlyRuntimeFile(relativePath)) {
+      publishReload("server-runtime");
+      return;
+    }
+
     if (eventType === "rename" && isStructuralAppPath(relativePath)) {
       scheduleStructuralSync();
+      return;
+    }
+
+    if (eventType === "change" && isServerOnlyRuntimeFile(relativePath)) {
+      publishReload("server-runtime");
       return;
     }
 

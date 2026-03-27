@@ -53,85 +53,89 @@ export function POST() {
 ## Action
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Route action function signature for handling mutating HTTP requests.
 - Learn more: [Actions](/docs/data/actions)
 
 ```ts
-export type Action = (ctx: ActionContext) => Promise<ActionResult> | ActionResult;
+export type Action = RuntimeAction<AppRouteLocals>;
 ```
 
 ## ActionContext
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
-- Description: Context object passed to actions with request metadata, parsed body helpers, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Context object passed to actions with request metadata, parsed body helpers, typed `locals`, request cookies, and staged response mutation helpers.
 - Learn more: [Actions](/docs/data/actions), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
-export interface ActionContext extends RequestContext {
-  formData?: FormData;
-  json?: unknown;
-}
+export type ActionContext = RuntimeActionContext<AppRouteLocals>;
 ```
 
 ## ActionResult
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Allowed return union for actions, including data, redirects, and `Response` values.
 - Learn more: [Actions](/docs/data/actions)
 
 ```ts
-export type ActionResult = LoaderResult | RedirectResult;
+export type ActionResult = RuntimeActionResult;
 ```
 
 ## ApiRouteModule
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Contract for API route modules exporting method handlers like `GET` and `POST`.
 - Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
-export interface ApiRouteModule {
-  GET?: ApiHandler;
-  POST?: ApiHandler;
-  PUT?: ApiHandler;
-  PATCH?: ApiHandler;
-  DELETE?: ApiHandler;
-  HEAD?: ApiHandler;
-  OPTIONS?: ApiHandler;
-}
+export type ApiRouteModule = RuntimeApiRouteModule;
+```
+
+## AppRouteLocals
+
+- Kind: interface
+- Source: `framework/runtime/index.ts`
+- Description: Module-augmentation surface for typing `ctx.locals` across middleware, loaders, actions, and API handlers.
+- Learn more: [Middleware](/docs/routing/middleware)
+
+```ts
+export interface AppRouteLocals extends Record<string, unknown> {}
+```
+
+## assertSameOriginAction
+
+- Kind: function
+- Source: `framework/runtime/helpers.ts`
+- Description: Throws a typed 403 route error when an action request declares a cross-origin source.
+- Learn more: [Actions](/docs/data/actions)
+
+```ts
+assertSameOriginAction(ctx: Pick<RequestContext<AppRouteLocals>, "request" | "url">): void
 ```
 
 ## BuildManifest
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Production manifest describing built route assets used for SSR document injection.
 - Learn more: [Build Output](/docs/tooling/build-output)
 
 ```ts
-export interface BuildManifest {
-  version: string;
-  generatedAt: string;
-  routes: Record<string, BuildRouteAsset>;
-}
+export type BuildManifest = RuntimeBuildManifest;
 ```
 
 ## BuildRouteAsset
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Per-route client asset metadata (entry script and CSS files).
 - Learn more: [Build Output](/docs/tooling/build-output)
 
 ```ts
-export interface BuildRouteAsset {
-  script: string;
-  css: string[];
-}
+export type BuildRouteAsset = RuntimeBuildRouteAsset;
 ```
 
 ## createServer
@@ -158,29 +162,24 @@ defer<T extends Record<string, unknown>>(data: T): DeferredLoaderResult<T>
 
 ## DeferredLoaderResult
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Typed wrapper returned by `defer()` for loaders with immediate and deferred values.
 - Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
-export interface DeferredLoaderResult<T extends Record<string, unknown> = Record<string, unknown>> {
-  __rbssrType: "defer";
-  data: T;
-}
+export type DeferredLoaderResult = RuntimeDeferredLoaderResult;
 ```
 
 ## DeferredToken
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Serialized payload token used internally to revive deferred values during hydration.
 - Learn more: [Streaming and Deferred](/docs/rendering/streaming-deferred)
 
 ```ts
-export interface DeferredToken {
-  __rbssrDeferred: string;
-}
+export type DeferredToken = RuntimeDeferredToken;
 ```
 
 ## defineConfig
@@ -196,25 +195,13 @@ defineConfig(config: FrameworkConfig): FrameworkConfig
 
 ## FrameworkConfig
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Main framework configuration surface for paths, server mode, response headers, and server bytecode behavior.
 - Learn more: [Configuration](/docs/deployment/configuration)
 
 ```ts
-export interface FrameworkConfig {
-  appDir?: string;
-  routesDir?: string;
-  publicDir?: string;
-  rootModule?: string;
-  middlewareFile?: string;
-  distDir?: string;
-  host?: string;
-  port?: number;
-  mode?: "development" | "production";
-  serverBytecode?: boolean;
-  headers?: ResponseHeaderRule[];
-}
+export type FrameworkConfig = RuntimeFrameworkConfig;
 ```
 
 ## isRouteErrorResponse
@@ -267,56 +254,45 @@ export interface LinkProps
 ## Loader
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Route loader function signature for GET/HEAD data requests.
 - Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
-export type Loader = (ctx: LoaderContext) => Promise<LoaderResult> | LoaderResult;
+export type Loader = RuntimeLoader<AppRouteLocals>;
 ```
 
 ## LoaderContext
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
-- Description: Context object passed to loaders with URL, params, mutable locals, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Context object passed to loaders with URL, params, typed `locals`, request cookies, and staged response mutation helpers.
 - Learn more: [Loaders](/docs/data/loaders), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
-export interface LoaderContext extends RequestContext {}
+export type LoaderContext = RuntimeLoaderContext<AppRouteLocals>;
 ```
 
 ## LoaderResult
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Allowed return union for loaders, including plain data, redirects, deferred data, and `Response`.
 - Learn more: [Loaders](/docs/data/loaders)
 
 ```ts
-export type LoaderResult =
-  | Response
-  | RedirectResult
-  | DeferredLoaderResult<Record<string, unknown>>
-  | Record<string, unknown>
-  | string
-  | number
-  | boolean
-  | null;
+export type LoaderResult = RuntimeLoaderResult;
 ```
 
 ## Middleware
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Middleware function contract executed around page and API handlers.
 - Learn more: [Layouts and Groups](/docs/routing/layouts-and-groups)
 
 ```ts
-export type Middleware = (
-  ctx: RequestContext,
-  next: () => Promise<Response>,
-) => Promise<Response> | Response;
+export type Middleware = RuntimeMiddleware<AppRouteLocals>;
 ```
 
 ## notFound
@@ -344,12 +320,12 @@ Outlet(): ReactElement<unknown, string | JSXElementConstructor<any>> | null
 ## Params
 
 - Kind: type
-- Source: `framework/runtime/types.ts`
+- Source: `framework/runtime/index.ts`
 - Description: Dynamic URL params object shape exposed to loaders, actions, and hooks.
 - Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
-export type Params = Record<string, string>;
+export type Params = RuntimeParams;
 ```
 
 ## redirect
@@ -365,61 +341,79 @@ redirect(location: string, status?: 301 | 302 | 303 | 307 | 308 | undefined): Re
 
 ## RedirectResult
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Redirect descriptor shape with destination and HTTP redirect status.
 - Learn more: [Actions](/docs/data/actions)
 
 ```ts
-export interface RedirectResult {
-  type: "redirect";
-  location: string;
-  status?: 301 | 302 | 303 | 307 | 308;
-}
+export type RedirectResult = RuntimeRedirectResult;
 ```
 
 ## RequestContext
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
-- Description: Base request context shared by middleware, loaders, actions, and API handlers, including framework-normalized cookies as `Map<string, string>` rather than Bun's `CookieMap`.
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Base request context shared by middleware, loaders, actions, and API handlers, including typed `locals`, request cookies, and staged response mutation helpers.
 - Learn more: [Layouts and Groups](/docs/routing/layouts-and-groups), [Bun Runtime APIs](/docs/api/bun-runtime-apis), [Cookies](https://bun.com/docs/api/cookie), [HTTP server cookies](https://bun.com/docs/runtime/http/cookies)
 
 ```ts
-export interface RequestContext {
-  request: Request;
-  url: URL;
-  params: Params;
-  cookies: Map<string, string>;
-  locals: Record<string, unknown>;
-}
+export type RequestContext = RuntimeRequestContext<AppRouteLocals>;
+```
+
+## ResponseContext
+
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Response-side context available on `ctx.response` with mutable headers and cookies that are committed to the final HTTP response.
+- Learn more: [Actions](/docs/data/actions)
+
+```ts
+export type ResponseContext = RuntimeResponseContext;
+```
+
+## ResponseCookieOptions
+
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Cookie options accepted by `ctx.response.cookies.set(...)`.
+- Learn more: [Bun Runtime APIs](/docs/api/bun-runtime-apis)
+
+```ts
+export type ResponseCookieOptions = RuntimeResponseCookieOptions;
+```
+
+## ResponseCookies
+
+- Kind: type
+- Source: `framework/runtime/index.ts`
+- Description: Cookie mutation helpers for staged `get`, `set`, and `delete` operations on `ctx.response`.
+- Learn more: [Actions](/docs/data/actions)
+
+```ts
+export type ResponseCookies = RuntimeResponseCookies;
 ```
 
 ## ResponseHeaderRule
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Path-based response header rule used by `FrameworkConfig.headers`.
 - Learn more: [Configuration](/docs/deployment/configuration)
 
 ```ts
-export interface ResponseHeaderRule {
-  source: string;
-  headers: Record<string, string | null>;
-}
+export type ResponseHeaderRule = RuntimeResponseHeaderRule;
 ```
 
 ## RouteCatchContext
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Context passed to `onCatch` lifecycle hooks when a typed caught route error is handled.
 - Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
-export interface RouteCatchContext extends Omit<RouteErrorContext, "error"> {
-  error: RouteErrorResponse;
-}
+export type RouteCatchContext = RuntimeRouteCatchContext;
 ```
 
 ## routeError
@@ -435,63 +429,35 @@ routeError(status: number, data?: unknown, init?: { statusText?: string | undefi
 
 ## RouteErrorContext
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Context passed to `onError` lifecycle hooks for uncaught route failures.
 - Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
-export interface RouteErrorContext {
-  error: unknown;
-  phase: RouteErrorPhase;
-  routeId: string;
-  request: Request;
-  url: URL;
-  params: Params;
-  dev: boolean;
-}
+export type RouteErrorContext = RuntimeRouteErrorContext;
 ```
 
 ## RouteErrorResponse
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Serializable caught route-error shape used by catch boundaries and transition payloads.
 - Learn more: [Error Handling](/docs/data/error-handling)
 
 ```ts
-export interface RouteErrorResponse {
-  type: "route_error";
-  status: number;
-  statusText: string;
-  data?: unknown;
-  headers?: Record<string, string>;
-}
+export type RouteErrorResponse = RuntimeRouteErrorResponse;
 ```
 
 ## RouteModule
 
-- Kind: interface
-- Source: `framework/runtime/types.ts`
+- Kind: type
+- Source: `framework/runtime/index.ts`
 - Description: Page route module contract including component and optional route lifecycle exports.
 - Learn more: [File-Based Routing](/docs/routing/file-based-routing)
 
 ```ts
-export interface RouteModule {
-  default: ComponentType;
-  Loading?: ComponentType;
-  loader?: Loader;
-  action?: Action;
-  middleware?: Middleware | Middleware[];
-  head?: HeadFn;
-  meta?: MetaValue;
-  ErrorComponent?: ComponentType<{ error: unknown; reset: () => void }>;
-  CatchBoundary?: ComponentType<{ error: RouteErrorResponse; reset: () => void }>;
-  onError?: (ctx: RouteErrorContext) => void | Promise<void>;
-  onCatch?: (ctx: RouteCatchContext) => void | Promise<void>;
-  ErrorBoundary?: ComponentType<{ error: unknown }>;
-  NotFound?: ComponentType;
-}
+export type RouteModule = RuntimeRouteModule;
 ```
 
 ## Router
@@ -554,6 +520,17 @@ export type RouterNavigateListener = (nextUrl: URL) => void;
 export interface RouterNavigateOptions {
   scroll?: boolean;
 }
+```
+
+## sanitizeRedirectTarget
+
+- Kind: function
+- Source: `framework/runtime/helpers.ts`
+- Description: Normalizes user-provided redirect targets to safe site-relative paths and falls back when inputs are unsafe.
+- Learn more: [Actions](/docs/data/actions)
+
+```ts
+sanitizeRedirectTarget(value: string | null | undefined, fallback?: string): string
 ```
 
 ## startHttpServer

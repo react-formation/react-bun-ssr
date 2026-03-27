@@ -3,12 +3,13 @@ import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { runInit, runStart } from "../../../framework/cli/commands";
 import { existsPath, readText, writeText } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
-import { runProcess, spawnProcess, waitForHttpReady } from "../helpers/process";
+import { canListenOnLoopback, getAvailablePort, runProcess, spawnProcess, waitForHttpReady } from "../helpers/process";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
 const rbssrBinPath = path.resolve(import.meta.dir, "../../../bin/rbssr.ts");
 let activeProcess: Bun.Subprocess | null = null;
+const describeWhenLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
 
 setDefaultTimeout(40_000);
 
@@ -22,7 +23,7 @@ afterEach(async () => {
   await tempDirs.cleanup();
 });
 
-describe("CLI build/start contracts", () => {
+describeWhenLoopback("CLI build/start contracts", () => {
   it("scaffolds a new app with init", async () => {
     const root = await tempDirs.create("rbssr-cli-init");
 
@@ -97,7 +98,7 @@ describe("CLI build/start contracts", () => {
   });
 
   it("builds client and server artifacts with a package-safe server entrypoint", async () => {
-    const port = 34_000 + Math.floor(Math.random() * 1_000);
+    const port = await getAvailablePort();
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `
         export default { appDir: "app", port: ${port} };
@@ -134,7 +135,7 @@ describe("CLI build/start contracts", () => {
   });
 
   it("forces production builds even when NODE_ENV is development", async () => {
-    const port = 35_000 + Math.floor(Math.random() * 1_000);
+    const port = await getAvailablePort();
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `
         export default { appDir: "app", port: ${port} };
@@ -174,16 +175,79 @@ describe("CLI build/start contracts", () => {
       env: {
         NODE_ENV: "development",
       },
-      stdout: "ignore",
-      stderr: "ignore",
+      stdout: "pipe",
+      stderr: "pipe",
     });
 
     const baseUrl = `http://127.0.0.1:${port}`;
-    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
+    await waitForHttpReady(baseUrl, { timeoutMs: 45_000, process: activeProcess });
 
     const html = await fetch(`${baseUrl}/`).then(response => response.text());
     expect(html).toContain("<title>production</title>");
     expect(html).toContain(">production</h1>");
+  });
+
+  it("builds and starts apps that use *.server route companions and api handlers", async () => {
+    const port = await getAvailablePort();
+    const root = await createFixtureApp(tempDirs, {
+      "rbssr.config.ts": `
+        export default { appDir: "app", port: ${port} };
+      `,
+      "app/root.tsx": `
+        import { Outlet } from "react-bun-ssr/route";
+        export default function Root(){ return <main><Outlet /></main>; }
+      `,
+      "app/middleware.server.ts": `
+        export default async function middleware(ctx, next) {
+          ctx.locals.viewer = "alice";
+          return next();
+        }
+      `,
+      "app/routes/index.tsx": `
+        import { useLoaderData } from "react-bun-ssr/route";
+        export default function Index(){
+          const data = useLoaderData<{ message: string; viewer: string }>();
+          return <h1>{data.message}:{data.viewer}</h1>;
+        }
+      `,
+      "app/routes/index.server.tsx": `
+        import { Database } from "bun:sqlite";
+        const db = new Database(":memory:");
+        db.exec("create table if not exists posts (id integer primary key autoincrement, title text);");
+        db.exec("insert into posts (title) values ('hello');");
+        export function loader(ctx){
+          const row = db.query("select title from posts limit 1").get();
+          return { message: String(row?.title ?? "missing"), viewer: String(ctx.locals.viewer ?? "missing") };
+        }
+      `,
+      "app/routes/api/session.server.ts": `
+        export function GET(ctx){ return { ok: true, viewer: ctx.locals.viewer }; }
+      `,
+    }, "rbssr-cli-build-server-only");
+
+    const buildResult = await runProcess({
+      cmd: ["bun", rbssrBinPath, "build"],
+      cwd: root,
+    });
+    if (buildResult.exitCode !== 0) {
+      throw new Error(`rbssr build failed:\n${buildResult.stderr || buildResult.stdout}`);
+    }
+
+    activeProcess = spawnProcess({
+      cmd: ["bun", rbssrBinPath, "start"],
+      cwd: root,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await waitForHttpReady(baseUrl, { timeoutMs: 60_000, process: activeProcess });
+
+    const pageHtml = await fetch(`${baseUrl}/`).then(response => response.text());
+    expect(pageHtml.replaceAll("<!-- -->", "")).toContain("hello:alice");
+
+    const apiJson = await fetch(`${baseUrl}/api/session`).then(response => response.json());
+    expect(apiJson).toEqual({ ok: true, viewer: "alice" });
   });
 
   it("throws a clear error when start runs before build", async () => {

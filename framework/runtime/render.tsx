@@ -155,7 +155,7 @@ function moduleHeadToElements(moduleValue: RouteModule, payload: RenderPayload, 
   const tags: ReactNode[] = [];
 
   const context = {
-    data: payload.data,
+    data: payload.loaderData,
     params: payload.params,
     url: new URL(payload.url),
     error: payload.error,

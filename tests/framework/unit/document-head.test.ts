@@ -12,7 +12,7 @@ import type { RouteModuleBundle } from "../../../framework/runtime/types";
 
 const basePayload = {
   routeId: "index",
-  data: { message: "ok" },
+  loaderData: { message: "ok" },
   params: { id: "42" },
   url: "http://localhost/tasks/42",
 };

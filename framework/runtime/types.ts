@@ -2,17 +2,41 @@ import type { ComponentType, ReactNode } from "react";
 
 export type Params = Record<string, string>;
 
-export interface RequestContext {
+export interface AppRouteLocals extends Record<string, unknown> {}
+
+export interface ResponseCookieOptions {
+  path?: string;
+  domain?: string;
+  expires?: Date | string;
+  maxAge?: number;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "Strict" | "Lax" | "None" | "strict" | "lax" | "none";
+}
+
+export interface ResponseCookies {
+  get(name: string): string | undefined;
+  set(name: string, value: string, options?: ResponseCookieOptions): void;
+  delete(name: string, options?: Omit<ResponseCookieOptions, "expires" | "maxAge">): void;
+}
+
+export interface ResponseContext {
+  headers: Pick<Headers, "set" | "append" | "delete" | "get" | "has">;
+  cookies: ResponseCookies;
+}
+
+export interface RequestContext<Locals extends Record<string, unknown> = AppRouteLocals> {
   request: Request;
   url: URL;
   params: Params;
   cookies: Map<string, string>;
-  locals: Record<string, unknown>;
+  locals: Locals;
+  response: ResponseContext;
 }
 
-export interface LoaderContext extends RequestContext {}
+export interface LoaderContext<Locals extends Record<string, unknown> = AppRouteLocals> extends RequestContext<Locals> {}
 
-export interface ActionContext extends RequestContext {
+export interface ActionContext<Locals extends Record<string, unknown> = AppRouteLocals> extends RequestContext<Locals> {
   formData?: FormData;
   json?: unknown;
 }
@@ -37,8 +61,12 @@ export type LoaderResult =
   | null;
 export type ActionResult = LoaderResult | RedirectResult;
 
-export type Loader = (ctx: LoaderContext) => Promise<LoaderResult> | LoaderResult;
-export type Action = (ctx: ActionContext) => Promise<ActionResult> | ActionResult;
+export type Loader<Locals extends Record<string, unknown> = AppRouteLocals> = (
+  ctx: LoaderContext<Locals>,
+) => Promise<LoaderResult> | LoaderResult;
+export type Action<Locals extends Record<string, unknown> = AppRouteLocals> = (
+  ctx: ActionContext<Locals>,
+) => Promise<ActionResult> | ActionResult;
 
 export interface RedirectResult {
   type: "redirect";
@@ -46,8 +74,8 @@ export interface RedirectResult {
   status?: 301 | 302 | 303 | 307 | 308;
 }
 
-export type Middleware = (
-  ctx: RequestContext,
+export type Middleware<Locals extends Record<string, unknown> = AppRouteLocals> = (
+  ctx: RequestContext<Locals>,
   next: () => Promise<Response>,
 ) => Promise<Response> | Response;
 
@@ -109,7 +137,9 @@ export interface RouteModule {
 
 export type LayoutModule = RouteModule;
 
-export type ApiHandler = (ctx: RequestContext) => Promise<Response | unknown> | Response | unknown;
+export type ApiHandler<Locals extends Record<string, unknown> = AppRouteLocals> = (
+  ctx: RequestContext<Locals>,
+) => Promise<Response | unknown> | Response | unknown;
 
 export interface ApiRouteModule {
   GET?: ApiHandler;
@@ -170,6 +200,7 @@ export interface PageRouteDefinition {
   type: "page";
   id: string;
   filePath: string;
+  serverFilePath?: string;
   routePath: string;
   segments: RouteSegment[];
   score: number;
@@ -212,11 +243,41 @@ export interface BuildManifest {
 
 export interface RenderPayload {
   routeId: string;
-  data: unknown;
+  loaderData: unknown;
   params: Params;
   url: string;
   error?: unknown;
 }
+
+export interface ActionDataEnvelope {
+  type: "data";
+  status: number;
+  data: unknown;
+}
+
+export interface ActionRedirectEnvelope {
+  type: "redirect";
+  status: number;
+  location: string;
+}
+
+export interface ActionCatchEnvelope {
+  type: "catch";
+  status: number;
+  error: RouteErrorResponse;
+}
+
+export interface ActionErrorEnvelope {
+  type: "error";
+  status: number;
+  message: string;
+}
+
+export type ActionResponseEnvelope =
+  | ActionDataEnvelope
+  | ActionRedirectEnvelope
+  | ActionCatchEnvelope
+  | ActionErrorEnvelope;
 
 export interface ClientRouteSnapshot {
   id: string;

@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { isRouteActionStub } from './action-stub';
 import { ensureDir, existsPath } from './io';
 import type {
   ApiRouteModule,
@@ -30,7 +31,18 @@ export interface RouteModuleLoadOptions {
   serverBytecode?: boolean;
   devSourceImports?: boolean;
   nodeEnv?: "development" | "production";
+  companionFilePath?: string | null;
 }
+
+const ROUTE_SERVER_EXPORT_KEYS = new Set([
+  "loader",
+  "action",
+  "middleware",
+  "head",
+  "meta",
+  "onError",
+  "onCatch",
+]);
 
 export function createServerModuleCacheKey(options: {
   absoluteFilePath: string;
@@ -88,6 +100,46 @@ function normalizeLoadOptions(
   return options ?? {};
 }
 
+export function toServerCompanionPath(filePath: string): string {
+  const extension = path.extname(filePath);
+  if (!extension) {
+    return `${filePath}.server`;
+  }
+  return `${filePath.slice(0, -extension.length)}.server${extension}`;
+}
+
+async function resolveServerCompanionFilePath(
+  filePath: string,
+  options: RouteModuleLoadOptions,
+): Promise<string | null> {
+  if (options.companionFilePath === null) {
+    return null;
+  }
+
+  if (typeof options.companionFilePath === "string") {
+    return options.companionFilePath;
+  }
+
+  const companionFilePath = toServerCompanionPath(filePath);
+  if (await existsPath(companionFilePath)) {
+    return companionFilePath;
+  }
+  return null;
+}
+
+async function loadRawModuleRecord(
+  filePath: string,
+  options: RouteModuleLoadOptions,
+): Promise<Record<string, unknown>> {
+  const modulePath = options.devSourceImports
+    ? path.resolve(filePath)
+    : await buildServerModule(filePath, options);
+  return unwrapModuleNamespace(await importModule<Record<string, unknown>>(
+    modulePath,
+    options.cacheBustKey,
+  ));
+}
+
 function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   const rawValue = moduleValue as Record<string, unknown>;
   const value = unwrapModuleNamespace(rawValue) as Partial<RouteModule>;
@@ -108,14 +160,103 @@ function toRouteModule(filePath: string, moduleValue: unknown): RouteModule {
   } as RouteModule;
 }
 
+function toRouteServerCompanionExports(
+  filePath: string,
+  companionFilePath: string,
+  moduleValue: Record<string, unknown>,
+): Partial<RouteModule> {
+  const exportKeys = Object.keys(moduleValue).filter(key => key !== "__esModule");
+
+  if (exportKeys.includes("default")) {
+    throw new Error(
+      `Route companion module ${companionFilePath} cannot export default. ` +
+        `Move UI exports back to ${filePath}.`,
+    );
+  }
+
+  const unsupportedExports = exportKeys.filter(key => !ROUTE_SERVER_EXPORT_KEYS.has(key));
+  if (unsupportedExports.length > 0) {
+    throw new Error(
+      `Route companion module ${companionFilePath} has unsupported exports: ${unsupportedExports.join(", ")}. ` +
+        `Allowed exports: ${[...ROUTE_SERVER_EXPORT_KEYS].join(", ")}.`,
+    );
+  }
+
+  const companionExports: Partial<RouteModule> = {};
+  for (const key of exportKeys) {
+    (companionExports as Record<string, unknown>)[key] = moduleValue[key];
+  }
+  return companionExports;
+}
+
+function mergeRouteModuleWithCompanion(options: {
+  filePath: string;
+  companionFilePath: string;
+  routeModule: RouteModule;
+  companionExports: Partial<RouteModule>;
+}): RouteModule {
+  for (const key of ROUTE_SERVER_EXPORT_KEYS) {
+    if (options.companionExports[key as keyof RouteModule] === undefined) {
+      continue;
+    }
+
+    if (
+      key === "action"
+      && isRouteActionStub(options.routeModule.action)
+    ) {
+      continue;
+    }
+
+    if (options.routeModule[key as keyof RouteModule] !== undefined) {
+      throw new Error(
+        `Duplicate server export "${key}" found in both ${options.filePath} and ${options.companionFilePath}. ` +
+          `Keep "${key}" in only one file.`,
+      );
+    }
+  }
+
+  return {
+    ...options.routeModule,
+    ...options.companionExports,
+  };
+}
+
+function stripRouteActionStub(routeModule: RouteModule): RouteModule {
+  if (!isRouteActionStub(routeModule.action)) {
+    return routeModule;
+  }
+
+  const { action: _stubAction, ...rest } = routeModule;
+  return rest as RouteModule;
+}
+
 function unwrapModuleNamespace(moduleValue: Record<string, unknown>): Record<string, unknown> {
   if (
-    moduleValue
-    && typeof moduleValue.default === "object"
-    && moduleValue.default !== null
-    && "default" in (moduleValue.default as Record<string, unknown>)
+    !moduleValue
+    || typeof moduleValue.default !== "object"
+    || moduleValue.default === null
   ) {
-    return moduleValue.default as Record<string, unknown>;
+    return moduleValue;
+  }
+
+  const defaultNamespace = moduleValue.default as Record<string, unknown>;
+
+  if ("default" in defaultNamespace) {
+    return defaultNamespace;
+  }
+
+  const namedExportKeys = Object.keys(moduleValue).filter(key => {
+    return key !== "default" && key !== "__esModule";
+  });
+
+  if (
+    namedExportKeys.length > 0
+    && namedExportKeys.every(key => {
+      return Object.prototype.hasOwnProperty.call(defaultNamespace, key)
+        && defaultNamespace[key] === moduleValue[key];
+    })
+  ) {
+    return defaultNamespace;
   }
 
   return moduleValue;
@@ -243,20 +384,29 @@ export async function loadRouteModule(
   options: RouteModuleLoadOptions = {},
 ): Promise<RouteModule> {
   const normalizedOptions = normalizeLoadOptions(options);
-  const modulePath = normalizedOptions.devSourceImports
-    ? path.resolve(filePath)
-    : await buildServerModule(filePath, normalizedOptions);
-  const moduleValue = await importModule<unknown>(
-    modulePath,
-    normalizedOptions.cacheBustKey,
-  );
-  return toRouteModule(filePath, moduleValue);
+  const baseModuleValue = await loadRawModuleRecord(filePath, normalizedOptions);
+  const routeModule = toRouteModule(filePath, baseModuleValue);
+  const companionFilePath = await resolveServerCompanionFilePath(filePath, normalizedOptions);
+  if (!companionFilePath) {
+    return stripRouteActionStub(routeModule);
+  }
+
+  const companionModuleValue = await loadRawModuleRecord(companionFilePath, normalizedOptions);
+  const companionExports = toRouteServerCompanionExports(filePath, companionFilePath, companionModuleValue);
+  const mergedRouteModule = mergeRouteModuleWithCompanion({
+    filePath,
+    companionFilePath,
+    routeModule,
+    companionExports,
+  });
+  return stripRouteActionStub(mergedRouteModule);
 }
 
 export async function loadRouteModules(options: {
   rootFilePath: string;
   layoutFiles: string[];
   routeFilePath: string;
+  routeServerFilePath?: string;
   cacheBustKey?: string;
   serverBytecode?: boolean;
   devSourceImports?: boolean;
@@ -273,7 +423,10 @@ export async function loadRouteModules(options: {
         loadRouteModule(layoutFilePath, moduleOptions),
       ),
     ),
-    loadRouteModule(options.routeFilePath, moduleOptions),
+    loadRouteModule(options.routeFilePath, {
+      ...moduleOptions,
+      companionFilePath: options.routeServerFilePath,
+    }),
   ]);
 
   return {
@@ -301,22 +454,42 @@ function normalizeMiddlewareExport(value: unknown): Middleware[] {
   return [];
 }
 
+async function resolveGlobalMiddlewarePath(middlewareFilePath: string): Promise<string | null> {
+  const basePath = path.resolve(middlewareFilePath);
+  const serverPath = toServerCompanionPath(basePath);
+  const [baseExists, serverExists] = await Promise.all([
+    existsPath(basePath),
+    existsPath(serverPath),
+  ]);
+
+  if (baseExists && serverExists) {
+    throw new Error(
+      `Global middleware file collision: both ${basePath} and ${serverPath} exist. ` +
+        "Use only one of these files.",
+    );
+  }
+
+  if (serverExists) {
+    return serverPath;
+  }
+  if (baseExists) {
+    return basePath;
+  }
+
+  return null;
+}
+
 export async function loadGlobalMiddleware(
   middlewareFilePath: string,
   options: string | RouteModuleLoadOptions = {},
 ): Promise<Middleware[]> {
-  if (!(await existsPath(middlewareFilePath))) {
+  const resolvedMiddlewarePath = await resolveGlobalMiddlewarePath(middlewareFilePath);
+  if (!resolvedMiddlewarePath) {
     return [];
   }
 
   const normalizedOptions = normalizeLoadOptions(options);
-  const modulePath = normalizedOptions.devSourceImports
-    ? path.resolve(middlewareFilePath)
-    : await buildServerModule(middlewareFilePath, normalizedOptions);
-  const raw = unwrapModuleNamespace(await importModule<Record<string, unknown>>(
-    modulePath,
-    normalizedOptions.cacheBustKey,
-  ));
+  const raw = await loadRawModuleRecord(resolvedMiddlewarePath, normalizedOptions);
 
   return [
     ...normalizeMiddlewareExport(raw.default),
@@ -331,13 +504,7 @@ export async function loadNestedMiddleware(
   const normalizedOptions = normalizeLoadOptions(options);
   const rawModules = await Promise.all(
     middlewareFilePaths.map(async (middlewareFilePath) => {
-      const modulePath = normalizedOptions.devSourceImports
-        ? path.resolve(middlewareFilePath)
-        : await buildServerModule(middlewareFilePath, normalizedOptions);
-      return unwrapModuleNamespace(await importModule<Record<string, unknown>>(
-        modulePath,
-        normalizedOptions.cacheBustKey,
-      ));
+      return loadRawModuleRecord(middlewareFilePath, normalizedOptions);
     }),
   );
 
@@ -358,10 +525,5 @@ export async function loadApiRouteModule(
   options: string | RouteModuleLoadOptions = {},
 ): Promise<ApiRouteModule> {
   const normalizedOptions = normalizeLoadOptions(options);
-  const modulePath = normalizedOptions.devSourceImports
-    ? path.resolve(filePath)
-    : await buildServerModule(filePath, normalizedOptions);
-  return unwrapModuleNamespace(
-    await importModule<Record<string, unknown>>(modulePath, normalizedOptions.cacheBustKey),
-  ) as ApiRouteModule;
+  return await loadRawModuleRecord(filePath, normalizedOptions) as ApiRouteModule;
 }

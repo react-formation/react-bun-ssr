@@ -315,6 +315,11 @@
       },
       {
         "depth": 2,
+        "id": "server-only-route-files-and-companions",
+        "text": "Server-only route files and companions"
+      },
+      {
+        "depth": 2,
         "id": "dynamic-params",
         "text": "Dynamic params"
       },
@@ -425,6 +430,11 @@
         "depth": 2,
         "id": "execution-order",
         "text": "Execution order"
+      },
+      {
+        "depth": 2,
+        "id": "typing-ctx-locals-once",
+        "text": "Typing ctx.locals once"
       },
       {
         "depth": 2,
@@ -597,6 +607,21 @@
         "depth": 2,
         "id": "minimal-working-example",
         "text": "Minimal working example"
+      },
+      {
+        "depth": 2,
+        "id": "same-route-validation-flow",
+        "text": "Same-route validation flow"
+      },
+      {
+        "depth": 2,
+        "id": "small-security-helpers",
+        "text": "Small security helpers"
+      },
+      {
+        "depth": 2,
+        "id": "auth-oriented-server-companion-snippet",
+        "text": "Auth-oriented server companion snippet"
       },
       {
         "depth": 2,
@@ -1409,6 +1434,16 @@
       },
       {
         "depth": 2,
+        "id": "approutelocals",
+        "text": "AppRouteLocals"
+      },
+      {
+        "depth": 2,
+        "id": "assertsameoriginaction",
+        "text": "assertSameOriginAction"
+      },
+      {
+        "depth": 2,
         "id": "buildmanifest",
         "text": "BuildManifest"
       },
@@ -1519,6 +1554,21 @@
       },
       {
         "depth": 2,
+        "id": "responsecontext",
+        "text": "ResponseContext"
+      },
+      {
+        "depth": 2,
+        "id": "responsecookieoptions",
+        "text": "ResponseCookieOptions"
+      },
+      {
+        "depth": 2,
+        "id": "responsecookies",
+        "text": "ResponseCookies"
+      },
+      {
+        "depth": 2,
         "id": "responseheaderrule",
         "text": "ResponseHeaderRule"
       },
@@ -1566,6 +1616,11 @@
         "depth": 2,
         "id": "routernavigateoptions",
         "text": "RouterNavigateOptions"
+      },
+      {
+        "depth": 2,
+        "id": "sanitizeredirecttarget",
+        "text": "sanitizeRedirectTarget"
       },
       {
         "depth": 2,
@@ -1626,8 +1681,8 @@
       },
       {
         "depth": 3,
-        "id": "action-redirect-helper",
-        "text": "Action + redirect helper"
+        "id": "react-useactionstate-direct-route-action-stub",
+        "text": "React useActionState + direct route action stub"
       },
       {
         "depth": 3,
@@ -1658,6 +1713,21 @@
         "depth": 2,
         "id": "actionresult",
         "text": "ActionResult"
+      },
+      {
+        "depth": 2,
+        "id": "approutelocals",
+        "text": "AppRouteLocals"
+      },
+      {
+        "depth": 2,
+        "id": "assertsameoriginaction",
+        "text": "assertSameOriginAction"
+      },
+      {
+        "depth": 2,
+        "id": "createrouteaction",
+        "text": "createRouteAction"
       },
       {
         "depth": 2,
@@ -1746,6 +1816,21 @@
       },
       {
         "depth": 2,
+        "id": "responsecontext",
+        "text": "ResponseContext"
+      },
+      {
+        "depth": 2,
+        "id": "responsecookieoptions",
+        "text": "ResponseCookieOptions"
+      },
+      {
+        "depth": 2,
+        "id": "responsecookies",
+        "text": "ResponseCookies"
+      },
+      {
+        "depth": 2,
         "id": "routecatchcontext",
         "text": "RouteCatchContext"
       },
@@ -1786,6 +1871,11 @@
       },
       {
         "depth": 2,
+        "id": "sanitizeredirecttarget",
+        "text": "sanitizeRedirectTarget"
+      },
+      {
+        "depth": 2,
         "id": "useloaderdata",
         "text": "useLoaderData"
       },
@@ -1798,6 +1888,11 @@
         "depth": 2,
         "id": "userequesturl",
         "text": "useRequestUrl"
+      },
+      {
+        "depth": 2,
+        "id": "userouteaction",
+        "text": "useRouteAction"
       },
       {
         "depth": 2,

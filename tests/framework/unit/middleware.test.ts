@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { runMiddlewareChain } from "../../../framework/runtime/middleware";
+import { createResponseContext } from "../../../framework/runtime/response-context";
 
 describe("runMiddlewareChain", () => {
   it("executes middleware in order", async () => {
     const calls: string[] = [];
 
+    const cookies = new Map<string, string>();
     const response = await runMiddlewareChain(
       [
         async (ctx, next) => {
@@ -24,8 +26,9 @@ describe("runMiddlewareChain", () => {
         request: new Request("http://localhost/"),
         url: new URL("http://localhost/"),
         params: {},
-        cookies: new Map(),
+        cookies,
         locals: {},
+        response: createResponseContext(cookies),
       },
       async () => {
         calls.push("handler");
@@ -41,6 +44,7 @@ describe("runMiddlewareChain", () => {
     let caught: unknown = null;
 
     try {
+      const cookies = new Map<string, string>();
       await runMiddlewareChain(
         [
           async (ctx, next) => {
@@ -52,8 +56,9 @@ describe("runMiddlewareChain", () => {
           request: new Request("http://localhost/"),
           url: new URL("http://localhost/"),
           params: {},
-          cookies: new Map(),
+          cookies,
           locals: {},
+          response: createResponseContext(cookies),
         },
         async () => new Response("ok"),
       );

@@ -1,14 +1,15 @@
 import path from "node:path";
 import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
-import { ensureDir, existsPath } from "../../../framework/runtime/io";
+import { ensureDir, existsPath, writeText } from "../../../framework/runtime/io";
 import { createFixtureApp } from "../helpers/fixture-app";
-import { spawnProcess, waitForHttpReady } from "../helpers/process";
+import { canListenOnLoopback, getAvailablePort, spawnProcess, waitForHttpReady } from "../helpers/process";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
 const rbssrBinPath = path.resolve(import.meta.dir, "../../../bin/rbssr.ts");
 
 let activeProcess: Bun.Subprocess | null = null;
+const describeWhenLoopback = (await canListenOnLoopback()) ? describe : describe.skip;
 
 setDefaultTimeout(40_000);
 
@@ -35,9 +36,9 @@ afterEach(async () => {
   await tempDirs.cleanup();
 });
 
-describe("CLI dev runtime", () => {
+describeWhenLoopback("CLI dev runtime", () => {
   it("starts without creating versioned server snapshots and can restart from existing generated entries", async () => {
-    const port = 36_000 + Math.floor(Math.random() * 1_000);
+    const port = await getAvailablePort();
     const baseUrl = `http://127.0.0.1:${port}`;
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `export default { appDir: "app", port: ${port} };`,
@@ -72,7 +73,7 @@ describe("CLI dev runtime", () => {
   });
 
   it("starts when app/node_modules contains a linked framework cycle", async () => {
-    const port = 36_000 + Math.floor(Math.random() * 1_000);
+    const port = await getAvailablePort();
     const baseUrl = `http://127.0.0.1:${port}`;
     const root = await createFixtureApp(tempDirs, {
       "rbssr.config.ts": `export default { appDir: "app", port: ${port} };`,
@@ -92,5 +93,54 @@ describe("CLI dev runtime", () => {
     });
 
     await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
+  });
+
+  it("reloads server runtime when *.server route companions change", async () => {
+    const port = await getAvailablePort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const root = await createFixtureApp(tempDirs, {
+      "rbssr.config.ts": `export default { appDir: "app", port: ${port} };`,
+      "app/root.tsx": `
+        import { Outlet } from "react-bun-ssr/route";
+        export default function Root(){ return <main><Outlet /></main>; }
+      `,
+      "app/routes/index.tsx": `
+        import { useLoaderData } from "react-bun-ssr/route";
+        export default function Index(){
+          const data = useLoaderData<{ message: string }>();
+          return <h1>{data.message}</h1>;
+        }
+      `,
+      "app/routes/index.server.tsx": `
+        export function loader(){ return { message: "v1" }; }
+      `,
+    }, "rbssr-cli-dev-server-only-reload");
+
+    activeProcess = spawnProcess({
+      cmd: ["bun", rbssrBinPath, "dev"],
+      cwd: root,
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+
+    await waitForHttpReady(baseUrl, { timeoutMs: 30_000 });
+    const firstHtml = await fetch(`${baseUrl}/`).then(response => response.text());
+    expect(firstHtml).toContain("v1");
+
+    await writeText(
+      path.join(root, "app/routes/index.server.tsx"),
+      `export function loader(){ return { message: "v2" }; }\n`,
+    );
+
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 20_000) {
+      const html = await fetch(`${baseUrl}/`).then(response => response.text());
+      if (html.includes("v2")) {
+        return;
+      }
+      await Bun.sleep(120);
+    }
+
+    throw new Error("Timed out waiting for server companion reload");
   });
 });

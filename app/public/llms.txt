@@ -2,6 +2,12 @@ react-bun-ssr
 
 react-bun-ssr is a Bun-native SSR React framework. It focuses on file-based routing, loaders and actions, streaming SSR, deferred data, client transitions, markdown routes, and a Bun-first runtime and build pipeline.
 
+Action model (React 19)
+- Page mutations use `useActionState`.
+- In the UI route module, export `action = createRouteAction<TState>()`.
+- Put server mutation logic in `*.server.ts` / `*.server.tsx` companion files as `export const action: Action`.
+- `useRouteAction` is still supported for backward compatibility.
+
 Primary docs
 - Docs home: https://react-bun-ssr.dev/docs
 - Quick start: https://react-bun-ssr.dev/docs/start/quick-start

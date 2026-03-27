@@ -38,7 +38,7 @@ describe("tree error boundaries", () => {
     };
     const payload = {
       routeId: "index",
-      data: null,
+      loaderData: null,
       params: {},
       url: "http://localhost/",
     };
@@ -62,7 +62,7 @@ describe("tree error boundaries", () => {
     };
     const payload = {
       routeId: "index",
-      data: null,
+      loaderData: null,
       params: {},
       url: "http://localhost/",
     };
@@ -78,7 +78,7 @@ describe("tree error boundaries", () => {
     });
     const payload = {
       routeId: "index",
-      data: null,
+      loaderData: null,
       params: {},
       url: "http://localhost/",
     };
@@ -98,7 +98,7 @@ describe("tree error boundaries", () => {
     });
     const payload = {
       routeId: "index",
-      data: null,
+      loaderData: null,
       params: {},
       url: "http://localhost/",
     };
@@ -128,7 +128,7 @@ describe("tree error boundaries", () => {
 
     const tree = createPageAppTree(modules, {
       routeId: "index",
-      data: null,
+      loaderData: null,
       params: {},
       url: "http://localhost/docs/start/overview",
     });

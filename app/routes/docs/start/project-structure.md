@@ -17,19 +17,22 @@ A `react-bun-ssr` app stays easier to reason about when you treat four directori
 ```text
 app/
   root.tsx
-  middleware.ts
+  root.server.tsx
+  middleware.server.ts
   public/
     favicon.svg
     brand/logo.svg
   routes/
     index.tsx
+    index.server.tsx
     tasks/
       _layout.tsx
+      _layout.server.tsx
       index.tsx
       [id].tsx
       new.tsx
     api/
-      tasks.ts
+      tasks.server.ts
 framework/
   runtime/
 .rbssr/
@@ -72,7 +75,7 @@ Production build output:
 - `app/routes/index.tsx` -> `/`
 - `app/routes/tasks/index.tsx` -> `/tasks`
 - `app/routes/tasks/[id].tsx` -> `/tasks/:id`
-- `app/routes/api/tasks.ts` -> `/api/tasks`
+- `app/routes/api/tasks.server.ts` -> `/api/tasks`
 - `app/routes/docs/start/overview.md` -> `/docs/start/overview`
 
 ## Rules
@@ -80,7 +83,8 @@ Production build output:
 - Do not commit `.rbssr/`.
 - Treat `dist/` as build output, not source.
 - Files under `app/routes` that start with `_` are useful for colocation and do not create routes, except `_layout` and `_middleware`.
-- Keep server-only helpers out of browser-hydrated route modules unless they are imported dynamically inside loaders/actions.
+- Keep browser-facing route modules client-safe.
+- Put Bun-only logic in `*.server.ts` / `*.server.tsx` route companions and server-only route files.
 
 ## Related APIs
 

@@ -18,7 +18,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/bun-runtime-apis</loc>
-    <lastmod>2026-03-01T11:21:26+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/overview</loc>
@@ -26,15 +26,15 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr</loc>
-    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr-route</loc>
-    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/actions</loc>
-    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/error-handling</loc>
@@ -42,7 +42,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/loaders</loc>
-    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/deployment/bun-deployment</loc>
@@ -74,7 +74,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/file-based-routing</loc>
-    <lastmod>2026-03-03T23:39:56+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/layouts-and-groups</loc>
@@ -82,7 +82,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/middleware</loc>
-    <lastmod>2026-03-03T21:47:22+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/navigation</loc>
@@ -94,7 +94,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/installation</loc>
-    <lastmod>2026-03-03T23:39:56+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/overview</loc>
@@ -102,11 +102,11 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/project-structure</loc>
-    <lastmod>2026-03-03T23:39:56+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/quick-start</loc>
-    <lastmod>2026-03-03T23:39:56+01:00</lastmod>
+    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/styling/css-modules</loc>

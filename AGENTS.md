@@ -52,8 +52,9 @@ Guidance for AI coding agents working in this repository.
 ## Server/client boundary rules
 
 - Avoid importing Node-only modules in code that can enter browser bundles.
-- In route files, do not top-level import server-only helpers if route modules are also used for client hydration.
-- For server-only docs loading in routes, use loader-time dynamic imports when needed.
+- Prefer `*.server.ts` / `*.server.tsx` companions for Bun-only imports used by route `loader`/`action`/`middleware` and API handlers.
+- For page mutations, prefer React `useActionState` with `createRouteAction` in the UI route file and a server `action` export in the companion file.
+- Use loader-time dynamic imports only as a fallback when a companion/server-only module split is not practical.
 
 ## Known pitfalls
 

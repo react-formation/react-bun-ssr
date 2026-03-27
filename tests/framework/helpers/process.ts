@@ -56,16 +56,31 @@ export async function waitForHttpReady(
   options: {
     timeoutMs?: number;
     intervalMs?: number;
+    process?: Bun.Subprocess | null;
   } = {},
 ): Promise<void> {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const intervalMs = options.intervalMs ?? 100;
+  const processRef = options.process ?? null;
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
+    if (processRef && typeof processRef.exitCode === "number") {
+      const [stdout, stderr] = await Promise.all([
+        readProcessStream(processRef.stdout),
+        readProcessStream(processRef.stderr),
+      ]);
+      const diagnostics = [
+        `Process exited before ${url} became ready (exit code ${processRef.exitCode}).`,
+        stdout ? `stdout:\n${stdout}` : "",
+        stderr ? `stderr:\n${stderr}` : "",
+      ].filter(Boolean).join("\n\n");
+      throw new Error(diagnostics);
+    }
+
     try {
       const response = await fetch(url);
-      if (response.ok) {
+      if (response.status > 0) {
         return;
       }
     } catch {
@@ -75,5 +90,59 @@ export async function waitForHttpReady(
     await Bun.sleep(intervalMs);
   }
 
+  if (processRef && typeof processRef.exitCode === "number") {
+    const [stdout, stderr] = await Promise.all([
+      readProcessStream(processRef.stdout),
+      readProcessStream(processRef.stderr),
+    ]);
+    const diagnostics = [
+      `Timed out waiting for ${url}; process exited with code ${processRef.exitCode}.`,
+      stdout ? `stdout:\n${stdout}` : "",
+      stderr ? `stderr:\n${stderr}` : "",
+    ].filter(Boolean).join("\n\n");
+    throw new Error(diagnostics);
+  }
+
   throw new Error(`Timed out waiting for ${url}`);
+}
+
+let loopbackListenCapability: Promise<boolean> | null = null;
+
+export function canListenOnLoopback(): Promise<boolean> {
+  if (!loopbackListenCapability) {
+    loopbackListenCapability = Promise.resolve().then(() => {
+      try {
+        const server = Bun.serve({
+          port: 0,
+          fetch() {
+            return new Response("ok");
+          },
+        });
+        server.stop(true);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  return loopbackListenCapability;
+}
+
+export async function getAvailablePort(): Promise<number> {
+  const server = Bun.serve({
+    port: 0,
+    fetch() {
+      return new Response("ok");
+    },
+  });
+
+  const port = server.port;
+  server.stop(true);
+
+  if (typeof port !== "number") {
+    throw new Error("Failed to allocate a loopback port");
+  }
+
+  return port;
 }

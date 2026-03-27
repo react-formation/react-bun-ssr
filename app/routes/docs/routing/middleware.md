@@ -15,7 +15,7 @@ Middleware runs before loaders, actions, page rendering, and API handlers. Use i
 ## Minimal working example
 
 ```ts
-// app/middleware.ts
+// app/middleware.server.ts
 import type { Middleware } from "react-bun-ssr/route";
 
 export const middleware: Middleware = async (ctx, next) => {
@@ -29,12 +29,13 @@ export const middleware: Middleware = async (ctx, next) => {
     return Response.redirect(new URL("/login", ctx.url), 302);
   }
 
+  ctx.response.headers.set("x-viewer", session ? "member" : "guest");
   return next();
 };
 ```
 
 ```ts
-// app/routes/tasks/_middleware.ts
+// app/routes/tasks/_middleware.server.ts
 import type { Middleware } from "react-bun-ssr/route";
 
 export const middleware: Middleware = async (ctx, next) => {
@@ -64,12 +65,29 @@ export default function TasksPage() {
 
 For a matched page request, middleware runs in this order:
 
-1. `app/middleware.ts`
-2. matched ancestor `_middleware.ts` files from top to bottom
+1. `app/middleware.server.ts` (or `app/middleware.ts`)
+2. matched ancestor `_middleware.server.ts` or `_middleware.ts` files from top to bottom
 3. the matched page route module's `middleware` export
 4. the route `loader`, `action`, and final render path
 
-For API routes, the flow is the same except there is no API-module `middleware` export. Use `app/middleware.ts` and nested `_middleware.ts` files for API request middleware.
+For API routes, the flow is the same except there is no API-module `middleware` export. Use `app/middleware.server.ts` and nested `_middleware.server.ts` files for API request middleware.
+
+## Typing `ctx.locals` once
+
+Augment `AppRouteLocals` in your app so middleware, loaders, actions, and API handlers all share the same locals shape.
+
+```ts
+// app/types/locals.d.ts
+import "react-bun-ssr";
+
+declare module "react-bun-ssr" {
+  interface AppRouteLocals {
+    auth: { userId: string; role: "member" | "admin" } | null;
+  }
+}
+```
+
+Then middleware can assign `ctx.locals.auth` and later route code reads it without recovery helpers or unsafe casts.
 
 ## What middleware is good for
 
@@ -89,12 +107,22 @@ That matters for redirects:
 
 A short-circuit response can be a redirect, a `401`, a `403`, or any other response you want to send immediately.
 
+You can also stage response mutations before returning:
+
+```ts
+export const middleware: Middleware = async (ctx, next) => {
+  ctx.response.headers.append("x-trace", "edge-a");
+  ctx.response.cookies.set("seen", "1", { path: "/", sameSite: "lax" });
+  return next();
+};
+```
+
 ## Route middleware
 
 There are three places middleware can live:
 
-- `app/middleware.ts` for global request pipeline logic
-- `app/routes/**/_middleware.ts` for nested route-tree middleware
+- `app/middleware.server.ts` (or `app/middleware.ts`) for global request pipeline logic
+- `app/routes/**/_middleware.server.ts` (or `_middleware.ts`) for nested route-tree middleware
 - `export const middleware = ...` inside the matched page route module
 
 Use `_middleware.ts` when the behavior belongs to a route subtree. Use the route module export when the behavior belongs only to a single leaf page.
@@ -105,6 +133,7 @@ Use `_middleware.ts` when the behavior belongs to a route subtree. Use the route
 - Write request-scoped values onto `ctx.locals` for later loader/action access.
 - Middleware runs before loaders, actions, and API handlers.
 - `ctx.cookies` is still the framework `Map<string, string>` abstraction, not Bun's `CookieMap`.
+- Use `ctx.response.headers` and `ctx.response.cookies` for staged response mutations.
 - API routes use file middleware, not a module-level `middleware` export.
 
 ## Related APIs

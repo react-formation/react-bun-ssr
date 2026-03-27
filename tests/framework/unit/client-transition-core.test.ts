@@ -21,7 +21,7 @@ function parseChunks(parts: string[]): TransitionChunkParserState {
 describe("client transition core", () => {
   it("parses NDJSON chunks across arbitrary boundaries and preserves deferred order", () => {
     const state = parseChunks([
-      '{"type":"initial","kind":"page","status":200,"payload":{"routeId":"index","data":null,"params":{},"url":"http://localhost/"},"head":"<title>Home</title>","redirected":false}\n{"type":"de',
+      '{"type":"initial","kind":"page","status":200,"payload":{"routeId":"index","loaderData":null,"params":{},"url":"http://localhost/"},"head":"<title>Home</title>","redirected":false}\n{"type":"de',
       'ferred","id":"slow:1","ok":true,"value":"first"}\n{"type":"deferred","id":"slow:2","ok":true,"value":"second"}\n',
     ]);
 
@@ -32,7 +32,7 @@ describe("client transition core", () => {
 
   it("keeps the first initial chunk when later initial or redirect chunks appear", () => {
     const state = parseChunks([
-      '{"type":"initial","kind":"page","status":200,"payload":{"routeId":"index","data":null,"params":{},"url":"http://localhost/"},"head":"first","redirected":false}\n',
+      '{"type":"initial","kind":"page","status":200,"payload":{"routeId":"index","loaderData":null,"params":{},"url":"http://localhost/"},"head":"first","redirected":false}\n',
       '{"type":"redirect","location":"/elsewhere","status":302}\n',
     ]);
 
@@ -42,7 +42,7 @@ describe("client transition core", () => {
       status: 200,
       payload: {
         routeId: "index",
-        data: null,
+        loaderData: null,
         params: {},
         url: "http://localhost/",
       },

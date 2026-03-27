@@ -21,6 +21,7 @@ const LAYOUT_FILE_RE = /\.(tsx|jsx|ts|js)$/;
 const API_FILE_RE = /\.(ts|js|tsx|jsx)$/;
 const MD_FILE_RE = /\.md$/;
 const MDX_FILE_RE = /\.mdx$/;
+const SERVER_SUFFIX_RE = /\.server$/;
 
 async function walkFiles(rootDir: string): Promise<string[]> {
   if (!(await existsPath(rootDir))) {
@@ -104,6 +105,23 @@ function getAncestorDirs(relativeDir: string): string[] {
   return result;
 }
 
+function stripServerSuffix(value: string): string {
+  return value.replace(SERVER_SUFFIX_RE, "");
+}
+
+function hasServerSuffix(value: string): boolean {
+  return SERVER_SUFFIX_RE.test(value);
+}
+
+function removeServerSuffixFromRelativePath(relativeFilePath: string): string {
+  const extension = path.extname(relativeFilePath);
+  if (!extension) {
+    return relativeFilePath;
+  }
+  const withoutExt = relativeFilePath.slice(0, -extension.length);
+  return `${stripServerSuffix(withoutExt)}${extension}`;
+}
+
 export async function scanRoutes(
   routesDir: string,
   options: {
@@ -113,16 +131,21 @@ export async function scanRoutes(
   const allFiles = (await walkFiles(routesDir)).sort((a, b) => a.localeCompare(b));
 
   const layoutByDir = new Map<string, string>();
+  const layoutServerByDir = new Map<string, string>();
   const middlewareByDir = new Map<string, string>();
+  const pageCompanionByKey = new Map<string, string>();
 
   const pageRouteTasks: Array<Promise<PageRouteDefinition>> = [];
-  const apiRoutes: ApiRouteDefinition[] = [];
+  const pageRouteKeys = new Set<string>();
+  const apiRouteByKey = new Map<string, ApiRouteDefinition>();
 
   for (const absoluteFilePath of allFiles) {
     const relativeFilePath = normalizeSlashes(path.relative(routesDir, absoluteFilePath));
     const relativeDir = normalizeSlashes(path.dirname(relativeFilePath) === "." ? "" : path.dirname(relativeFilePath));
     const fileName = path.basename(relativeFilePath);
     const fileBaseName = trimFileExtension(fileName);
+    const logicalBaseName = stripServerSuffix(fileBaseName);
+    const isServerVariant = hasServerSuffix(fileBaseName);
 
     if (MDX_FILE_RE.test(fileName)) {
       throw new Error(
@@ -130,13 +153,56 @@ export async function scanRoutes(
       );
     }
 
-    if (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName)) {
-      layoutByDir.set(relativeDir, absoluteFilePath);
+    if (logicalBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName)) {
+      if (isServerVariant) {
+        if (layoutServerByDir.has(relativeDir)) {
+          throw new Error(
+            `Duplicate layout companion route files in "${relativeDir || "/"}": ` +
+              `"${layoutServerByDir.get(relativeDir)!}" and "${absoluteFilePath}".`,
+          );
+        }
+        layoutServerByDir.set(relativeDir, absoluteFilePath);
+      } else {
+        layoutByDir.set(relativeDir, absoluteFilePath);
+      }
       continue;
     }
 
-    if (fileBaseName === "_middleware" && API_FILE_RE.test(fileName)) {
+    if (logicalBaseName === "_middleware" && API_FILE_RE.test(fileName)) {
+      const existing = middlewareByDir.get(relativeDir);
+      if (existing && existing !== absoluteFilePath) {
+        throw new Error(
+          `Middleware file collision in "${relativeDir || "/"}": ` +
+            `"${existing}" and "${absoluteFilePath}" both resolve to "_middleware".`,
+        );
+      }
       middlewareByDir.set(relativeDir, absoluteFilePath);
+      continue;
+    }
+
+    if (
+      isServerVariant
+      && !relativeFilePath.startsWith("api/")
+      && PAGE_FILE_RE.test(fileName)
+      && !logicalBaseName.startsWith("_")
+    ) {
+      const canonicalRelativeFilePath = removeServerSuffixFromRelativePath(relativeFilePath);
+      const routeKey = trimFileExtension(canonicalRelativeFilePath);
+      const existing = pageCompanionByKey.get(routeKey);
+      if (existing && existing !== absoluteFilePath) {
+        throw new Error(
+          `Duplicate route companion files for "${routeKey}": "${existing}" and "${absoluteFilePath}".`,
+        );
+      }
+      pageCompanionByKey.set(routeKey, absoluteFilePath);
+    }
+  }
+
+  for (const [relativeDir, layoutServerFilePath] of layoutServerByDir.entries()) {
+    if (!layoutByDir.has(relativeDir)) {
+      throw new Error(
+        `Found layout companion "${layoutServerFilePath}" without base layout file "${relativeDir ? `${relativeDir}/` : ""}_layout.tsx".`,
+      );
     }
   }
 
@@ -145,10 +211,12 @@ export async function scanRoutes(
     const relativeDir = normalizeSlashes(path.dirname(relativeFilePath) === "." ? "" : path.dirname(relativeFilePath));
     const fileName = path.basename(relativeFilePath);
     const fileBaseName = trimFileExtension(fileName);
+    const logicalBaseName = stripServerSuffix(fileBaseName);
+    const isServerVariant = hasServerSuffix(fileBaseName);
 
     if (
-      (fileBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName))
-      || (fileBaseName === "_middleware" && API_FILE_RE.test(fileName))
+      (logicalBaseName === "_layout" && LAYOUT_FILE_RE.test(fileName))
+      || (logicalBaseName === "_middleware" && API_FILE_RE.test(fileName))
     ) {
       continue;
     }
@@ -156,18 +224,31 @@ export async function scanRoutes(
     const isApiRoute = relativeFilePath.startsWith("api/");
 
     if (isApiRoute) {
-      if (!API_FILE_RE.test(fileName) || fileBaseName.startsWith("_")) {
+      if (!API_FILE_RE.test(fileName) || logicalBaseName.startsWith("_")) {
         continue;
       }
 
-      const withoutExt = trimFileExtension(relativeFilePath);
+      const canonicalRelativeFilePath = isServerVariant
+        ? removeServerSuffixFromRelativePath(relativeFilePath)
+        : relativeFilePath;
+      const withoutExt = trimFileExtension(canonicalRelativeFilePath);
+      if (apiRouteByKey.has(withoutExt)) {
+        const existing = apiRouteByKey.get(withoutExt)!;
+        throw new Error(
+          `API route collision for "${withoutExt}": "${existing.filePath}" and "${absoluteFilePath}". ` +
+            "Use only one of the plain route file or .server route file.",
+        );
+      }
       const shape = toUrlShape(withoutExt);
-      const ancestors = getAncestorDirs(relativeDir);
+      const canonicalRelativeDir = normalizeSlashes(
+        path.dirname(canonicalRelativeFilePath) === "." ? "" : path.dirname(canonicalRelativeFilePath),
+      );
+      const ancestors = getAncestorDirs(canonicalRelativeDir);
       const middlewareFiles = ancestors
         .map(dir => middlewareByDir.get(dir))
         .filter((value): value is string => Boolean(value));
 
-      apiRoutes.push({
+      apiRouteByKey.set(withoutExt, {
         type: "api",
         id: toRouteId(withoutExt),
         filePath: absoluteFilePath,
@@ -175,12 +256,12 @@ export async function scanRoutes(
         segments: shape.segments,
         score: getRouteScore(shape.segments),
         middlewareFiles,
-        directory: relativeDir,
+        directory: canonicalRelativeDir,
       });
       continue;
     }
 
-    if (!PAGE_FILE_RE.test(fileName) || fileBaseName.startsWith("_")) {
+    if (!PAGE_FILE_RE.test(fileName) || logicalBaseName.startsWith("_") || isServerVariant) {
       continue;
     }
 
@@ -203,11 +284,13 @@ export async function scanRoutes(
       .map(dir => middlewareByDir.get(dir))
       .filter((value): value is string => Boolean(value));
 
+    pageRouteKeys.add(withoutExt);
     pageRouteTasks.push(routeFilePath.then((resolvedRouteFilePath) => {
       return {
         type: "page",
         id: toRouteId(withoutExt),
         filePath: resolvedRouteFilePath,
+        serverFilePath: pageCompanionByKey.get(withoutExt),
         routePath: shape.routePath,
         segments: shape.segments,
         score: getRouteScore(shape.segments),
@@ -218,7 +301,16 @@ export async function scanRoutes(
     }));
   }
 
+  for (const [routeKey, companionPath] of pageCompanionByKey.entries()) {
+    if (!pageRouteKeys.has(routeKey)) {
+      throw new Error(
+        `Found route companion "${companionPath}" without base route module "${routeKey}.tsx".`,
+      );
+    }
+  }
+
   const pageRoutes = await Promise.all(pageRouteTasks);
+  const apiRoutes = [...apiRouteByKey.values()];
 
   return {
     pages: sortRoutesBySpecificity(pageRoutes),

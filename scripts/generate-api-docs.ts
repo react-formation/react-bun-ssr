@@ -58,7 +58,7 @@ const SYMBOL_DETAILS: Record<
   },
   ActionContext: {
     description:
-      "Context object passed to actions with request metadata, parsed body helpers, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.",
+      "Context object passed to actions with request metadata, parsed body helpers, typed `locals`, request cookies, and staged response mutation helpers.",
     links: [
       { label: "Actions", href: "/docs/data/actions" },
       { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
@@ -68,6 +68,15 @@ const SYMBOL_DETAILS: Record<
   },
   ActionResult: {
     description: "Allowed return union for actions, including data, redirects, and `Response` values.",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
+  },
+  AppRouteLocals: {
+    description:
+      "Module-augmentation surface for typing `ctx.locals` across middleware, loaders, actions, and API handlers.",
+    links: [{ label: "Middleware", href: "/docs/routing/middleware" }],
+  },
+  assertSameOriginAction: {
+    description: "Throws a typed 403 route error when an action request declares a cross-origin source.",
     links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   ApiRouteModule: {
@@ -81,6 +90,11 @@ const SYMBOL_DETAILS: Record<
   BuildRouteAsset: {
     description: "Per-route client asset metadata (entry script and CSS files).",
     links: [{ label: "Build Output", href: "/docs/tooling/build-output" }],
+  },
+  createRouteAction: {
+    description:
+      "Creates a client action stub compatible with `useActionState(action, initialState)` for current-route page mutations.",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   createServer: {
     description: "Creates the runtime request handler used by Bun server entrypoints.",
@@ -124,7 +138,8 @@ const SYMBOL_DETAILS: Record<
     links: [{ label: "Loaders", href: "/docs/data/loaders" }],
   },
   LoaderContext: {
-    description: "Context object passed to loaders with URL, params, mutable locals, and framework-normalized cookies exposed as `Map<string, string>` rather than Bun's `CookieMap`.",
+    description:
+      "Context object passed to loaders with URL, params, typed `locals`, request cookies, and staged response mutation helpers.",
     links: [
       { label: "Loaders", href: "/docs/data/loaders" },
       { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
@@ -161,13 +176,27 @@ const SYMBOL_DETAILS: Record<
     links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   RequestContext: {
-    description: "Base request context shared by middleware, loaders, actions, and API handlers, including framework-normalized cookies as `Map<string, string>` rather than Bun's `CookieMap`.",
+    description:
+      "Base request context shared by middleware, loaders, actions, and API handlers, including typed `locals`, request cookies, and staged response mutation helpers.",
     links: [
       { label: "Layouts and Groups", href: "/docs/routing/layouts-and-groups" },
       { label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" },
       { label: "Cookies", href: "https://bun.com/docs/api/cookie" },
       { label: "HTTP server cookies", href: "https://bun.com/docs/runtime/http/cookies" },
     ],
+  },
+  ResponseContext: {
+    description:
+      "Response-side context available on `ctx.response` with mutable headers and cookies that are committed to the final HTTP response.",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
+  },
+  ResponseCookieOptions: {
+    description: "Cookie options accepted by `ctx.response.cookies.set(...)`.",
+    links: [{ label: "Bun Runtime APIs", href: "/docs/api/bun-runtime-apis" }],
+  },
+  ResponseCookies: {
+    description: "Cookie mutation helpers for staged `get`, `set`, and `delete` operations on `ctx.response`.",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   routeError: {
     description: "Throws a typed caught route error with status/data for TanStack-style catch-boundary flows.",
@@ -213,6 +242,11 @@ const SYMBOL_DETAILS: Record<
     description: "Options accepted by `router.push()` and `router.replace()`.",
     links: [{ label: "Navigation", href: "/docs/routing/navigation" }],
   },
+  sanitizeRedirectTarget: {
+    description:
+      "Normalizes user-provided redirect targets to safe site-relative paths and falls back when inputs are unsafe.",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
+  },
   startHttpServer: {
     description: "Starts Bun HTTP server for configured framework runtime.",
     links: [
@@ -225,6 +259,11 @@ const SYMBOL_DETAILS: Record<
   useLoaderData: {
     description: "Reads loader data in route components, including deferred values as promises.",
     links: [{ label: "Loaders", href: "/docs/data/loaders" }],
+  },
+  useRouteAction: {
+    description:
+      "Returns a route-action submit function compatible with React `useActionState` for page mutations (legacy-compatible helper).",
+    links: [{ label: "Actions", href: "/docs/data/actions" }],
   },
   useParams: {
     description: "Returns dynamic route params for the current matched route.",
@@ -427,14 +466,38 @@ export default function PostPage() {
 }`,
         },
         {
-          title: "Action + redirect helper",
-          code: `import { redirect } from "react-bun-ssr";
+          title: "React useActionState + direct route action stub",
+          code: `
+import { useActionState } from "react";
+import { createRouteAction } from "react-bun-ssr/route";
+
+type ActionData = { error?: string };
+
+// app/routes/form.tsx
+export const action = createRouteAction<ActionData>();
+
+export default function FormRoute() {
+  const [state, formAction, pending] = useActionState(action, {});
+
+  return (
+    <form action={formAction}>
+      {state.error ? <p>{state.error}</p> : null}
+      <button disabled={pending}>Save</button>
+    </form>
+  );
+};
+
+// app/routes/form.server.tsx
+import { assertSameOriginAction, redirect, sanitizeRedirectTarget } from "react-bun-ssr";
 import type { Action } from "react-bun-ssr/route";
 
-export const action: Action = async ({ formData }) => {
-  const name = String(formData?.get("name") ?? "").trim();
-  if (!name) return { error: "name is required" };
-  return redirect("/docs/data/actions");
+export const action: Action = async (ctx) => {
+  assertSameOriginAction(ctx);
+  const name = String(ctx.formData?.get("name") ?? "").trim();
+  if (!name) return { error: "name is required" } satisfies ActionData;
+  ctx.response.cookies.set("flash", "saved", { path: "/" });
+  const next = sanitizeRedirectTarget(String(ctx.formData?.get("next") ?? "/docs/data/actions"));
+  return redirect(next);
 };`,
         },
         {

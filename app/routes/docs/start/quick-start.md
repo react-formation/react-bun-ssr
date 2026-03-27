@@ -54,30 +54,44 @@ export default function TasksPage() {
 
 ```tsx
 // app/routes/tasks/new.tsx
+import { useActionState } from "react";
+import { createRouteAction } from "react-bun-ssr/route";
+
+type NewTaskState = { error?: string };
+export const action = createRouteAction<NewTaskState>();
+
+export default function NewTaskPage() {
+  const [state, formAction, pending] = useActionState(action, {});
+
+  return (
+    <form action={formAction}>
+      {state.error ? <p>{state.error}</p> : null}
+      <label>
+        Title
+        <input name="title" />
+      </label>
+      <button type="submit" disabled={pending}>Save task</button>
+    </form>
+  );
+}
+```
+
+```tsx
+// app/routes/tasks/new.server.tsx
 import { redirect } from "react-bun-ssr";
 import type { Action } from "react-bun-ssr/route";
+
+type NewTaskState = { error?: string };
 
 export const action: Action = async ({ formData }) => {
   const title = String(formData?.get("title") ?? "").trim();
   if (!title) {
-    return { error: "Title is required" };
+    return { error: "Title is required" } satisfies NewTaskState;
   }
 
   // Real code should validate and persist the task here before redirecting.
   return redirect("/tasks");
 };
-
-export default function NewTaskPage() {
-  return (
-    <form method="post">
-      <label>
-        Title
-        <input name="title" />
-      </label>
-      <button type="submit">Save task</button>
-    </form>
-  );
-}
 ```
 
 ```ts
@@ -209,7 +223,7 @@ export default function TasksPage() {
 ## What to notice
 
 - `loader()` runs on the server and serializes its return value into the document payload.
-- `action()` owns the POST request and can return plain data, redirects, or `Response` values.
+- `action()` stays server-owned and is invoked from `useActionState(action, initialState)` with `createRouteAction()`.
 - API routes live under the same `app/routes` tree but use HTTP method exports.
 - `_layout.tsx` shares chrome without creating its own URL.
 - `_middleware.ts` runs before the matched task routes and can populate `ctx.locals` or short-circuit the request.
@@ -219,6 +233,7 @@ export default function TasksPage() {
 - Keep page and API routes in the same route tree only when that improves locality.
 - Use TypeScript interfaces at the route boundary so `useLoaderData()` stays explicit.
 - Prefer redirect-after-success in actions instead of mutating client-only state first.
+- For page mutations, prefer `<form action={formAction}>` over `<form method="post">`.
 - Use nested `_layout.tsx` when multiple sibling routes need the same shell.
 - Use nested `_middleware.ts` when the behavior belongs to a route subtree instead of the whole app. 
 

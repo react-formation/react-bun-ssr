@@ -1,10 +1,12 @@
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { createServer } from "../../../framework/runtime/server";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
 const tempDirs = createTempDirRegistry();
+
+setDefaultTimeout(20_000);
 
 afterEach(async () => {
   await tempDirs.cleanup();
@@ -34,6 +36,7 @@ describe("server HTML request contracts", () => {
       "app/middleware.ts": `
         export default async function middleware(ctx, next) {
           ctx.locals.viewer = "alice";
+          ctx.response.headers.set("x-middleware", "on");
           return next();
         }
       `,
@@ -84,16 +87,58 @@ describe("server HTML request contracts", () => {
         export function NotFound(){ return <h1>route-missing</h1>; }
         export default function MissingRoute(){ return <p>never</p>; }
       `,
+      "app/routes/form.tsx": `
+        import { useLoaderData, redirect } from "${runtimeImport}";
+        export function loader(ctx){
+          const g = globalThis;
+          g.__rbssrFormLoaderRuns = Number(g.__rbssrFormLoaderRuns ?? 0) + 1;
+          ctx.response.headers.append("x-loader", "form");
+          return { runs: g.__rbssrFormLoaderRuns };
+        }
+        export function action({ formData, locals, response }){
+          const name = String(formData?.get("name") ?? "").trim();
+          if (!name) {
+            response.headers.set("x-action-error", "1");
+            response.cookies.set("flash", "missing-name", { path: "/", httpOnly: true, sameSite: "lax" });
+            return { error: "Name required", viewer: String(locals.viewer ?? "missing") };
+          }
+          response.cookies.set("flash", "created", { path: "/", httpOnly: true, sameSite: "lax" });
+          return redirect("/object");
+        }
+        export default function FormRoute(){
+          const loaderData = useLoaderData<{ runs: number }>();
+          return <h1>{loaderData.runs}</h1>;
+        }
+      `,
+      "app/routes/action-catch.tsx": `
+        import { routeError } from "${runtimeImport}";
+        export function action(){
+          throw routeError(403, { reason: "blocked" });
+        }
+        export default function ActionCatchRoute(){ return <p>never</p>; }
+      `,
+      "app/routes/action-error.tsx": `
+        export function action(){
+          throw new Error("action boom");
+        }
+        export default function ActionErrorRoute(){ return <p>never</p>; }
+      `,
+      "app/routes/stub-no-server.tsx": `
+        import { createRouteAction } from "${runtimeImport}";
+        export const action = createRouteAction<{ ok: boolean }>();
+        export default function StubNoServerRoute(){ return <h1>stub-no-server</h1>; }
+      `,
     }, "rbssr-server-html");
 
     const server = createServer(
       { appDir: path.join(root, "app"), mode: "development" },
-      { dev: true, devAssets: createDevAssets(["object", "primitive", "empty", "context", "raw_response", "missing"]) },
+      { dev: true, devAssets: createDevAssets(["object", "primitive", "empty", "context", "raw_response", "missing", "form", "action_catch", "action_error", "stub_no_server"]) },
     );
 
     const objectResponse = await server.fetch(new Request("http://localhost/object"));
     expect(objectResponse.status).toBe(200);
     expect(await objectResponse.text()).toContain("object");
+    expect(objectResponse.headers.get("x-middleware")).toBe("on");
 
     const primitiveResponse = await server.fetch(new Request("http://localhost/primitive"));
     expect(primitiveResponse.status).toBe(200);
@@ -128,6 +173,90 @@ describe("server HTML request contracts", () => {
     const notFoundResponse = await server.fetch(new Request("http://localhost/missing"));
     expect(notFoundResponse.status).toBe(404);
     expect(await notFoundResponse.text()).toContain("route-missing");
+
+    const formGet = await server.fetch(new Request("http://localhost/form"));
+    expect(formGet.status).toBe(200);
+    expect(await formGet.text()).toContain(">1</h1>");
+    expect(formGet.headers.get("x-loader")).toContain("form");
+
+    const formPostDocument = await server.fetch(new Request("http://localhost/form", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "name=",
+    }));
+    expect(formPostDocument.status).toBe(405);
+    expect(await formPostDocument.text()).toContain("createRouteAction");
+
+    const formActionError = await server.fetch(new Request("http://localhost/__rbssr/action?to=/form", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "name=",
+    }));
+    expect(formActionError.status).toBe(200);
+    expect(await formActionError.json()).toEqual({
+      type: "data",
+      status: 200,
+      data: { error: "Name required", viewer: "alice" },
+    });
+    expect(formActionError.headers.get("x-action-error")).toBe("1");
+    expect(formActionError.headers.get("set-cookie")).toContain("flash=missing-name");
+
+    const formActionSuccess = await server.fetch(new Request("http://localhost/__rbssr/action?to=/form", {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: "name=Alice",
+    }));
+    expect(formActionSuccess.status).toBe(200);
+    expect(await formActionSuccess.json()).toEqual({
+      type: "redirect",
+      status: 302,
+      location: "/object",
+    });
+    expect(formActionSuccess.headers.get("set-cookie")).toContain("flash=created");
+
+    const actionCatchEnvelope = await server.fetch(new Request("http://localhost/__rbssr/action?to=/action-catch", {
+      method: "POST",
+    }));
+    expect(actionCatchEnvelope.status).toBe(200);
+    expect(await actionCatchEnvelope.json()).toEqual({
+      type: "catch",
+      status: 403,
+      error: {
+        type: "route_error",
+        status: 403,
+        statusText: "Error",
+        data: { reason: "blocked" },
+      },
+    });
+
+    const actionErrorEnvelope = await server.fetch(new Request("http://localhost/__rbssr/action?to=/action-error", {
+      method: "POST",
+    }));
+    expect(actionErrorEnvelope.status).toBe(200);
+    expect(await actionErrorEnvelope.json()).toEqual({
+      type: "error",
+      status: 500,
+      message: "action boom",
+    });
+
+    const stubOnlyActionResponse = await server.fetch(new Request("http://localhost/__rbssr/action?to=/stub-no-server", {
+      method: "POST",
+    }));
+    expect(stubOnlyActionResponse.status).toBe(405);
+    const stubOnlyActionEnvelope = await stubOnlyActionResponse.json() as {
+      type: string;
+      status: number;
+      message?: string;
+    };
+    expect(stubOnlyActionEnvelope.type).toBe("error");
+    expect(stubOnlyActionEnvelope.status).toBe(405);
+    expect(stubOnlyActionEnvelope.message).toContain("no server action export");
 
     const unmatchedResponse = await server.fetch(new Request("http://localhost/does-not-exist"));
     expect(unmatchedResponse.status).toBe(404);

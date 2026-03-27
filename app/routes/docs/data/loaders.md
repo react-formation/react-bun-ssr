@@ -200,12 +200,14 @@ Do not use it when:
 - Deferred values still need to resolve to serializable data.
 - Rejected deferred promises bubble to the nearest error boundary.
 - If you need mutation semantics, switch to an action instead of overloading the loader.
+- `useLoaderData()` is loader-only; action payload state belongs in `useActionState(action, initialState)` with `createRouteAction(...)`.
 
 ## Related APIs
 
 - [`Loader`](/docs/api/react-bun-ssr-route)
 - [`LoaderContext`](/docs/api/react-bun-ssr-route)
 - [`useLoaderData`](/docs/api/react-bun-ssr-route)
+- [`createRouteAction`](/docs/api/react-bun-ssr-route)
 - [`defer`](/docs/api/react-bun-ssr-route)
 
 ## Next step

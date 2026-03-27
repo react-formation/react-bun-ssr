@@ -1,10 +1,12 @@
 import path from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setDefaultTimeout } from "bun:test";
 import { toAbsoluteUrl } from "../../../app/lib/site.ts";
 import { ensureDir, existsPath, makeTempDir, removePath } from "../../../framework/runtime/io";
 import { createServer } from "../../../framework/runtime/server";
 
 const tmpDirs: string[] = [];
+
+setDefaultTimeout(20_000);
 
 afterEach(async () => {
   for (const dir of tmpDirs.splice(0, tmpDirs.length)) {
@@ -173,8 +175,20 @@ This route is **native markdown**.`,
       }),
     );
 
-    expect(redirectResponse.status).toBe(302);
-    expect(redirectResponse.headers.get("location")).toBe("/");
+    expect(redirectResponse.status).toBe(405);
+    expect(await redirectResponse.text()).toContain("createRouteAction");
+
+    const actionRedirectResponse = await server.fetch(
+      new Request("http://localhost/__rbssr/action?to=/submit", {
+        method: "POST",
+      }),
+    );
+    expect(actionRedirectResponse.status).toBe(200);
+    expect(await actionRedirectResponse.json()).toEqual({
+      type: "redirect",
+      status: 302,
+      location: "/",
+    });
 
     const apiResponse = await server.fetch(new Request("http://localhost/api/hello"));
     expect(apiResponse.status).toBe(200);

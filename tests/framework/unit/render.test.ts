@@ -8,7 +8,7 @@ describe("renderDocument dev reload", () => {
       appMarkup: "<main>ok</main>",
       payload: {
         routeId: "index",
-        data: null,
+        loaderData: null,
         params: {},
         url: "http://localhost/",
       },
@@ -37,7 +37,7 @@ describe("renderDocument dev reload", () => {
       appTree: createElement("main", null, "ok"),
       payload: {
         routeId: "index",
-        data: {
+        loaderData: {
           delayed: {
             __rbssrDeferred: "index:delayed:1",
           },

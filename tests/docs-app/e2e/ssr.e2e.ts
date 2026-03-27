@@ -28,6 +28,22 @@ test.describe('Documentation app', () => {
     ).toBeVisible();
   });
 
+  test('renders canonical URLs for docs home and deep docs pages', async ({
+    page,
+  }) => {
+    await page.goto('/docs');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      toAbsoluteUrl('/docs'),
+    );
+
+    await page.goto('/docs/data/loaders');
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      toAbsoluteUrl('/docs/data/loaders'),
+    );
+  });
+
   test('navigates internal docs links without a full page reload', async ({
     page,
   }) => {

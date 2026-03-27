@@ -24,6 +24,15 @@ function resolveSiteUrl(): string {
 
 export const SITE_URL = resolveSiteUrl();
 
+export function normalizeCanonicalPathname(pathname: string): string {
+  if (!pathname || pathname === "/") {
+    return "/";
+  }
+
+  const normalized = pathname.replace(/\/+$/, "");
+  return normalized || "/";
+}
+
 export function toAbsoluteUrl(pathname: string): string {
   return new URL(pathname, SITE_URL).toString();
 }

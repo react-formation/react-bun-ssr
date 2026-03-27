@@ -3,6 +3,7 @@ import { Link, Outlet, useRequestUrl } from 'react-bun-ssr/route';
 import manifestData from './docs-manifest.json';
 import { sidebar, type DocKind, type SidebarSection } from './_sidebar';
 import { openDocsSearch } from '../../components/docs-search';
+import { normalizeCanonicalPathname, toAbsoluteUrl } from '../../lib/site';
 import styles from './_layout.module.css';
 const EDIT_BASE = 'https://github.com/react-formation/react-bun-ssr/blob/main/app/routes/docs';
 
@@ -193,5 +194,16 @@ export default function DocsLayoutRoute() {
         </aside>
       ) : null}
     </main>
+  );
+}
+
+export function head(ctx: { url: URL }) {
+  const canonicalUrl = toAbsoluteUrl(normalizeCanonicalPathname(ctx.url.pathname));
+
+  return (
+    <>
+      <link rel="canonical" href={canonicalUrl} />
+      <meta property="og:url" content={canonicalUrl} />
+    </>
   );
 }

@@ -40,13 +40,13 @@ describe("blog content", () => {
 
   it("keeps the generated blog manifest aligned with the launch post", () => {
     const manifest = blogManifest as BlogManifestEntry[];
-    const firstPost = manifest[0];
+    const launchPost = manifest.find(entry => entry.slug === "how-i-built-react-bun-ssr-with-ai");
 
-    expect(firstPost?.slug).toBe("how-i-built-react-bun-ssr-with-ai");
-    expect(firstPost?.author).toBe("gaudiauj");
-    expect(firstPost?.publishedAt).toBe("2026-03-01");
-    expect(firstPost?.readingMinutes).toBeGreaterThan(1);
-    expect(firstPost?.canonicalUrl).toBe(toAbsoluteUrl("/blog/how-i-built-react-bun-ssr-with-ai"));
+    expect(launchPost?.slug).toBe("how-i-built-react-bun-ssr-with-ai");
+    expect(launchPost?.author).toBe("gaudiauj");
+    expect(launchPost?.publishedAt).toBe("2026-03-01");
+    expect(launchPost?.readingMinutes).toBeGreaterThan(1);
+    expect(launchPost?.canonicalUrl).toBe(toAbsoluteUrl("/blog/how-i-built-react-bun-ssr-with-ai"));
   });
 
   it("broadens the root chrome beyond docs-only copy", async () => {

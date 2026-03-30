@@ -1,5 +1,147 @@
 [
   {
+    "slug": "a-small-honest-rbssr-vs-nextjs-benchmark",
+    "title": "A Small, Honest react-bun-ssr vs Next.js Benchmark on Bun and Node",
+    "description": "A narrow production benchmark comparing react-bun-ssr on Bun with Next.js 16.2.1 on Node 24 across a markdown content page and a local-data SSR page.",
+    "author": "gaudiauj",
+    "publishedAt": "2026-03-30",
+    "publishedLabel": "March 30, 2026",
+    "tags": [
+      "benchmark",
+      "bun",
+      "nodejs",
+      "ssr",
+      "react",
+      "nextjs",
+      "performance",
+      "markdown"
+    ],
+    "excerpt": "I wanted a first benchmark for react bun ssr that says something real without pretending to say everything. is a Bun native SSR React framework with file based routing, loaders, actions, streaming, soft navigation, and f",
+    "readingMinutes": 5,
+    "canonicalUrl": "https://react-bun-ssr.dev/blog/a-small-honest-rbssr-vs-nextjs-benchmark",
+    "headings": [
+      {
+        "depth": 2,
+        "id": "why-these-two-scenarios",
+        "text": "Why these two scenarios"
+      },
+      {
+        "depth": 2,
+        "id": "what-i-measured",
+        "text": "What I measured"
+      },
+      {
+        "depth": 3,
+        "id": "content",
+        "text": "/content"
+      },
+      {
+        "depth": 3,
+        "id": "data",
+        "text": "/data"
+      },
+      {
+        "depth": 2,
+        "id": "exact-setup-and-fairness-rules",
+        "text": "Exact setup and fairness rules"
+      },
+      {
+        "depth": 2,
+        "id": "results",
+        "text": "Results"
+      },
+      {
+        "depth": 3,
+        "id": "clean-build",
+        "text": "Clean build"
+      },
+      {
+        "depth": 3,
+        "id": "warm-serve",
+        "text": "Warm serve"
+      },
+      {
+        "depth": 4,
+        "id": "content-2",
+        "text": "/content"
+      },
+      {
+        "depth": 4,
+        "id": "data-2",
+        "text": "/data"
+      },
+      {
+        "depth": 2,
+        "id": "interpretation",
+        "text": "Interpretation"
+      },
+      {
+        "depth": 2,
+        "id": "what-this-benchmark-does-not-claim",
+        "text": "What this benchmark does not claim"
+      },
+      {
+        "depth": 2,
+        "id": "reproducing-it",
+        "text": "Reproducing it"
+      }
+    ],
+    "nextSlug": "why-nextjs-16-and-node-24-are-faster-and-where-bun-fits"
+  },
+  {
+    "slug": "why-nextjs-16-and-node-24-are-faster-and-where-bun-fits",
+    "title": "Why Next.js 16 and Node 24 Are Faster, and Where Bun Fits",
+    "description": "A benchmark-driven look at what changed between Next 15 and Next 16, why Node 24 beats Node 22 for this SSR workload, and where Bun helps or does not.",
+    "author": "gaudiauj",
+    "publishedAt": "2026-03-30",
+    "publishedLabel": "March 30, 2026",
+    "tags": [
+      "nextjs",
+      "nodejs",
+      "bun",
+      "performance",
+      "benchmark",
+      "ssr"
+    ],
+    "excerpt": "These numbers come from a broader benchmark I originally ran while working on , but this article is only about what changed on the Next.js side. If you want the broader benchmark context, the full comparison is here: , a",
+    "readingMinutes": 6,
+    "canonicalUrl": "https://react-bun-ssr.dev/blog/why-nextjs-16-and-node-24-are-faster-and-where-bun-fits",
+    "headings": [
+      {
+        "depth": 2,
+        "id": "what-the-benchmark-actually-shows",
+        "text": "What the benchmark actually shows"
+      },
+      {
+        "depth": 2,
+        "id": "why-next-js-16-is-faster",
+        "text": "Why Next.js 16 is faster"
+      },
+      {
+        "depth": 2,
+        "id": "why-node-24-is-faster-than-node-22",
+        "text": "Why Node 24 is faster than Node 22"
+      },
+      {
+        "depth": 2,
+        "id": "where-bun-fits",
+        "text": "Where Bun fits"
+      },
+      {
+        "depth": 2,
+        "id": "what-not-to-overclaim",
+        "text": "What not to overclaim"
+      },
+      {
+        "depth": 2,
+        "id": "conclusion",
+        "text": "Conclusion"
+      }
+    ],
+    "prevSlug": "a-small-honest-rbssr-vs-nextjs-benchmark",
+    "nextSlug": "how-i-built-react-bun-ssr-with-ai"
+  },
+  {
     "slug": "how-i-built-react-bun-ssr-with-ai",
     "title": "How I Built react-bun-ssr With AI",
     "description": "How I used AI to build react-bun-ssr faster, the constraints that kept the framework coherent, and the Bun-first architecture choices that made the workflow work.",
@@ -69,6 +211,7 @@
         "text": "Closing"
       }
     ],
+    "prevSlug": "why-nextjs-16-and-node-24-are-faster-and-where-bun-fits",
     "nextSlug": "why-i-built-a-bun-native-ssr-framework"
   },
   {

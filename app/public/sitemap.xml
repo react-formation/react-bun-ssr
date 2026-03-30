@@ -5,6 +5,10 @@
     <lastmod>2026-03-01T11:21:26+01:00</lastmod>
   </url>
   <url>
+    <loc>https://react-bun-ssr.dev/blog/a-small-honest-rbssr-vs-nextjs-benchmark</loc>
+    <lastmod>2026-03-30T22:17:33+02:00</lastmod>
+  </url>
+  <url>
     <loc>https://react-bun-ssr.dev/blog/how-i-built-react-bun-ssr-with-ai</loc>
     <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
@@ -13,12 +17,16 @@
     <lastmod>2026-03-03T21:47:22+01:00</lastmod>
   </url>
   <url>
+    <loc>https://react-bun-ssr.dev/blog/why-nextjs-16-and-node-24-are-faster-and-where-bun-fits</loc>
+    <lastmod>2026-03-30T22:17:33+02:00</lastmod>
+  </url>
+  <url>
     <loc>https://react-bun-ssr.dev/docs</loc>
     <lastmod>2026-03-01T11:21:26+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/bun-runtime-apis</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/overview</loc>
@@ -26,15 +34,15 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/api/react-bun-ssr-route</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/actions</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/error-handling</loc>
@@ -42,7 +50,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/data/loaders</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/deployment/bun-deployment</loc>
@@ -74,7 +82,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/file-based-routing</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/layouts-and-groups</loc>
@@ -82,7 +90,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/middleware</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/routing/navigation</loc>
@@ -94,7 +102,7 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/installation</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/overview</loc>
@@ -102,11 +110,11 @@
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/project-structure</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/start/quick-start</loc>
-    <lastmod>2026-03-27T21:18:52+01:00</lastmod>
+    <lastmod>2026-03-27T22:36:41+01:00</lastmod>
   </url>
   <url>
     <loc>https://react-bun-ssr.dev/docs/styling/css-modules</loc>

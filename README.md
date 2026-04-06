@@ -109,6 +109,8 @@ Read more:
 
 For a page request, the framework resolves the matching route, runs global and nested middleware, executes the matched loader or action, and then renders an HTML response or returns a direct `Response` when the route short-circuits. API routes use the same route tree and middleware model, but return handler responses instead of page HTML.
 
+Under the hood, page HTML, API, internal action, and internal transition requests now share the same runtime request boundary, which keeps middleware, redirects, and response finalization behavior aligned across request kinds.
+
 Read more:
 
 - https://react-bun-ssr.dev/docs/routing/middleware

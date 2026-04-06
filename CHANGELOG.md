@@ -2,6 +2,19 @@
 
 All notable changes to `react-bun-ssr` are documented in this file.
 
+## [0.4.1] - 2026-04-07
+
+### Changed
+
+- Deepened the server runtime around a dedicated internal request executor so page HTML, API, internal action, internal transition, static asset, and dev endpoint handling now share one request boundary.
+- Deepened the internal action/transition transport around a dedicated route wire protocol that owns action submission, transition stream parsing, deferred payload revival/settlement, and redirect/document fallback planning.
+- `createServer()`, route action hooks, and client navigation/runtime orchestration are now thinner layers over those internal seams. No package-root API changes were introduced in this release.
+
+### Tests
+
+- Added direct request-executor integration coverage for page HTML, static/dev endpoints, API, action, and transition requests.
+- Added direct route-wire-protocol boundary coverage for action transport, transition streaming, deferred settlement, redirect/document fallback behavior, and redirect-depth handling.
+
 ## [0.4.0] - 2026-03-27
 
 ### Breaking
@@ -162,7 +175,8 @@ All notable changes to `react-bun-ssr` are documented in this file.
 
 > Note: there is no separate `v0.1.0` tag in this repository. `0.1.x` history begins at `v0.1.1`.
 
-[Unreleased]: https://github.com/react-formation/react-bun-ssr/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/react-formation/react-bun-ssr/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/react-formation/react-bun-ssr/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/react-formation/react-bun-ssr/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/react-formation/react-bun-ssr/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/react-formation/react-bun-ssr/compare/v0.3.0...v0.3.1

@@ -1,15 +1,10 @@
 import { hydrateRoot, type Root } from "react-dom/client";
 import {
-  consumeTransitionChunkText,
-  createTransitionChunkParserState,
-  flushTransitionChunkText,
   isStaleNavigationToken,
   matchClientPageRoute,
   sanitizePrefetchCache,
-  shouldHardNavigateForRedirectDepth,
   shouldSkipSoftNavigation,
 } from "./client-transition-core";
-import { isDeferredToken } from "./deferred";
 import {
   addNavigationNavigateListener,
   canNavigationNavigateWithIntercept,
@@ -21,6 +16,12 @@ import {
   RBSSR_ROUTER_SCRIPT_ID,
 } from "./runtime-constants";
 import { replaceManagedHead } from "./head-reconcile";
+import {
+  applyRouteWireDeferredChunk,
+  completeRouteWireTransition,
+  createRouteWireProtocol,
+  reviveRouteWirePayload,
+} from "./route-wire-protocol";
 import {
   createCatchAppTree,
   createErrorAppTree,
@@ -34,7 +35,6 @@ import type {
   RenderPayload,
   RouteModule,
   RouteModuleBundle,
-  TransitionDeferredChunk,
   TransitionDocumentChunk,
   TransitionInitialChunk,
   TransitionRedirectChunk,
@@ -69,16 +69,6 @@ interface NavigateResult {
 interface PrefetchEntry {
   createdAt: number;
   modulePromise: Promise<void>;
-  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null>;
-  donePromise: Promise<void>;
-}
-
-interface TransitionRequestOptions {
-  onDeferredChunk?: (chunk: TransitionDeferredChunk) => void;
-  signal?: AbortSignal;
-}
-
-interface TransitionRequestHandle {
   initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null>;
   donePromise: Promise<void>;
 }
@@ -172,6 +162,28 @@ function getClientRuntimeSingleton(): ClientRuntimeSingleton {
 }
 
 const clientRuntimeSingleton = getClientRuntimeSingleton();
+
+function readCurrentWindowUrl(): URL | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return new URL(window.location.href);
+}
+
+function getClientRouteWireProtocol() {
+  return createRouteWireProtocol({
+    getCurrentUrl: readCurrentWindowUrl,
+  });
+}
+
+function getDeferredRuntime(): DeferredClientRuntime | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return window.__RBSSR_DEFERRED__;
+}
 
 function emitNavigation(info: NavigateResult): void {
   for (const listener of clientRuntimeSingleton.navigationListeners) {
@@ -373,137 +385,12 @@ function findPendingTransitionForEvent(event: NavigateEventLike): PendingNavigat
   return bestMatch;
 }
 
-function reviveDeferredPayload(payload: RenderPayload): RenderPayload {
-  const sourceData = payload.loaderData;
-  if (!sourceData || Array.isArray(sourceData) || typeof sourceData !== "object") {
-    return payload;
-  }
-
-  const runtime = window.__RBSSR_DEFERRED__;
-  if (!runtime) {
-    return payload;
-  }
-
-  const revivedData = { ...(sourceData as Record<string, unknown>) };
-  for (const [key, value] of Object.entries(revivedData)) {
-    if (!isDeferredToken(value)) {
-      continue;
-    }
-    revivedData[key] = runtime.get(value.__rbssrDeferred);
-  }
-
-  return {
-    ...payload,
-    loaderData: revivedData,
-  };
-}
-
 function ensureRuntimeState(): RuntimeState {
   if (!clientRuntimeSingleton.runtimeState) {
     throw new Error("Client runtime is not initialized. Ensure hydrateInitialRoute() ran first.");
   }
 
   return clientRuntimeSingleton.runtimeState;
-}
-
-function createTransitionUrl(toUrl: URL): URL {
-  const transitionUrl = new URL("/__rbssr/transition", window.location.origin);
-  transitionUrl.searchParams.set("to", toUrl.pathname + toUrl.search + toUrl.hash);
-  return transitionUrl;
-}
-
-function startTransitionRequest(
-  toUrl: URL,
-  options: TransitionRequestOptions = {},
-): TransitionRequestHandle {
-  let resolveInitial: (
-    value: TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null,
-  ) => void = () => undefined;
-  let rejectInitial: (reason?: unknown) => void = () => undefined;
-  const initialPromise = new Promise<
-    TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null
-  >((resolve, reject) => {
-    resolveInitial = resolve;
-    rejectInitial = reject;
-  });
-
-  const donePromise = (async () => {
-    const endpoint = createTransitionUrl(toUrl);
-    const response = await fetch(endpoint.toString(), {
-      method: "GET",
-      credentials: "same-origin",
-      signal: options.signal,
-    });
-
-    if (!response.ok || !response.body) {
-      throw new Error(`Transition request failed with status ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let parserState = createTransitionChunkParserState();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-
-      const previousInitialChunk = parserState.initialChunk;
-      const previousDeferredCount = parserState.deferredChunks.length;
-      parserState = consumeTransitionChunkText(
-        parserState,
-        decoder.decode(value, { stream: true }),
-      );
-
-      if (!previousInitialChunk && parserState.initialChunk) {
-        resolveInitial(parserState.initialChunk);
-      }
-
-      for (const chunk of parserState.deferredChunks.slice(previousDeferredCount)) {
-        options.onDeferredChunk?.(chunk);
-      }
-    }
-
-    const previousInitialChunk = parserState.initialChunk;
-    const previousDeferredCount = parserState.deferredChunks.length;
-    parserState = flushTransitionChunkText(parserState);
-
-    if (!previousInitialChunk && parserState.initialChunk) {
-      resolveInitial(parserState.initialChunk);
-    }
-
-    for (const chunk of parserState.deferredChunks.slice(previousDeferredCount)) {
-      options.onDeferredChunk?.(chunk);
-    }
-
-    if (!parserState.initialChunk) {
-      resolveInitial(null);
-    }
-  })();
-
-  donePromise.catch(error => {
-    rejectInitial(error);
-  });
-
-  return {
-    initialPromise,
-    donePromise,
-  };
-}
-
-function applyDeferredChunk(chunk: TransitionDeferredChunk): void {
-  const runtime = window.__RBSSR_DEFERRED__;
-  if (!runtime) {
-    return;
-  }
-
-  if (chunk.ok) {
-    runtime.resolve(chunk.id, chunk.value);
-    return;
-  }
-
-  runtime.reject(chunk.id, chunk.error ?? "Deferred value rejected");
 }
 
 async function ensureRouteModuleLoaded(routeId: string, snapshot: ClientRouterSnapshot): Promise<void> {
@@ -538,8 +425,11 @@ function getOrCreatePrefetchEntry(
     ? ensureRouteModuleLoaded(routeId, snapshot).catch(() => undefined)
     : Promise.resolve();
 
-  const transitionRequest = startTransitionRequest(toUrl, {
-    onDeferredChunk: applyDeferredChunk,
+  const transitionRequest = getClientRouteWireProtocol().startTransition({
+    to: toUrl,
+    onDeferredChunk: chunk => {
+      applyRouteWireDeferredChunk(chunk, getDeferredRuntime());
+    },
     signal,
   });
   const initialPromise = transitionRequest.initialPromise.catch(() => {
@@ -574,7 +464,7 @@ async function renderTransitionInitial(
   options: NavigateOptions & { prefetched: boolean; fromPath: string },
 ): Promise<NavigateResult> {
   const state = ensureRuntimeState();
-  const revivedPayload = reviveDeferredPayload(chunk.payload);
+  const revivedPayload = reviveRouteWirePayload(chunk.payload, getDeferredRuntime());
   let modules: RouteModuleBundle | null = null;
   let tree = null as ReturnType<typeof createPageAppTree> | ReturnType<typeof createNotFoundAppTree>;
 
@@ -733,43 +623,34 @@ async function navigateToInternal(
       throw new Error("Transition response did not include an initial payload.");
     }
 
-    if (initialChunk.type === "document") {
-      hardNavigate(new URL(initialChunk.location, window.location.origin));
-      return null;
-    }
-
-    if (initialChunk.type === "redirect") {
-      const redirectUrl = new URL(initialChunk.location, window.location.origin);
-      if (!isInternalUrl(redirectUrl)) {
-        hardNavigate(redirectUrl);
-        return null;
-      }
-
-      const depth = (options.redirectDepth ?? 0) + 1;
-      if (shouldHardNavigateForRedirectDepth(depth)) {
-        hardNavigate(redirectUrl);
-        return null;
-      }
-
-      return navigateToInternal(redirectUrl, {
-        ...options,
-        replace: true,
-        redirected: true,
-        redirectDepth: depth,
-        // The intercepted navigation has already committed the source URL.
-        // The redirected target must update history explicitly.
-        historyManagedByNavigationApi: false,
-      });
-    }
-
-    const result = await renderTransitionInitial(initialChunk, toUrl, {
-      ...options,
-      prefetched: usedPrefetch,
-      fromPath: currentPath,
+    return completeRouteWireTransition(initialChunk, {
+      currentUrl: new URL(window.location.href),
+      redirectDepth: options.redirectDepth,
+      render: async chunk => {
+        const result = await renderTransitionInitial(chunk, toUrl, {
+          ...options,
+          prefetched: usedPrefetch,
+          fromPath: currentPath,
+        });
+        options.onNavigate?.(result);
+        emitNavigation(result);
+        return result;
+      },
+      softNavigate: async (location, redirectInfo) => {
+        return navigateToInternal(new URL(location, window.location.href), {
+          ...options,
+          replace: redirectInfo.replace,
+          redirected: redirectInfo.redirected,
+          redirectDepth: redirectInfo.redirectDepth,
+          // The intercepted navigation has already committed the source URL.
+          // The redirected target must update history explicitly.
+          historyManagedByNavigationApi: false,
+        });
+      },
+      hardNavigate: location => {
+        hardNavigate(new URL(location, window.location.href));
+      },
     });
-    options.onNavigate?.(result);
-    emitNavigation(result);
-    return result;
   } catch {
     hardNavigate(toUrl);
     return null;
@@ -1060,7 +941,10 @@ export function hydrateInitialRoute(routeId: string): void {
     return;
   }
 
-  const payload = reviveDeferredPayload(getScriptJson<RenderPayload>(RBSSR_PAYLOAD_SCRIPT_ID));
+  const payload = reviveRouteWirePayload(
+    getScriptJson<RenderPayload>(RBSSR_PAYLOAD_SCRIPT_ID),
+    getDeferredRuntime(),
+  );
   const routerSnapshot = getScriptJson<ClientRouterSnapshot>(RBSSR_ROUTER_SCRIPT_ID);
   const modules = clientRuntimeSingleton.moduleRegistry.get(routeId);
   if (!modules) {

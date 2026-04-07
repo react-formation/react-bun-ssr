@@ -3,10 +3,6 @@ import {
   consumeTransitionChunkText,
   createTransitionChunkParserState,
   flushTransitionChunkText,
-  isStaleNavigationToken,
-  sanitizePrefetchCache,
-  shouldHardNavigateForRedirectDepth,
-  shouldSkipSoftNavigation,
 } from "../../../framework/runtime/client-transition-core";
 import type { TransitionChunkParserState } from "../../../framework/runtime/client-transition-core";
 
@@ -78,34 +74,5 @@ describe("client transition core", () => {
       location: "http://localhost/plain",
       status: 202,
     });
-  });
-
-  it("applies redirect depth and same-url navigation guards", () => {
-    expect(shouldHardNavigateForRedirectDepth(8)).toBe(false);
-    expect(shouldHardNavigateForRedirectDepth(9)).toBe(true);
-
-    // Inputs are full client location strings: pathname + search + hash.
-    expect(shouldSkipSoftNavigation("/docs", "/docs", {})).toBe(true);
-    expect(shouldSkipSoftNavigation("/search?q=foo", "/search?q=foo", {})).toBe(true);
-    expect(shouldSkipSoftNavigation("/search?q=foo", "/search?q=bar", {})).toBe(false);
-    expect(shouldSkipSoftNavigation("/docs", "/docs", { isPopState: true })).toBe(false);
-    expect(shouldSkipSoftNavigation("/docs", "/docs", { historyManagedByNavigationApi: true })).toBe(false);
-    expect(shouldSkipSoftNavigation("/docs", "/blog", {})).toBe(false);
-  });
-
-  it("evicts stale prefetch entries and detects stale navigation tokens", () => {
-    const cache = new Map([
-      ["fresh", { createdAt: 5_000 }],
-      ["stale", { createdAt: 0 }],
-    ]);
-
-    sanitizePrefetchCache(cache, {
-      now: 31_000,
-      ttlMs: 30_000,
-    });
-
-    expect(Array.from(cache.keys())).toEqual(["fresh"]);
-    expect(isStaleNavigationToken(3, 2)).toBe(true);
-    expect(isStaleNavigationToken(3, 3)).toBe(false);
   });
 });

@@ -2,7 +2,6 @@ import {
   consumeTransitionChunkText,
   createTransitionChunkParserState,
   flushTransitionChunkText,
-  shouldHardNavigateForRedirectDepth,
 } from "./client-transition-core";
 import type { RouteActionStateHandler } from "./action-stub";
 import { markRouteActionStub } from "./action-stub";
@@ -52,6 +51,15 @@ export type RouteWireActionOutcome =
   | RouteWireActionRedirectOutcome
   | RouteWireActionCatchOutcome
   | RouteWireActionErrorOutcome;
+
+const MAX_REDIRECT_DEPTH = 8;
+
+function shouldHardNavigateForRedirectDepth(
+  depth: number,
+  maxDepth = MAX_REDIRECT_DEPTH,
+): boolean {
+  return depth > maxDepth;
+}
 
 export interface RouteWireProtocol {
   submitAction(input: {

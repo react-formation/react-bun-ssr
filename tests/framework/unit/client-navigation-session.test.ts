@@ -163,6 +163,37 @@ describe("client navigation session", () => {
     ]);
   });
 
+  it("evicts stale prefetch entries before creating a new transition entry", () => {
+    let currentTime = 31_001;
+    const staleEntry = {
+      createdAt: 1_000,
+      modulePromise: Promise.resolve(),
+      initialPromise: Promise.resolve(null),
+      donePromise: Promise.resolve(),
+    };
+    const { calls, deps } = createTestDeps({
+      state: {
+        prefetchCache: new Map([
+          ["/stale", staleEntry],
+        ]),
+        navigationToken: 0,
+        transitionAbortController: null,
+      },
+      now: () => currentTime,
+    });
+    const session = createClientNavigationSession(deps);
+
+    session.prefetch(new URL("http://localhost/guide"));
+    currentTime += 1;
+
+    expect(deps.state.prefetchCache.has("/stale")).toBe(false);
+    expect(deps.state.prefetchCache.has("/guide")).toBe(true);
+    expect(calls).toEqual([
+      "load:guide",
+      "startTransition",
+    ]);
+  });
+
   it("aborts and ignores stale navigation results when a later navigation wins", async () => {
     const initialResolvers: Array<(value: TransitionInitialResult) => void> = [];
     const signals: AbortSignal[] = [];

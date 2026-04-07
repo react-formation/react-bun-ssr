@@ -1,8 +1,5 @@
 import {
-  isStaleNavigationToken,
   matchClientPageRoute,
-  sanitizePrefetchCache,
-  shouldSkipSoftNavigation,
 } from "./client-transition-core";
 import { completeRouteWireTransition, type RouteWireProtocol } from "./route-wire-protocol";
 import type {
@@ -15,6 +12,7 @@ import type {
 } from "./types";
 
 type TransitionInitialResult = TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null;
+const PREFETCH_TTL_MS = 30_000;
 
 export interface ClientNavigationResult {
   from: string;
@@ -136,6 +134,42 @@ export interface ClientNavigationSession {
 
 function toPath(url: URL): string {
   return url.pathname + url.search + url.hash;
+}
+
+function sanitizePrefetchCache<T extends { createdAt: number }>(
+  cache: Map<string, T>,
+  options: {
+    now?: number;
+    ttlMs?: number;
+  } = {},
+): void {
+  const now = options.now ?? Date.now();
+  const ttlMs = options.ttlMs ?? PREFETCH_TTL_MS;
+
+  for (const [key, entry] of cache.entries()) {
+    if (now - entry.createdAt > ttlMs) {
+      cache.delete(key);
+    }
+  }
+}
+
+function shouldSkipSoftNavigation(
+  currentPath: string,
+  targetPath: string,
+  options: ClientNavigationSessionOptions,
+): boolean {
+  return (
+    currentPath === targetPath
+    && !options.isPopState
+    && !options.historyManagedByNavigationApi
+  );
+}
+
+function isStaleNavigationToken(
+  activeToken: number,
+  candidateToken: number,
+): boolean {
+  return activeToken !== candidateToken;
 }
 
 export function createClientNavigationSession(

@@ -9,18 +9,10 @@ import type {
   TransitionRedirectChunk,
 } from "./types";
 
-export const PREFETCH_TTL_MS = 30_000;
-export const MAX_REDIRECT_DEPTH = 8;
-
 export interface TransitionChunkParserState {
   buffer: string;
   initialChunk: TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null;
   deferredChunks: TransitionDeferredChunk[];
-}
-
-export interface TransitionNavigationOptions {
-  historyManagedByNavigationApi?: boolean;
-  isPopState?: boolean;
 }
 
 export function createTransitionChunkParserState(): TransitionChunkParserState {
@@ -113,47 +105,4 @@ export function flushTransitionChunkText(
     ),
     buffer: "",
   };
-}
-
-export function sanitizePrefetchCache<T extends { createdAt: number }>(
-  cache: Map<string, T>,
-  options: {
-    now?: number;
-    ttlMs?: number;
-  } = {},
-): void {
-  const now = options.now ?? Date.now();
-  const ttlMs = options.ttlMs ?? PREFETCH_TTL_MS;
-
-  for (const [key, entry] of cache.entries()) {
-    if (now - entry.createdAt > ttlMs) {
-      cache.delete(key);
-    }
-  }
-}
-
-export function shouldSkipSoftNavigation(
-  currentPath: string,
-  targetPath: string,
-  options: TransitionNavigationOptions,
-): boolean {
-  return (
-    currentPath === targetPath
-    && !options.isPopState
-    && !options.historyManagedByNavigationApi
-  );
-}
-
-export function shouldHardNavigateForRedirectDepth(
-  depth: number,
-  maxDepth = MAX_REDIRECT_DEPTH,
-): boolean {
-  return depth > maxDepth;
-}
-
-export function isStaleNavigationToken(
-  activeToken: number,
-  candidateToken: number,
-): boolean {
-  return activeToken !== candidateToken;
 }

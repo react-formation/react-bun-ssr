@@ -9,6 +9,8 @@ dist
 *.tgz
 playwright-report
 test-results
+plans
+
 
 # code coverage
 coverage

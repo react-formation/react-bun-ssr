@@ -1,16 +1,19 @@
 import { hydrateRoot, type Root } from "react-dom/client";
 import {
-  isStaleNavigationToken,
-  matchClientPageRoute,
-  sanitizePrefetchCache,
-  shouldSkipSoftNavigation,
-} from "./client-transition-core";
-import {
   addNavigationNavigateListener,
   canNavigationNavigateWithIntercept,
   dispatchNavigationNavigate,
   type NavigationHistoryMode,
 } from "./navigation-api";
+import {
+  createClientNavigationSession,
+  type ClientNavigationApiInfo as FrameworkNavigationInfo,
+  type ClientNavigationDestinationLike,
+  type ClientNavigationPrefetchEntry as PrefetchEntry,
+  type ClientNavigationResult as NavigateResult,
+  type ClientNavigationSessionOptions as NavigateOptions,
+  type PendingClientNavigationTransition,
+} from "./client-navigation-session";
 import {
   RBSSR_PAYLOAD_SCRIPT_ID,
   RBSSR_ROUTER_SCRIPT_ID,
@@ -18,7 +21,6 @@ import {
 import { replaceManagedHead } from "./head-reconcile";
 import {
   applyRouteWireDeferredChunk,
-  completeRouteWireTransition,
   createRouteWireProtocol,
   reviveRouteWirePayload,
 } from "./route-wire-protocol";
@@ -35,51 +37,13 @@ import type {
   RenderPayload,
   RouteModule,
   RouteModuleBundle,
-  TransitionDocumentChunk,
   TransitionInitialChunk,
-  TransitionRedirectChunk,
 } from "./types";
 
 interface DeferredClientRuntime {
   get(id: string): Promise<unknown>;
   resolve(id: string, value: unknown): void;
   reject(id: string, message: string): void;
-}
-
-interface NavigateOptions {
-  replace?: boolean;
-  scroll?: boolean;
-  onNavigate?: (info: NavigateResult) => void;
-  isPopState?: boolean;
-  historyManagedByNavigationApi?: boolean;
-  redirected?: boolean;
-  redirectDepth?: number;
-}
-
-interface NavigateResult {
-  from: string;
-  to: string;
-  nextUrl: URL;
-  status: number;
-  kind: "page" | "not_found" | "catch" | "error";
-  redirected: boolean;
-  prefetched: boolean;
-}
-
-interface PrefetchEntry {
-  createdAt: number;
-  modulePromise: Promise<void>;
-  initialPromise: Promise<TransitionInitialChunk | TransitionRedirectChunk | TransitionDocumentChunk | null>;
-  donePromise: Promise<void>;
-}
-
-interface FrameworkNavigationInfo {
-  __rbssrTransition: true;
-  id: string;
-}
-
-interface NavigationDestinationLike {
-  url?: string | URL;
 }
 
 interface NavigationInterceptOptionsLike {
@@ -90,20 +54,8 @@ interface NavigateEventLike {
   info?: unknown;
   canIntercept?: boolean;
   userInitiated?: boolean;
-  destination?: NavigationDestinationLike;
+  destination?: ClientNavigationDestinationLike;
   intercept?: (options: NavigationInterceptOptionsLike) => void;
-}
-
-interface PendingNavigationTransition {
-  id: string;
-  destinationHref: string;
-  replace: boolean;
-  scroll: boolean;
-  onNavigate?: (info: NavigateResult) => void;
-  createdAt: number;
-  resolve: (value: NavigateResult | null) => void;
-  settled: boolean;
-  timeoutId: number;
 }
 
 interface RuntimeState {
@@ -120,7 +72,7 @@ interface RuntimeState {
 
 interface ClientRuntimeSingleton {
   moduleRegistry: Map<string, RouteModuleBundle>;
-  pendingNavigationTransitions: Map<string, PendingNavigationTransition>;
+  pendingNavigationTransitions: Map<string, PendingClientNavigationTransition>;
   navigationListeners: Set<(info: NavigateResult) => void>;
   runtimeState: RuntimeState | null;
   popstateBound: boolean;
@@ -134,8 +86,6 @@ declare global {
   }
 }
 
-const NAVIGATION_API_PENDING_TIMEOUT_MS = 1_500;
-const NAVIGATION_API_PENDING_MATCH_WINDOW_MS = 10_000;
 const ROUTE_ANNOUNCER_ID = "__rbssr-route-announcer";
 const CLIENT_RUNTIME_SINGLETON_KEY = Symbol.for("react-bun-ssr.client-runtime");
 
@@ -312,79 +262,6 @@ function announceRouteChange(): void {
   });
 }
 
-function isFrameworkNavigationInfo(value: unknown): value is FrameworkNavigationInfo {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as {
-    __rbssrTransition?: unknown;
-    id?: unknown;
-  };
-
-  return candidate.__rbssrTransition === true && typeof candidate.id === "string";
-}
-
-function toAbsoluteNavigationHref(href: string): string {
-  return new URL(href, window.location.href).toString();
-}
-
-function readNavigationDestinationHref(event: NavigateEventLike): string | null {
-  const rawUrl = event.destination?.url;
-  if (typeof rawUrl === "string") {
-    return toAbsoluteNavigationHref(rawUrl);
-  }
-
-  if (rawUrl instanceof URL) {
-    return rawUrl.toString();
-  }
-
-  return null;
-}
-
-function clearPendingNavigationTransition(id: string): void {
-  const entry = clientRuntimeSingleton.pendingNavigationTransitions.get(id);
-  if (!entry) {
-    return;
-  }
-
-  clearTimeout(entry.timeoutId);
-  clientRuntimeSingleton.pendingNavigationTransitions.delete(id);
-}
-
-function findPendingTransitionForEvent(event: NavigateEventLike): PendingNavigationTransition | null {
-  if (isFrameworkNavigationInfo(event.info)) {
-    return clientRuntimeSingleton.pendingNavigationTransitions.get(event.info.id) ?? null;
-  }
-
-  if (event.userInitiated) {
-    return null;
-  }
-
-  const destinationHref = readNavigationDestinationHref(event);
-  if (!destinationHref) {
-    return null;
-  }
-
-  const now = Date.now();
-  let bestMatch: PendingNavigationTransition | null = null;
-  for (const candidate of clientRuntimeSingleton.pendingNavigationTransitions.values()) {
-    if (candidate.destinationHref !== destinationHref) {
-      continue;
-    }
-
-    if (now - candidate.createdAt > NAVIGATION_API_PENDING_MATCH_WINDOW_MS) {
-      continue;
-    }
-
-    if (!bestMatch || candidate.createdAt > bestMatch.createdAt) {
-      bestMatch = candidate;
-    }
-  }
-
-  return bestMatch;
-}
-
 function ensureRuntimeState(): RuntimeState {
   if (!clientRuntimeSingleton.runtimeState) {
     throw new Error("Client runtime is not initialized. Ensure hydrateInitialRoute() ran first.");
@@ -405,50 +282,6 @@ async function ensureRouteModuleLoaded(routeId: string, snapshot: ClientRouterSn
 
   const scriptUrl = withVersionQuery(asset.script, snapshot.devVersion);
   await import(scriptUrl);
-}
-
-function getOrCreatePrefetchEntry(
-  toUrl: URL,
-  routeId: string | null,
-  snapshot: ClientRouterSnapshot,
-  signal?: AbortSignal,
-): PrefetchEntry {
-  const state = ensureRuntimeState();
-  sanitizePrefetchCache(state.prefetchCache);
-  const cacheKey = toUrl.pathname + toUrl.search + toUrl.hash;
-  const existing = state.prefetchCache.get(cacheKey);
-  if (existing) {
-    return existing;
-  }
-
-  const modulePromise = routeId
-    ? ensureRouteModuleLoaded(routeId, snapshot).catch(() => undefined)
-    : Promise.resolve();
-
-  const transitionRequest = getClientRouteWireProtocol().startTransition({
-    to: toUrl,
-    onDeferredChunk: chunk => {
-      applyRouteWireDeferredChunk(chunk, getDeferredRuntime());
-    },
-    signal,
-  });
-  const initialPromise = transitionRequest.initialPromise.catch(() => {
-    state.prefetchCache.delete(cacheKey);
-    return null;
-  });
-  const donePromise = transitionRequest.donePromise.catch(() => {
-    state.prefetchCache.delete(cacheKey);
-  });
-
-  const entry: PrefetchEntry = {
-    createdAt: Date.now(),
-    modulePromise,
-    initialPromise,
-    donePromise,
-  };
-
-  state.prefetchCache.set(cacheKey, entry);
-  return entry;
 }
 
 function createFallbackNotFoundRoute(rootModule: RouteModule): RouteModule {
@@ -559,191 +392,53 @@ function messageFromPayloadError(value: unknown): string {
   return "Route render error";
 }
 
+function createRuntimeNavigationSession(state: RuntimeState) {
+  return createClientNavigationSession({
+    state,
+    pendingState: clientRuntimeSingleton,
+    currentUrl: new URL(window.location.href),
+    routerSnapshot: state.routerSnapshot,
+    protocol: getClientRouteWireProtocol(),
+    onDeferredChunk: chunk => {
+      applyRouteWireDeferredChunk(chunk, getDeferredRuntime());
+    },
+    loadRouteModule: routeId => ensureRouteModuleLoaded(routeId, state.routerSnapshot),
+    renderLoading: input => {
+      const matchedModules = state.moduleRegistry.get(input.routeId);
+      if (!matchedModules) {
+        return;
+      }
+
+      const loadingTree = createLoadingAppTree(
+        matchedModules,
+        {
+          routeId: input.routeId,
+          loaderData: null,
+          params: input.params,
+          url: input.url.toString(),
+        },
+      );
+      if (loadingTree) {
+        state.root.render(loadingTree);
+      }
+    },
+    renderInitial: async (chunk, options) => {
+      const { toUrl, ...renderOptions } = options;
+      return renderTransitionInitial(chunk, toUrl, renderOptions);
+    },
+    hardNavigate,
+    emitNavigation,
+    setTimeout: (callback, timeoutMs) => window.setTimeout(callback, timeoutMs),
+    clearTimeout: timeoutId => window.clearTimeout(timeoutId),
+  });
+}
+
 async function navigateToInternal(
   toUrl: URL,
   options: NavigateOptions = {},
 ): Promise<NavigateResult | null> {
   const state = ensureRuntimeState();
-  const currentPath = window.location.pathname + window.location.search + window.location.hash;
-  const targetPath = toUrl.pathname + toUrl.search + toUrl.hash;
-
-  if (shouldSkipSoftNavigation(currentPath, targetPath, options)) {
-    return null;
-  }
-
-  const matched = matchClientPageRoute(state.routerSnapshot.pages, toUrl.pathname);
-  const routeId = matched?.route.id ?? null;
-
-  if (state.transitionAbortController) {
-    state.transitionAbortController.abort();
-  }
-
-  const abortController = new AbortController();
-  state.transitionAbortController = abortController;
-
-  sanitizePrefetchCache(state.prefetchCache);
-  const prefetchKey = toUrl.pathname + toUrl.search + toUrl.hash;
-  const existingPrefetch = state.prefetchCache.get(prefetchKey);
-  const prefetchEntry = existingPrefetch
-    ?? getOrCreatePrefetchEntry(toUrl, routeId, state.routerSnapshot, abortController.signal);
-  const usedPrefetch = Boolean(existingPrefetch);
-  state.navigationToken += 1;
-  const navigationToken = state.navigationToken;
-
-  try {
-    await prefetchEntry.modulePromise;
-    if (isStaleNavigationToken(state.navigationToken, navigationToken)) {
-      return null;
-    }
-
-    if (matched) {
-      const matchedModules = state.moduleRegistry.get(matched.route.id);
-      if (matchedModules) {
-        const loadingTree = createLoadingAppTree(
-          matchedModules,
-          {
-            routeId: matched.route.id,
-            loaderData: null,
-            params: matched.params,
-            url: toUrl.toString(),
-          },
-        );
-        if (loadingTree) {
-          state.root.render(loadingTree);
-        }
-      }
-    }
-
-    const initialChunk = await prefetchEntry.initialPromise;
-    if (isStaleNavigationToken(state.navigationToken, navigationToken)) {
-      return null;
-    }
-
-    if (!initialChunk) {
-      throw new Error("Transition response did not include an initial payload.");
-    }
-
-    return completeRouteWireTransition(initialChunk, {
-      currentUrl: new URL(window.location.href),
-      redirectDepth: options.redirectDepth,
-      render: async chunk => {
-        const result = await renderTransitionInitial(chunk, toUrl, {
-          ...options,
-          prefetched: usedPrefetch,
-          fromPath: currentPath,
-        });
-        options.onNavigate?.(result);
-        emitNavigation(result);
-        return result;
-      },
-      softNavigate: async (location, redirectInfo) => {
-        return navigateToInternal(new URL(location, window.location.href), {
-          ...options,
-          replace: redirectInfo.replace,
-          redirected: redirectInfo.redirected,
-          redirectDepth: redirectInfo.redirectDepth,
-          // The intercepted navigation has already committed the source URL.
-          // The redirected target must update history explicitly.
-          historyManagedByNavigationApi: false,
-        });
-      },
-      hardNavigate: location => {
-        hardNavigate(new URL(location, window.location.href));
-      },
-    });
-  } catch {
-    hardNavigate(toUrl);
-    return null;
-  } finally {
-    if (state.transitionAbortController === abortController) {
-      state.transitionAbortController = null;
-    }
-  }
-}
-
-function nextNavigationTransitionId(): string {
-  clientRuntimeSingleton.navigationApiTransitionCounter += 1;
-  return `rbssr-nav-${Date.now()}-${clientRuntimeSingleton.navigationApiTransitionCounter}`;
-}
-
-function settlePendingNavigationTransition(
-  transition: PendingNavigationTransition,
-  result: NavigateResult | null,
-): void {
-  if (transition.settled) {
-    return;
-  }
-
-  transition.settled = true;
-  clearPendingNavigationTransition(transition.id);
-  transition.resolve(result);
-}
-
-function cancelPendingNavigationTransition(id: string): void {
-  const pending = clientRuntimeSingleton.pendingNavigationTransitions.get(id);
-  if (!pending || pending.settled) {
-    return;
-  }
-
-  pending.settled = true;
-  clearPendingNavigationTransition(id);
-  pending.resolve(null);
-}
-
-function fallbackPendingNavigationTransition(pending: PendingNavigationTransition): void {
-  if (pending.settled) {
-    return;
-  }
-
-  pending.settled = true;
-  clearPendingNavigationTransition(pending.id);
-  const destinationUrl = new URL(pending.destinationHref, window.location.href);
-  void navigateToInternal(destinationUrl, {
-    replace: pending.replace,
-    scroll: pending.scroll,
-    onNavigate: pending.onNavigate,
-  }).then(result => {
-    pending.resolve(result);
-  });
-}
-
-function createPendingNavigationTransition(options: {
-  id: string;
-  toUrl: URL;
-  replace: boolean;
-  scroll: boolean;
-  onNavigate?: (info: NavigateResult) => void;
-}): Promise<NavigateResult | null> {
-  return new Promise(resolve => {
-    const timeoutId = window.setTimeout(() => {
-      const pending = clientRuntimeSingleton.pendingNavigationTransitions.get(options.id);
-      if (!pending || pending.settled) {
-        return;
-      }
-
-      pending.settled = true;
-      clearPendingNavigationTransition(options.id);
-      void navigateToInternal(options.toUrl, {
-        replace: options.replace,
-        scroll: options.scroll,
-        onNavigate: options.onNavigate,
-      }).then(result => {
-        resolve(result);
-      });
-    }, NAVIGATION_API_PENDING_TIMEOUT_MS);
-
-    clientRuntimeSingleton.pendingNavigationTransitions.set(options.id, {
-      id: options.id,
-      destinationHref: options.toUrl.toString(),
-      replace: options.replace,
-      scroll: options.scroll,
-      onNavigate: options.onNavigate,
-      createdAt: Date.now(),
-      resolve,
-      settled: false,
-      timeoutId,
-    });
-  });
+  return createRuntimeNavigationSession(state).navigate(toUrl, options);
 }
 
 function bindNavigationApiNavigateListener(): void {
@@ -765,20 +460,26 @@ function bindNavigationApiNavigateListener(): void {
       return;
     }
 
-    const pending = findPendingTransitionForEvent(navigateEvent);
+    const state = clientRuntimeSingleton.runtimeState;
+    if (!state) {
+      return;
+    }
+
+    const session = createRuntimeNavigationSession(state);
+    const pending = session.findPendingTransitionForEvent(navigateEvent);
     if (!pending) {
       return;
     }
 
-    const destinationHref = readNavigationDestinationHref(navigateEvent);
+    const destinationHref = session.readNavigationDestinationHref(navigateEvent);
     if (!destinationHref) {
-      fallbackPendingNavigationTransition(pending);
+      session.fallbackPendingNavigationTransition(pending);
       return;
     }
 
     const destinationUrl = new URL(destinationHref, window.location.href);
     if (!isInternalUrl(destinationUrl)) {
-      fallbackPendingNavigationTransition(pending);
+      session.fallbackPendingNavigationTransition(pending);
       return;
     }
 
@@ -786,20 +487,20 @@ function bindNavigationApiNavigateListener(): void {
       navigateEvent.intercept({
         handler: async () => {
           try {
-            const result = await navigateToInternal(destinationUrl, {
+            const result = await session.navigate(destinationUrl, {
               replace: pending.replace,
               scroll: pending.scroll,
               onNavigate: pending.onNavigate,
               historyManagedByNavigationApi: true,
             });
-            settlePendingNavigationTransition(pending, result);
+            session.settlePendingNavigationTransition(pending, result);
           } catch {
-            settlePendingNavigationTransition(pending, null);
+            session.settlePendingNavigationTransition(pending, null);
           }
         },
       });
     } catch {
-      fallbackPendingNavigationTransition(pending);
+      session.fallbackPendingNavigationTransition(pending);
     }
   });
 
@@ -840,9 +541,7 @@ export async function prefetchTo(to: string): Promise<void> {
     return;
   }
 
-  const matched = matchClientPageRoute(state.routerSnapshot.pages, toUrl.pathname);
-  const routeId = matched?.route.id ?? null;
-  getOrCreatePrefetchEntry(toUrl, routeId, state.routerSnapshot);
+  createRuntimeNavigationSession(state).prefetch(toUrl);
 }
 
 export async function navigateWithNavigationApiOrFallback(
@@ -859,18 +558,20 @@ export async function navigateWithNavigationApiOrFallback(
     return null;
   }
 
-  if (!clientRuntimeSingleton.runtimeState) {
+  const state = clientRuntimeSingleton.runtimeState;
+  if (!state) {
     hardNavigate(toUrl);
     return null;
   }
 
   bindNavigationApiNavigateListener();
+  const session = createRuntimeNavigationSession(state);
   if (!canNavigationNavigateWithIntercept()) {
-    return navigateToInternal(toUrl, options);
+    return session.navigate(toUrl, options);
   }
 
-  const transitionId = nextNavigationTransitionId();
-  const pendingPromise = createPendingNavigationTransition({
+  const transitionId = session.nextNavigationTransitionId();
+  const pendingPromise = session.createPendingNavigationTransition({
     id: transitionId,
     toUrl,
     replace: Boolean(options.replace),
@@ -888,15 +589,15 @@ export async function navigateWithNavigationApiOrFallback(
   });
 
   if (!dispatchResult.dispatched) {
-    cancelPendingNavigationTransition(transitionId);
-    return navigateToInternal(toUrl, options);
+    session.cancelPendingNavigationTransition(transitionId);
+    return session.navigate(toUrl, options);
   }
 
   if (dispatchResult.committed) {
     const committed = await dispatchResult.committed;
     if (!committed) {
-      cancelPendingNavigationTransition(transitionId);
-      return navigateToInternal(toUrl, options);
+      session.cancelPendingNavigationTransition(transitionId);
+      return session.navigate(toUrl, options);
     }
   }
 

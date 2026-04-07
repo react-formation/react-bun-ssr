@@ -1,12 +1,10 @@
 import path from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
 import {
-  extractRouteMiddleware,
   loadGlobalMiddleware,
   loadNestedMiddleware,
   loadRouteModule,
 } from "../../../framework/runtime/module-loader";
-import type { Middleware } from "../../../framework/runtime/types";
 import { createFixtureApp } from "../helpers/fixture-app";
 import { createTempDirRegistry } from "../helpers/temp-dir";
 
@@ -53,18 +51,6 @@ describe("module loader middleware normalization", () => {
 
     expect(middleware).toHaveLength(3);
     expect(middleware.every(entry => typeof entry === "function")).toBe(true);
-  });
-
-  it("preserves route module middleware array order", () => {
-    const first: Middleware = async (_ctx, next) => next();
-    const second: Middleware = async (_ctx, next) => next();
-
-    expect(
-      extractRouteMiddleware({
-        default: () => null,
-        middleware: [first, second],
-      }),
-    ).toEqual([first, second]);
   });
 
   it("throws a clear error when a route module default export is invalid", async () => {

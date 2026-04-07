@@ -9,8 +9,8 @@ import {
 import { isRedirectResult, json } from "./helpers";
 import { statPath } from "./io";
 import { runMiddlewareChain } from "./middleware";
+import { createExecutableRouteRuntime } from "./executable-route-runtime";
 import {
-  extractRouteMiddleware,
   loadApiRouteModule,
   loadGlobalMiddleware,
   loadNestedMiddleware,
@@ -30,7 +30,7 @@ import {
   toRouteErrorResponse,
 } from "./route-errors";
 import { sortRoutesBySpecificity } from "./route-order";
-import { applyResponseContext, createResponseContext } from "./response-context";
+import { applyResponseContext } from "./response-context";
 import {
   createCatchAppTree,
   createErrorAppTree,
@@ -69,7 +69,6 @@ import {
   ensureWithin,
   isMutatingMethod,
   normalizeSlashes,
-  parseCookieHeader,
   sanitizeErrorMessage,
   stableHash,
 } from "./utils";
@@ -375,22 +374,6 @@ async function parseActionBody(request: Request): Promise<Pick<ActionContext, "f
   }
 
   return {};
-}
-
-function createRequestContext(options: {
-  request: Request;
-  url: URL;
-  params: RequestContext["params"];
-}): RequestContext {
-  const cookies = parseCookieHeader(options.request.headers.get("cookie"));
-  return {
-    request: options.request,
-    url: options.url,
-    params: options.params,
-    cookies,
-    locals: {},
-    response: createResponseContext(cookies),
-  };
 }
 
 async function loadRootOnlyModule(
@@ -780,6 +763,11 @@ export function createRequestExecutor(options: {
       devSourceImports: dev,
       nodeEnv,
     };
+    const executableRouteRuntime = createExecutableRouteRuntime({
+      rootFilePath: activeConfig.rootModule,
+      globalMiddlewareFilePath: activeConfig.middlewareFile,
+      deps,
+    });
     const routeAssetsById = resolveAllRouteAssets({
       dev,
       runtimeOptions,
@@ -844,29 +832,22 @@ export function createRequestExecutor(options: {
         );
       }
 
-      const [routeModules, globalMiddleware, nestedMiddleware, actionBody] = await Promise.all([
-        deps.loadRouteBundle({
-          rootFilePath: activeConfig.rootModule,
-          layoutFiles: actionPageMatch.route.layoutFiles,
-          routeFilePath: actionPageMatch.route.filePath,
-          routeServerFilePath: actionPageMatch.route.serverFilePath,
-          ...routeModuleLoadOptions,
-        }),
-        deps.loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
-        deps.loadNestedMiddleware(actionPageMatch.route.middlewareFiles, requestModuleLoadOptions),
-        parseActionBody(request.clone()),
-      ]);
-
-      const moduleMiddleware = extractRouteMiddleware(routeModules.route);
       const actionRequest = new Request(targetUrl.toString(), {
         method: request.method,
         headers: request.headers,
       });
-      const requestContext = createRequestContext({
-        request: actionRequest,
-        url: targetUrl,
-        params: actionPageMatch.params,
-      });
+      const [executableActionRoute, actionBody] = await Promise.all([
+        executableRouteRuntime.preparePageRoute({
+          match: actionPageMatch,
+          request: actionRequest,
+          url: targetUrl,
+          routeLoadOptions: routeModuleLoadOptions,
+          middlewareLoadOptions: requestModuleLoadOptions,
+        }),
+        parseActionBody(request.clone()),
+      ]);
+      const routeModules = executableActionRoute.modules;
+      const requestContext = executableActionRoute.requestContext;
       const contextBase = toRouteErrorContextBase({
         requestContext,
         routeId: actionPageMatch.route.id,
@@ -876,7 +857,7 @@ export function createRequestExecutor(options: {
 
       try {
         const middlewareResponse = await runMiddlewareChain(
-          [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
+          executableActionRoute.middleware,
           requestContext,
           async () => {
             if (!routeModules.route.action) {
@@ -1116,29 +1097,20 @@ export function createRequestExecutor(options: {
         return finalize(toTransitionStreamResponse(stream), "internal-transition");
       }
 
-      const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
-        deps.loadRouteBundle({
-          rootFilePath: activeConfig.rootModule,
-          layoutFiles: transitionPageMatch.route.layoutFiles,
-          routeFilePath: transitionPageMatch.route.filePath,
-          routeServerFilePath: transitionPageMatch.route.serverFilePath,
-          ...routeModuleLoadOptions,
-        }),
-        deps.loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
-        deps.loadNestedMiddleware(transitionPageMatch.route.middlewareFiles, requestModuleLoadOptions),
-      ]);
-      const moduleMiddleware = extractRouteMiddleware(routeModules.route);
       const routeAssets = routeAssetsById[transitionPageMatch.route.id] ?? null;
       const transitionRequest = new Request(targetUrl.toString(), {
         method: "GET",
         headers: request.headers,
       });
-
-      const requestContext = createRequestContext({
+      const executableTransitionRoute = await executableRouteRuntime.preparePageRoute({
+        match: transitionPageMatch,
         request: transitionRequest,
         url: targetUrl,
-        params: transitionPageMatch.params,
+        routeLoadOptions: routeModuleLoadOptions,
+        middlewareLoadOptions: requestModuleLoadOptions,
       });
+      const routeModules = executableTransitionRoute.modules;
+      const requestContext = executableTransitionRoute.requestContext;
 
       let transitionInitialChunk: TransitionInitialChunk | undefined;
       let deferredSettleEntries: DeferredSettleEntry[] = [];
@@ -1147,7 +1119,7 @@ export function createRequestExecutor(options: {
       let middlewareResponse: Response;
       try {
         middlewareResponse = await runMiddlewareChain(
-          [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
+          executableTransitionRoute.middleware,
           requestContext,
           async () => {
             let loaderDataForRender: unknown = null;
@@ -1338,7 +1310,14 @@ export function createRequestExecutor(options: {
 
     const apiMatch = routeAdapter.matchApi(url.pathname);
     if (apiMatch) {
-      const apiModule = await deps.loadApiModule(apiMatch.route.filePath, requestModuleLoadOptions);
+      const executableApiRoute = await executableRouteRuntime.prepareApiRoute({
+        match: apiMatch,
+        request,
+        url,
+        loadOptions: requestModuleLoadOptions,
+      });
+      const apiModule = executableApiRoute.module;
+      const requestContext = executableApiRoute.requestContext;
       const methodHandler = getMethodHandler(apiModule as Record<string, unknown>, request.method);
 
       if (typeof methodHandler !== "function") {
@@ -1351,22 +1330,11 @@ export function createRequestExecutor(options: {
         }), "api");
       }
 
-      const requestContext = createRequestContext({
-        request,
-        url,
-        params: apiMatch.params,
-      });
-
-      const [globalMiddleware, routeMiddleware] = await Promise.all([
-        deps.loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
-        deps.loadNestedMiddleware(apiMatch.route.middlewareFiles, requestModuleLoadOptions),
-      ]);
-      const allMiddleware = [...globalMiddleware, ...routeMiddleware];
       let apiPhase: RouteErrorPhase = "middleware";
 
       let response: Response;
       try {
-        response = await runMiddlewareChain(allMiddleware, requestContext, async () => {
+        response = await runMiddlewareChain(executableApiRoute.middleware, requestContext, async () => {
           apiPhase = "api";
           const result = await (methodHandler as (ctx: RequestContext) => unknown)(requestContext);
 
@@ -1477,24 +1445,15 @@ export function createRequestExecutor(options: {
       );
     }
 
-    const [routeModules, globalMiddleware, nestedMiddleware] = await Promise.all([
-      deps.loadRouteBundle({
-        rootFilePath: activeConfig.rootModule,
-        layoutFiles: pageMatch.route.layoutFiles,
-        routeFilePath: pageMatch.route.filePath,
-        routeServerFilePath: pageMatch.route.serverFilePath,
-        ...routeModuleLoadOptions,
-      }),
-      deps.loadGlobalMiddleware(activeConfig.middlewareFile, requestModuleLoadOptions),
-      deps.loadNestedMiddleware(pageMatch.route.middlewareFiles, requestModuleLoadOptions),
-    ]);
-    const moduleMiddleware = extractRouteMiddleware(routeModules.route);
-
-    const requestContext = createRequestContext({
+    const executablePageRoute = await executableRouteRuntime.preparePageRoute({
+      match: pageMatch,
       request,
       url,
-      params: pageMatch.params,
+      routeLoadOptions: routeModuleLoadOptions,
+      middlewareLoadOptions: requestModuleLoadOptions,
     });
+    const routeModules = executablePageRoute.modules;
+    const requestContext = executablePageRoute.requestContext;
 
     const routeAssets = routeAssetsById[pageMatch.route.id] ?? null;
     let pagePhase: RouteErrorPhase = "middleware";
@@ -1608,7 +1567,7 @@ export function createRequestExecutor(options: {
     let response: Response;
     try {
       response = await runMiddlewareChain(
-        [...globalMiddleware, ...nestedMiddleware, ...moduleMiddleware],
+        executablePageRoute.middleware,
         requestContext,
         async () => {
           let loaderDataForRender: unknown = null;

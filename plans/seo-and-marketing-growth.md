@@ -305,6 +305,8 @@ Each example should link to the deeper docs page.
 
 ## Phase 7: Roadmap Page
 
+**Status**: implemented in the current working branch at the time this plan was updated.
+
 ### Goal
 
 Increase framework credibility by making maintenance direction explicit.

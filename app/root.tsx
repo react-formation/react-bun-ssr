@@ -44,6 +44,7 @@ export default function RootLayout() {
             <nav className={styles.topnav}>
               <Link to="/benchmarks">Benchmarks</Link>
               <Link to="/examples">Examples</Link>
+              <Link to="/roadmap">Roadmap</Link>
               <Link to="/blog">Blog</Link>
               <Link to="/docs">Docs</Link>
               <Link to="/docs/api/overview">API</Link>
@@ -71,6 +72,7 @@ export default function RootLayout() {
             <Link to="/docs">Docs</Link>
             <Link to="/benchmarks">Benchmarks</Link>
             <Link to="/examples">Examples</Link>
+            <Link to="/roadmap">Roadmap</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/docs/api/overview">API</Link>
             <a href="/sitemap.xml">Sitemap</a>

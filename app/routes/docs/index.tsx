@@ -82,6 +82,9 @@ export default function DocsHomePage() {
             <Link className={styles.secondaryCta} to="/examples">
               Browse Examples
             </Link>
+            <Link className={styles.secondaryCta} to="/roadmap">
+              View Roadmap
+            </Link>
           </div>
         </div>
 
@@ -158,6 +161,7 @@ export default function DocsHomePage() {
           <Link to="/benchmarks">Benchmarks</Link>
           <Link to="/comparison/react-bun-ssr-vs-nextjs">Next.js Comparison</Link>
           <Link to="/examples">Examples</Link>
+          <Link to="/roadmap">Roadmap</Link>
         </div>
       </section>
 

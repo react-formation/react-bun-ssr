@@ -15,8 +15,10 @@
   "description": "Bun-native SSR React framework with file-based routing, loaders, actions, streaming SSR. No Node adapter layer.",
   "keywords": [
     "bun",
+    "bun-framework",
     "ssr",
     "react",
+    "react-ssr",
     "framework",
     "file-based-routing",
     "streaming",

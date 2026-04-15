@@ -363,6 +363,8 @@ Recommended approach:
 
 ## Phase 9: External Distribution Checklist
 
+**Status**: codebase-side links and package metadata are prepared. External sharing, GitHub topic changes, and outreach remain manual follow-up.
+
 ### Goal
 
 Address the inbound-link warning with high-quality, relevant distribution.

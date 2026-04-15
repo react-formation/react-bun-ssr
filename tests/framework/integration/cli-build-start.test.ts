@@ -49,9 +49,6 @@ describeWhenLoopback("CLI build/start contracts", () => {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
-    const frameworkPackage = await Bun.file("package.json").json() as {
-      version?: string;
-    };
 
     expect(generatedPackage.scripts).toEqual({
       dev: "rbssr dev",
@@ -59,7 +56,7 @@ describeWhenLoopback("CLI build/start contracts", () => {
       start: "rbssr start",
       typecheck: "bunx tsc --noEmit",
     });
-    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe(frameworkPackage.version);
+    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe("latest");
     expect(generatedPackage.dependencies?.react).toBe("^19");
     expect(generatedPackage.dependencies?.["react-dom"]).toBe("^19");
     expect(generatedPackage.devDependencies?.typescript).toBeDefined();

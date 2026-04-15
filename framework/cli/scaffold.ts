@@ -7,11 +7,10 @@ interface ScaffoldFile {
 }
 
 interface FrameworkPackageManifest {
-  version?: string;
   devDependencies?: Record<string, string>;
 }
 
-const DEFAULT_FRAMEWORK_VERSION = "0.0.0";
+const FRAMEWORK_DEPENDENCY_VERSION = "latest";
 const DEFAULT_TYPESCRIPT_VERSION = "^5";
 const DEFAULT_BUN_TYPES_VERSION = "latest";
 const DEFAULT_REACT_TYPES_VERSION = "^19";
@@ -114,7 +113,6 @@ dist
 
 async function templateFiles(cwd: string): Promise<ScaffoldFile[]> {
   const frameworkPackage = await getFrameworkPackageManifest();
-  const frameworkVersion = frameworkPackage.version ?? DEFAULT_FRAMEWORK_VERSION;
   const typescriptVersion = frameworkPackage.devDependencies?.typescript ?? DEFAULT_TYPESCRIPT_VERSION;
   const bunTypesVersion = frameworkPackage.devDependencies?.["bun-types"] ?? DEFAULT_BUN_TYPES_VERSION;
   const reactTypesVersion = frameworkPackage.devDependencies?.["@types/react"] ?? DEFAULT_REACT_TYPES_VERSION;
@@ -125,7 +123,7 @@ async function templateFiles(cwd: string): Promise<ScaffoldFile[]> {
       filePath: path.join(cwd, "package.json"),
       content: createPackageJsonContent({
         cwd,
-        frameworkVersion,
+        frameworkVersion: FRAMEWORK_DEPENDENCY_VERSION,
         typescriptVersion,
         bunTypesVersion,
         reactTypesVersion,

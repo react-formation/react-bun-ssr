@@ -2,6 +2,18 @@
 
 All notable changes to `react-bun-ssr` are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- Centralized route document projection so SSR documents and client transitions share one path for render payloads, client payloads, managed head markup, and document assets.
+- `rbssr init` now scaffolds new apps with `react-bun-ssr` pinned to `latest` instead of the package version of the local CLI runtime.
+
+### Tests
+
+- Added document projection unit coverage for render/client payload separation, managed head assets, and catch/error head projection.
+- Updated scaffold integration and package smoke coverage to lock the generated `react-bun-ssr` dependency to `latest`.
+
 ## [0.4.1] - 2026-04-07
 
 ### Changed

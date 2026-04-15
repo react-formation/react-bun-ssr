@@ -45,9 +45,6 @@ describeConsumer("package smoke", () => {
       scripts?: Record<string, string>;
       dependencies?: Record<string, string>;
     };
-    const packedPackage = await Bun.file(Bun.resolveSync("react-bun-ssr/package.json", bootstrapDir)).json() as {
-      version?: string;
-    };
     const installedDoctypeStreamPath = path.join(
       bootstrapDir,
       "node_modules",
@@ -63,7 +60,7 @@ describeConsumer("package smoke", () => {
       start: "rbssr start",
       typecheck: "bunx tsc --noEmit",
     });
-    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe(packedPackage.version);
+    expect(generatedPackage.dependencies?.["react-bun-ssr"]).toBe("latest");
     expect(generatedPackage.dependencies?.react).toBe("^19");
     expect(generatedPackage.dependencies?.["react-dom"]).toBe("^19");
     expect(await existsPath(installedDoctypeStreamPath)).toBe(true);

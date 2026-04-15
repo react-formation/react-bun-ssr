@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   collectHeadElements,
   collectHeadMarkup,
-  createManagedHeadMarkup,
   renderDocument,
   renderDocumentStream,
 } from "../../../framework/runtime/render";
@@ -93,24 +92,6 @@ describe("document and head contracts", () => {
     expect(markup).toContain('name="robots" content="index,follow"');
     expect(markup).not.toContain('content="root-og-title"');
     expect(markup).toContain('property="og:title" content="route-og-title"');
-  });
-
-  it("renders meta output as meta name tags and appends managed stylesheet links in order", () => {
-    const headMarkup = collectHeadMarkup(modules, basePayload);
-    const managedMarkup = createManagedHeadMarkup({
-      headMarkup,
-      assets: {
-        script: "/client/route__index.js",
-        css: ["/client/root.css", "/client/route.css"],
-        devVersion: 3,
-      },
-    });
-
-    expect(managedMarkup).toContain('name="description" content="root-description"');
-    expect(managedMarkup).toContain('name="robots" content="index,follow"');
-    expect(managedMarkup.indexOf("/client/root.css?v=3")).toBeLessThan(
-      managedMarkup.indexOf("/client/route.css?v=3"),
-    );
   });
 
   it("keeps the root title when nested modules do not provide one", () => {

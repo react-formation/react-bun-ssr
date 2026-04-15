@@ -6,6 +6,7 @@ import {
   prepareDeferredPayload,
   type DeferredSettleEntry,
 } from "./deferred";
+import { projectRouteDocument } from "./document-projection";
 import { isRedirectResult, json } from "./helpers";
 import { statPath } from "./io";
 import { runMiddlewareChain } from "./middleware";
@@ -18,12 +19,7 @@ import {
   loadRouteModules,
   type RouteModuleLoadOptions,
 } from "./module-loader";
-import {
-  collectHeadMarkup,
-  collectHeadElements,
-  createManagedHeadMarkup,
-  renderDocumentStream as defaultRenderDocumentStream,
-} from "./render";
+import { renderDocumentStream as defaultRenderDocumentStream } from "./render";
 import {
   sanitizeRouteErrorResponse,
   toRouteErrorHttpResponse,
@@ -432,6 +428,17 @@ function resolveFallbackHtmlAssets(options: {
   };
 }
 
+function resolveRouteDocumentAssets(
+  routeAssets: BuildRouteAsset | null | undefined,
+  devVersion?: number,
+): HydrationDocumentAssets {
+  return {
+    script: routeAssets?.script,
+    css: routeAssets?.css ?? [],
+    devVersion,
+  };
+}
+
 function toTransitionStreamResponse(
   stream: ReadableStream<Uint8Array>,
   baseHeaders?: HeadersInit,
@@ -772,14 +779,15 @@ export function createRequestExecutor(options: {
       dev,
       runtimeOptions,
     });
+    const documentDevVersion = dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined;
     const routerSnapshot = createRouterSnapshot({
       manifest: routeAdapter.manifest,
       routeAssets: routeAssetsById,
-      devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+      devVersion: documentDevVersion,
     });
     const fallbackHtmlAssets = resolveFallbackHtmlAssets({
       routeAssets: routeAssetsById,
-      devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
+      devVersion: documentDevVersion,
     });
 
     if (request.method.toUpperCase() === "POST" && url.pathname === "/__rbssr/action") {
@@ -1068,26 +1076,26 @@ export function createRequestExecutor(options: {
           default: () => null,
           NotFound: rootModule.NotFound,
         };
-        const payload = {
-          routeId: "__not_found__",
-          loaderData: null,
-          params: {},
-          url: targetUrl.toString(),
-        };
         const modules = {
           root: rootModule,
           layouts: [],
           route: fallbackRoute,
         };
+        const projection = projectRouteDocument({
+          modules,
+          routeId: "__not_found__",
+          params: {},
+          url: targetUrl.toString(),
+          loaderDataForRender: null,
+          loaderDataForClient: null,
+          assets: fallbackHtmlAssets,
+        });
         const initialChunk: TransitionInitialChunk = {
           type: "initial",
           kind: "not_found",
           status: 404,
-          payload,
-          head: createManagedHeadMarkup({
-            headMarkup: collectHeadMarkup(modules, payload),
-            assets: fallbackHtmlAssets,
-          }),
+          payload: projection.clientPayload,
+          head: projection.managedHeadMarkup,
           redirected: false,
         };
         const stream = createTransitionStream({
@@ -1097,7 +1105,10 @@ export function createRequestExecutor(options: {
         return finalize(toTransitionStreamResponse(stream), "internal-transition");
       }
 
-      const routeAssets = routeAssetsById[transitionPageMatch.route.id] ?? null;
+      const routeDocumentAssets = resolveRouteDocumentAssets(
+        routeAssetsById[transitionPageMatch.route.id],
+        documentDevVersion,
+      );
       const transitionRequest = new Request(targetUrl.toString(), {
         method: "GET",
         headers: request.headers,
@@ -1149,29 +1160,21 @@ export function createRequestExecutor(options: {
               }
             }
 
-            const renderPayload = {
+            const projection = projectRouteDocument({
+              modules: routeModules,
               routeId: transitionPageMatch.route.id,
-              loaderData: loaderDataForRender,
               params: transitionPageMatch.params,
               url: targetUrl.toString(),
-            };
-            const payload = {
-              ...renderPayload,
-              loaderData: loaderDataForPayload,
-            };
+              loaderDataForRender,
+              loaderDataForClient: loaderDataForPayload,
+              assets: routeDocumentAssets,
+            });
             transitionInitialChunk = {
               type: "initial",
               kind: "page",
               status: 200,
-              payload,
-              head: createManagedHeadMarkup({
-                headMarkup: collectHeadMarkup(routeModules, renderPayload),
-                assets: {
-                  script: routeAssets?.script,
-                  css: routeAssets?.css ?? [],
-                  devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-                },
-              }),
+              payload: projection.clientPayload,
+              head: projection.managedHeadMarkup,
               redirected: false,
             };
 
@@ -1203,13 +1206,16 @@ export function createRequestExecutor(options: {
         });
         const caught = toRouteErrorResponse(error);
         if (caught) {
-          const payload = {
+          const projection = projectRouteDocument({
+            modules: routeModules,
             routeId: transitionPageMatch.route.id,
-            loaderData: null,
             params: transitionPageMatch.params,
             url: targetUrl.toString(),
+            loaderDataForRender: null,
+            loaderDataForClient: null,
             error: toCaughtErrorPayload(caught, !dev),
-          };
+            assets: routeDocumentAssets,
+          });
           await notifyCatchHooks({
             modules: routeModules,
             context: {
@@ -1221,15 +1227,8 @@ export function createRequestExecutor(options: {
             type: "initial",
             kind: "catch",
             status: caught.status,
-            payload,
-            head: createManagedHeadMarkup({
-              headMarkup: collectHeadMarkup(routeModules, payload),
-              assets: {
-                script: routeAssets?.script,
-                css: routeAssets?.css ?? [],
-                devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-              },
-            }),
+            payload: projection.clientPayload,
+            head: projection.managedHeadMarkup,
             redirected: false,
           };
           const stream = createTransitionStream({
@@ -1246,26 +1245,22 @@ export function createRequestExecutor(options: {
             error,
           },
         });
-        const renderPayload = {
+        const projection = projectRouteDocument({
+          modules: routeModules,
           routeId: transitionPageMatch.route.id,
-          loaderData: null,
           params: transitionPageMatch.params,
           url: targetUrl.toString(),
+          loaderDataForRender: null,
+          loaderDataForClient: null,
           error: toUncaughtErrorPayload(error, !dev),
-        };
+          assets: routeDocumentAssets,
+        });
         const initialChunk: TransitionInitialChunk = {
           type: "initial",
           kind: "error",
           status: 500,
-          payload: renderPayload,
-          head: createManagedHeadMarkup({
-            headMarkup: collectHeadMarkup(routeModules, renderPayload),
-            assets: {
-              script: routeAssets?.script,
-              css: routeAssets?.css ?? [],
-              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-            },
-          }),
+          payload: projection.clientPayload,
+          head: projection.managedHeadMarkup,
           redirected: false,
         };
         const stream = createTransitionStream({
@@ -1398,20 +1393,22 @@ export function createRequestExecutor(options: {
         NotFound: rootModule.NotFound,
       };
 
-      const payload = {
-        routeId: "__not_found__",
-        loaderData: null,
-        params: {},
-        url: url.toString(),
-      };
-
       const modules = {
         root: rootModule,
         layouts: [],
         route: fallbackRoute,
       };
+      const projection = projectRouteDocument({
+        modules,
+        routeId: "__not_found__",
+        params: {},
+        url: url.toString(),
+        loaderDataForRender: null,
+        loaderDataForClient: null,
+        assets: fallbackHtmlAssets,
+      });
 
-      const appTree = createNotFoundAppTree(modules, payload) ?? createElement(
+      const appTree = createNotFoundAppTree(modules, projection.renderPayload) ?? createElement(
         "main",
         null,
         createElement("h1", null, "404"),
@@ -1419,9 +1416,9 @@ export function createRequestExecutor(options: {
       );
       const stream = await deps.renderDocumentStream({
         appTree,
-        payload,
-        assets: fallbackHtmlAssets,
-        headElements: collectHeadElements(modules, payload),
+        payload: projection.clientPayload,
+        assets: projection.assets,
+        headElements: projection.headElements,
         routerSnapshot,
       });
 
@@ -1455,7 +1452,10 @@ export function createRequestExecutor(options: {
     const routeModules = executablePageRoute.modules;
     const requestContext = executablePageRoute.requestContext;
 
-    const routeAssets = routeAssetsById[pageMatch.route.id] ?? null;
+    const routeDocumentAssets = resolveRouteDocumentAssets(
+      routeAssetsById[pageMatch.route.id],
+      documentDevVersion,
+    );
     let pagePhase: RouteErrorPhase = "middleware";
 
     const renderFailureDocument = async (
@@ -1479,46 +1479,38 @@ export function createRequestExecutor(options: {
           },
         });
 
-        const basePayload = {
+        const projection = projectRouteDocument({
+          modules: routeModules,
           routeId: pageMatch.route.id,
-          loaderData: null,
           params: pageMatch.params,
           url: url.toString(),
-        };
-        const catchPayload = {
-          ...basePayload,
+          loaderDataForRender: null,
+          loaderDataForClient: null,
           error: serializedCatch,
-        };
+          assets: routeDocumentAssets,
+        });
 
         if (serializedCatch.status === 404) {
-          const notFoundTree = createNotFoundAppTree(routeModules, catchPayload);
+          const notFoundTree = createNotFoundAppTree(routeModules, projection.renderPayload);
           if (notFoundTree) {
             const stream = await deps.renderDocumentStream({
               appTree: notFoundTree,
-              payload: catchPayload,
-              assets: {
-                script: routeAssets?.script,
-                css: routeAssets?.css ?? [],
-                devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-              },
-              headElements: collectHeadElements(routeModules, catchPayload),
+              payload: projection.clientPayload,
+              assets: projection.assets,
+              headElements: projection.headElements,
               routerSnapshot,
             });
             return toHtmlStreamResponse(stream, 404);
           }
         }
 
-        const catchTree = createCatchAppTree(routeModules, catchPayload, serializedCatch);
+        const catchTree = createCatchAppTree(routeModules, projection.renderPayload, serializedCatch);
         if (catchTree) {
           const stream = await deps.renderDocumentStream({
             appTree: catchTree,
-            payload: catchPayload,
-            assets: {
-              script: routeAssets?.script,
-              css: routeAssets?.css ?? [],
-              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-            },
-            headElements: collectHeadElements(routeModules, catchPayload),
+            payload: projection.clientPayload,
+            assets: projection.assets,
+            headElements: projection.headElements,
             routerSnapshot,
           });
           return toHtmlStreamResponse(stream, serializedCatch.status);
@@ -1535,27 +1527,23 @@ export function createRequestExecutor(options: {
         },
       });
 
-      const renderPayload = {
+      const projection = projectRouteDocument({
+        modules: routeModules,
         routeId: pageMatch.route.id,
-        loaderData: null,
         params: pageMatch.params,
         url: url.toString(),
-      };
-      const errorPayload = {
-        ...renderPayload,
+        loaderDataForRender: null,
+        loaderDataForClient: null,
         error: toUncaughtErrorPayload(failure, !dev),
-      };
-      const boundaryTree = createErrorAppTree(routeModules, errorPayload, failure);
+        assets: routeDocumentAssets,
+      });
+      const boundaryTree = createErrorAppTree(routeModules, projection.renderPayload, failure);
       if (boundaryTree) {
         const stream = await deps.renderDocumentStream({
           appTree: boundaryTree,
-          payload: errorPayload,
-          assets: {
-            script: routeAssets?.script,
-            css: routeAssets?.css ?? [],
-            devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-          },
-          headElements: collectHeadElements(routeModules, errorPayload),
+          payload: projection.clientPayload,
+          assets: projection.assets,
+          headElements: projection.headElements,
           routerSnapshot,
         });
         return toHtmlStreamResponse(stream, 500);
@@ -1609,35 +1597,29 @@ export function createRequestExecutor(options: {
             return loaderResponse;
           }
 
-          const renderPayload = {
+          const projection = projectRouteDocument({
+            modules: routeModules,
             routeId: pageMatch.route.id,
-            loaderData: loaderDataForRender,
             params: pageMatch.params,
             url: url.toString(),
-          };
-
-          const clientPayload = {
-            ...renderPayload,
-            loaderData: loaderDataForPayload,
-          };
+            loaderDataForRender,
+            loaderDataForClient: loaderDataForPayload,
+            assets: routeDocumentAssets,
+          });
 
           let appTree: ReturnType<typeof createPageAppTree>;
           try {
             pagePhase = "render";
-            appTree = createPageAppTree(routeModules, renderPayload);
+            appTree = createPageAppTree(routeModules, projection.renderPayload);
           } catch (error) {
             return renderFailureDocument(error, pagePhase);
           }
 
           const stream = await deps.renderDocumentStream({
             appTree,
-            payload: clientPayload,
-            assets: {
-              script: routeAssets?.script,
-              css: routeAssets?.css ?? [],
-              devVersion: dev ? runtimeOptions.reloadVersion?.() ?? 0 : undefined,
-            },
-            headElements: collectHeadElements(routeModules, renderPayload),
+            payload: projection.clientPayload,
+            assets: projection.assets,
+            headElements: projection.headElements,
             routerSnapshot,
             deferredSettleEntries,
           });

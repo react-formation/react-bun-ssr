@@ -47,10 +47,12 @@ describe("buildSitemap", () => {
     const root = await createRoot("sitemap-build");
     const benchmarksFile = path.join(root, "app/routes/benchmarks.tsx");
     const comparisonFile = path.join(root, "app/routes/comparison/react-bun-ssr-vs-nextjs.tsx");
+    const examplesFile = path.join(root, "app/routes/examples.tsx");
     const docsIndex = path.join(root, "app/routes/docs/index.tsx");
     const blogIndex = path.join(root, "app/routes/blog/index.tsx");
     await writeText(benchmarksFile, "export default function Benchmarks(){ return null; }");
     await writeText(comparisonFile, "export default function Comparison(){ return null; }");
+    await writeText(examplesFile, "export default function Examples(){ return null; }");
     await writeText(docsIndex, "export default function Docs(){ return null; }");
     await writeText(blogIndex, "export default function Blog(){ return null; }");
 
@@ -112,6 +114,7 @@ describe("buildSitemap", () => {
       "/docs",
       "/docs/api/overview",
       "/docs/start/overview",
+      "/examples",
     ]);
     expect(sitemap.some(entry => entry.pathname === "/")).toBe(false);
     expect(sitemap.some(entry => entry.pathname.startsWith("/api/"))).toBe(false);

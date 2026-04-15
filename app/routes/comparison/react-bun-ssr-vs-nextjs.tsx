@@ -61,6 +61,9 @@ export default function ReactBunSsrVsNextjsPage() {
             <Link className={styles.secondaryCta} to="/benchmarks">
               Review Benchmarks
             </Link>
+            <Link className={styles.secondaryCta} to="/examples">
+              Browse Examples
+            </Link>
             <a className={styles.secondaryCta} href="https://github.com/react-formation/react-bun-ssr">
               View GitHub
             </a>
@@ -134,6 +137,7 @@ export default function ReactBunSsrVsNextjsPage() {
         <div className={styles.calloutLinks}>
           <Link to="/benchmarks">Open benchmark summary</Link>
           <Link to="/blog/a-small-honest-rbssr-vs-nextjs-benchmark">Read full methodology</Link>
+          <Link to="/examples">Browse examples</Link>
           <Link to="/docs/rendering/streaming-deferred">Read rendering docs</Link>
         </div>
       </section>

@@ -268,6 +268,8 @@ The page should be practical and honest:
 
 ## Phase 6: Examples Page
 
+**Status**: implemented in the current working branch at the time this plan was updated.
+
 ### Goal
 
 Give prospective users a fast way to assess real usage without reading every docs page.

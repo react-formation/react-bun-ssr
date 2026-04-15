@@ -41,7 +41,7 @@ describe("docs content", () => {
   it("builds manifest entries with extracted headings", () => {
     const entries = manifest as DocManifestEntry[];
     const loaders = entries.find(entry => entry.slug === "data/loaders");
-    expect(loaders?.title).toBe("Server Loaders and Data Fetching");
+    expect(loaders?.title).toBe("Server Loaders and Data Fetching for React SSR");
     expect(loaders?.headings.some(heading => heading.id === "return-model")).toBe(true);
   });
 

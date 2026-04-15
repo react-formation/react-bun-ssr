@@ -130,8 +130,8 @@ export default function ReactBunSsrVsNextjsPage() {
           <h2 id="evidence-title">Benchmarks support the current content-heavy SSR story.</h2>
           <p>
             The benchmark is intentionally narrow: markdown content and local-data SSR on the same
-            machine, in production mode, against Next.js 16.2.1 on Node 24. It is useful evidence,
-            not a universal performance guarantee.
+            machine, in production mode, against Next.js 15 and 16 across Node 22, Node 24, and
+            Bun. It is useful evidence, not a universal performance guarantee.
           </p>
         </div>
         <div className={styles.calloutLinks}>

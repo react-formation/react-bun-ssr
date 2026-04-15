@@ -32,7 +32,7 @@ export default function BlogIndexPage() {
           </p>
           <div className={styles.actions}>
             <Link className={styles.primaryCta} to={latest ? `/blog/${latest.slug}` : '/docs'}>
-              {latest ? 'Read the first post' : 'Open the docs'}
+              {latest ? 'Read latest post' : 'Open the docs'}
             </Link>
             <Link className={styles.secondaryCta} to="/docs/start/quick-start">
               Start with Quick Start

@@ -9,14 +9,14 @@ const scenarios = [
   {
     route: '/content',
     description: 'Docs-like markdown content rendered as a first-class route.',
-    rbssr: '3686.68 req/s, 26.61ms avg latency, 50ms p95',
-    next: '517.27 req/s, 192.20ms avg latency, 231ms p95',
+    rbssr: '4939.52 req/s, 19.73ms avg latency, 24ms p95',
+    next: '587.95 req/s, 168.99ms avg latency, 194ms p95',
   },
   {
     route: '/data',
     description: 'Local JSON read on every request plus server-rendered 100-item catalog HTML.',
-    rbssr: '640.91 req/s, 155.06ms avg latency, 230ms p95',
-    next: '170.23 req/s, 580.81ms avg latency, 626ms p95',
+    rbssr: '874.11 req/s, 113.63ms avg latency, 158ms p95',
+    next: '236.25 req/s, 421.62ms avg latency, 483ms p95',
   },
 ];
 
@@ -33,10 +33,13 @@ export default function BenchmarksPage() {
       <section className={styles.hero} aria-labelledby="benchmarks-title">
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>Benchmark evidence</p>
-          <h1 id="benchmarks-title">Bun-native React SSR benchmarked against a modern Next.js baseline.</h1>
+          <h1 id="benchmarks-title">
+            Bun-native React SSR benchmarked against a modern Next.js baseline.
+          </h1>
           <p className={styles.lead}>
-            The current benchmark compares `react-bun-ssr` on Bun with Next.js 16.2.1 on Node 24
-            across two production SSR scenarios: markdown content and local-data rendering.
+            The current benchmark compares `react-bun-ssr` on Bun 1.3.12 with
+            Next.js 15 and 16 across Node 22, Node 24, and Bun for two
+            production SSR scenarios.
           </p>
           <div className={styles.actions} aria-label="Benchmark actions">
             <Link className={styles.primaryCta} to={benchmarkPostPath}>
@@ -45,7 +48,10 @@ export default function BenchmarksPage() {
             <Link className={styles.secondaryCta} to="/docs/start/quick-start">
               Try the Quick Start
             </Link>
-            <Link className={styles.secondaryCta} to="/comparison/react-bun-ssr-vs-nextjs">
+            <Link
+              className={styles.secondaryCta}
+              to="/comparison/react-bun-ssr-vs-nextjs"
+            >
               Compare with Next.js
             </Link>
             <a className={styles.secondaryCta} href={benchmarkRepoUrl}>
@@ -59,11 +65,11 @@ export default function BenchmarksPage() {
           <dl>
             <div>
               <dt>Framework</dt>
-              <dd>react-bun-ssr 0.4.0 on Bun 1.3.10</dd>
+              <dd>react-bun-ssr 0.4.0 on Bun 1.3.12</dd>
             </div>
             <div>
               <dt>Baseline</dt>
-              <dd>Next.js 16.2.1 on Node 24.14.1</dd>
+              <dd>Next.js 16.2.1 on Bun 1.3.12</dd>
             </div>
             <div>
               <dt>Machine</dt>
@@ -73,31 +79,53 @@ export default function BenchmarksPage() {
         </aside>
       </section>
 
+      <section className={styles.results}>
+        <h2>Is Bun faster than Node for React SSR?</h2>
+        <p>
+          In controlled SSR benchmarks, Bun demonstrates significantly higher
+          throughput and lower latency compared to Node.js for content-heavy
+          rendering workloads. However, results vary depending on application
+          architecture, framework, and runtime versions.
+        </p>
+      </section>
+
       <section className={styles.results} aria-labelledby="results-title">
         <div className={styles.sectionIntro}>
           <p className={styles.eyebrow}>Key results</p>
-          <h2 id="results-title">Fast builds and strong content-heavy SSR throughput.</h2>
+          <h2 id="results-title">
+            Fast builds and strong content-heavy SSR throughput.
+          </h2>
           <p>
-            The strongest signal is the markdown route, which lines up with a core framework
-            design choice: `.md` files are first-class routes in a Bun-native rendering pipeline.
+            The strongest signal is the markdown route, which lines up with a
+            core framework design choice: `.md` files are first-class routes in
+            a Bun-native rendering pipeline.
           </p>
         </div>
 
         <div className={styles.metricGrid}>
           <article>
             <span>Clean build</span>
-            <strong>0.16s</strong>
-            <p>Median clean build for `react-bun-ssr`, compared with 3.13s for Next.js.</p>
+            <strong>0.13s</strong>
+            <p>
+              Median clean build for `react-bun-ssr`, compared with 2.12s for
+              the fastest Next.js baseline.
+            </p>
           </article>
           <article>
             <span>/content</span>
-            <strong>7x</strong>
-            <p>Approximate warm-serve req/s advantage in the markdown content scenario.</p>
+            <strong>8.4x</strong>
+            <p>
+              Approximate warm-serve req/s advantage in the markdown content
+              scenario.
+            </p>
           </article>
           <article>
             <span>/data</span>
-            <strong>3.8x</strong>
-            <p>Approximate warm-serve req/s advantage in the local-data SSR scenario.</p>
+            <strong>3.7x</strong>
+            <p>
+              Approximate warm-serve req/s advantage in the local-data SSR
+              scenario.
+            </p>
           </article>
         </div>
 
@@ -113,7 +141,7 @@ export default function BenchmarksPage() {
               </tr>
             </thead>
             <tbody>
-              {scenarios.map(scenario => (
+              {scenarios.map((scenario) => (
                 <tr key={scenario.route}>
                   <th scope="row">{scenario.route}</th>
                   <td>{scenario.description}</td>
@@ -129,14 +157,17 @@ export default function BenchmarksPage() {
       <section className={styles.caveats} aria-labelledby="caveats-title">
         <div>
           <p className={styles.eyebrow}>Honest scope</p>
-          <h2 id="caveats-title">What this benchmark claims, and what it does not.</h2>
+          <h2 id="caveats-title">
+            What this benchmark claims, and what it does not.
+          </h2>
           <p>
-            This page is a stable summary, not a broad performance promise. The full article keeps
-            the methodology and interpretation explicit so the results stay useful and defensible.
+            This page is a stable summary, not a broad performance promise. The
+            full article keeps the methodology and interpretation explicit so
+            the results stay useful and defensible.
           </p>
         </div>
         <ul>
-          {constraints.map(item => (
+          {constraints.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
@@ -145,16 +176,23 @@ export default function BenchmarksPage() {
       <section className={styles.nextSteps} aria-labelledby="next-steps-title">
         <div>
           <p className={styles.eyebrow}>Next step</p>
-          <h2 id="next-steps-title">Use the benchmark as evidence, then evaluate the framework shape.</h2>
+          <h2 id="next-steps-title">
+            Use the benchmark as evidence, then evaluate the framework shape.
+          </h2>
           <p>
-            If the content-heavy SSR profile matches your app, start with the docs and reproduce
-            the benchmark from the standalone repository before making architecture decisions.
+            If the content-heavy SSR profile matches your app, start with the
+            docs and reproduce the benchmark from the standalone repository
+            before making architecture decisions.
           </p>
         </div>
         <div className={styles.calloutLinks}>
           <Link to="/docs/start/quick-start">Build the Task Tracker</Link>
-          <Link to="/comparison/react-bun-ssr-vs-nextjs">Compare with Next.js</Link>
-          <Link to="/docs/rendering/streaming-deferred">Read streaming docs</Link>
+          <Link to="/comparison/react-bun-ssr-vs-nextjs">
+            Compare with Next.js
+          </Link>
+          <Link to="/docs/rendering/streaming-deferred">
+            Read streaming docs
+          </Link>
           <Link to={benchmarkPostPath}>Full benchmark article</Link>
         </div>
       </section>

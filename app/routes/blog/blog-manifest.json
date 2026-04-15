@@ -1,8 +1,62 @@
 [
   {
+    "slug": "bun-1-3-12-made-the-benchmark-faster-but-the-rbssr-gap-remains",
+    "title": "Bun 1.3.12 Made SSR Faster, but the react-bun-ssr Gap Remains",
+    "description": "A short update on the April 2026 rerun showing Bun 1.3.12 improving both react-bun-ssr and Next.js while the Bun-native SSR gap remains large.",
+    "author": "gaudiauj",
+    "publishedAt": "2026-04-15",
+    "publishedLabel": "April 15, 2026",
+    "tags": [
+      "bun",
+      "benchmark",
+      "performance",
+      "nextjs",
+      "ssr",
+      "react",
+      "nodejs",
+      "rbssr"
+    ],
+    "excerpt": "I reran the benchmark with the newer Bun release because the runtime moved enough that the old numbers deserved a fresh pass. The canonical benchmark page is still here: . The full methodology article is still here: . Th",
+    "readingMinutes": 3,
+    "canonicalUrl": "https://react-bun-ssr.dev/blog/bun-1-3-12-made-the-benchmark-faster-but-the-rbssr-gap-remains",
+    "headings": [
+      {
+        "depth": 2,
+        "id": "what-changed-in-this-rerun",
+        "text": "What changed in this rerun"
+      },
+      {
+        "depth": 2,
+        "id": "the-new-top-line-result",
+        "text": "The new top-line result"
+      },
+      {
+        "depth": 2,
+        "id": "next-js-on-bun-improved-too",
+        "text": "Next.js on Bun improved too"
+      },
+      {
+        "depth": 2,
+        "id": "the-rbssr-result-also-improved",
+        "text": "The rbssr result also improved"
+      },
+      {
+        "depth": 2,
+        "id": "what-this-does-not-prove",
+        "text": "What this does not prove"
+      },
+      {
+        "depth": 2,
+        "id": "where-to-go-next",
+        "text": "Where to go next"
+      }
+    ],
+    "nextSlug": "a-small-honest-rbssr-vs-nextjs-benchmark"
+  },
+  {
     "slug": "a-small-honest-rbssr-vs-nextjs-benchmark",
     "title": "A Small, Honest react-bun-ssr vs Next.js Benchmark on Bun and Node",
-    "description": "A narrow production benchmark comparing react-bun-ssr on Bun with Next.js 16.2.1 on Node 24 across a markdown content page and a local-data SSR page.",
+    "description": "A narrow production benchmark comparing react-bun-ssr on Bun 1.3.12 with Next.js 15 and 16 across Bun, Node 22, and Node 24.",
     "author": "gaudiauj",
     "publishedAt": "2026-03-30",
     "publishedLabel": "March 30, 2026",
@@ -16,8 +70,8 @@
       "performance",
       "markdown"
     ],
-    "excerpt": "I wanted a first benchmark for react bun ssr that says something real without pretending to say everything. For the stable evergreen summary, use the . This article is the full methodology and interpretation behind that ",
-    "readingMinutes": 5,
+    "excerpt": "I wanted a benchmark for that says something real without pretending to say everything. For the stable evergreen summary, use the . This article is the full methodology and interpretation behind that canonical page. Upda",
+    "readingMinutes": 6,
     "canonicalUrl": "https://react-bun-ssr.dev/blog/a-small-honest-rbssr-vs-nextjs-benchmark",
     "headings": [
       {
@@ -86,6 +140,7 @@
         "text": "Reproducing it"
       }
     ],
+    "prevSlug": "bun-1-3-12-made-the-benchmark-faster-but-the-rbssr-gap-remains",
     "nextSlug": "why-nextjs-16-and-node-24-are-faster-and-where-bun-fits"
   },
   {

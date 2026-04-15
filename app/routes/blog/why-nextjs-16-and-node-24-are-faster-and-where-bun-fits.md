@@ -9,6 +9,8 @@ tags: nextjs,nodejs,bun,performance,benchmark,ssr
 
 These numbers come from a broader benchmark I originally ran while working on `react-bun-ssr`, but this article is only about what changed on the Next.js side. If you want the broader benchmark context, the full comparison is here: [the full benchmark article](/blog/a-small-honest-rbssr-vs-nextjs-benchmark), and the executable benchmark project is here: [react-bun-ssr-benchmark](https://github.com/react-formation/react-bun-ssr-benchmark).
 
+**Update, April 15, 2026:** a newer rerun with Bun `1.3.12` changed the Bun part of the story. Next.js 16 on Bun improved enough to become the fastest Next.js baseline in that rerun, while `react-bun-ssr` still kept a large lead in the same two SSR scenarios. I wrote the update here: [Bun 1.3.12 Made SSR Faster, but the react-bun-ssr Gap Remains](/blog/bun-1-3-12-made-the-benchmark-faster-but-the-rbssr-gap-remains).
+
 The setup behind this post is narrow on purpose: one markdown-heavy content route, one local-data SSR route, production mode only, 4 clean builds, 200 warm-up requests, and 5 measured `autocannon` runs at concurrency `100` for `30s` on an Apple M1 Pro. That does not tell us everything about full-stack React performance, but it is enough to say something useful about three controlled comparisons:
 
 - `Next 15 + Node 24` vs `Next 16 + Node 24`

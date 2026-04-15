@@ -45,6 +45,9 @@ export default function BenchmarksPage() {
             <Link className={styles.secondaryCta} to="/docs/start/quick-start">
               Try the Quick Start
             </Link>
+            <Link className={styles.secondaryCta} to="/comparison/react-bun-ssr-vs-nextjs">
+              Compare with Next.js
+            </Link>
             <a className={styles.secondaryCta} href={benchmarkRepoUrl}>
               Open benchmark repo
             </a>
@@ -150,6 +153,7 @@ export default function BenchmarksPage() {
         </div>
         <div className={styles.calloutLinks}>
           <Link to="/docs/start/quick-start">Build the Task Tracker</Link>
+          <Link to="/comparison/react-bun-ssr-vs-nextjs">Compare with Next.js</Link>
           <Link to="/docs/rendering/streaming-deferred">Read streaming docs</Link>
           <Link to={benchmarkPostPath}>Full benchmark article</Link>
         </div>

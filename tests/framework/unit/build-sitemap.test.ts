@@ -46,9 +46,11 @@ describe("buildSitemap", () => {
   it("builds docs and blog entries, excludes non-canonical routes, and sorts deterministically", async () => {
     const root = await createRoot("sitemap-build");
     const benchmarksFile = path.join(root, "app/routes/benchmarks.tsx");
+    const comparisonFile = path.join(root, "app/routes/comparison/react-bun-ssr-vs-nextjs.tsx");
     const docsIndex = path.join(root, "app/routes/docs/index.tsx");
     const blogIndex = path.join(root, "app/routes/blog/index.tsx");
     await writeText(benchmarksFile, "export default function Benchmarks(){ return null; }");
+    await writeText(comparisonFile, "export default function Comparison(){ return null; }");
     await writeText(docsIndex, "export default function Docs(){ return null; }");
     await writeText(blogIndex, "export default function Blog(){ return null; }");
 
@@ -106,6 +108,7 @@ describe("buildSitemap", () => {
       "/benchmarks",
       "/blog",
       "/blog/launch-post",
+      "/comparison/react-bun-ssr-vs-nextjs",
       "/docs",
       "/docs/api/overview",
       "/docs/start/overview",

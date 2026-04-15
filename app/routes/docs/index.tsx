@@ -76,6 +76,9 @@ export default function DocsHomePage() {
             <Link className={styles.secondaryCta} to="/benchmarks">
               Read Benchmarks
             </Link>
+            <Link className={styles.secondaryCta} to="/comparison/react-bun-ssr-vs-nextjs">
+              Compare Next.js
+            </Link>
           </div>
         </div>
 
@@ -150,6 +153,7 @@ export default function DocsHomePage() {
           <Link to="/docs/api/react-bun-ssr">react-bun-ssr</Link>
           <Link to="/docs/api/react-bun-ssr-route">react-bun-ssr/route</Link>
           <Link to="/benchmarks">Benchmarks</Link>
+          <Link to="/comparison/react-bun-ssr-vs-nextjs">Next.js Comparison</Link>
         </div>
       </section>
 

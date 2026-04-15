@@ -57,6 +57,7 @@ function resolvePaths(options: BuildSitemapOptions) {
     docsIndexFile: path.join(rootDir, "app/routes/docs/index.tsx"),
     blogIndexFile: path.join(rootDir, "app/routes/blog/index.tsx"),
     benchmarksFile: path.join(rootDir, "app/routes/benchmarks.tsx"),
+    nextjsComparisonFile: path.join(rootDir, "app/routes/comparison/react-bun-ssr-vs-nextjs.tsx"),
     sitemapFile: path.join(publicDir, "sitemap.xml"),
     robotsFile: path.join(publicDir, "robots.txt"),
   };
@@ -150,6 +151,10 @@ export async function buildSitemap(options: BuildSitemapOptions = {}): Promise<S
     {
       pathname: "/benchmarks",
       sourceFile: paths.benchmarksFile,
+    },
+    {
+      pathname: "/comparison/react-bun-ssr-vs-nextjs",
+      sourceFile: paths.nextjsComparisonFile,
     },
   ];
   const staticRoutes = await Promise.all(

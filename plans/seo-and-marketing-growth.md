@@ -233,6 +233,8 @@ Do not add:
 
 ## Phase 5: Next.js Comparison Page
 
+**Status**: implemented in the current working branch at the time this plan was updated.
+
 ### Goal
 
 Create a stable page for high-intent comparison searches and external citations.

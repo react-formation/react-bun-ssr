@@ -1,5 +1,6 @@
 import { Link, Outlet, useRequestUrl } from 'react-bun-ssr/route';
 import { SITE_NAME, SITE_URL, serializeJsonLd } from '../../lib/site';
+import { createBreadcrumbList } from '../../lib/structured-data';
 import manifestData from './blog-manifest.json';
 import styles from './_layout.module.css';
 
@@ -115,6 +116,10 @@ export function head(ctx: { url: URL }) {
     },
     keywords: currentEntry.tags.join(', '),
   };
+  const breadcrumbJsonLd = createBreadcrumbList([
+    { name: 'Blog', pathname: '/blog' },
+    { name: currentEntry.title, pathname: `/blog/${currentEntry.slug}` },
+  ]);
 
   return (
     <>
@@ -133,6 +138,10 @@ export function head(ctx: { url: URL }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
       />
     </>
   );

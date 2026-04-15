@@ -200,6 +200,8 @@ Search visitor lands on comparison, benchmark, blog, or docs page
 
 ## Phase 4: Structured Data Expansion
 
+**Status**: implemented in the current working branch at the time this plan was updated.
+
 ### Goal
 
 Improve machine understanding without adding dishonest or unsupported schema.

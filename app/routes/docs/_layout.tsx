@@ -3,7 +3,8 @@ import { Link, Outlet, useRequestUrl } from 'react-bun-ssr/route';
 import manifestData from './docs-manifest.json';
 import { sidebar, type DocKind, type SidebarSection } from './_sidebar';
 import { openDocsSearch } from '../../components/docs-search';
-import { normalizeCanonicalPathname, toAbsoluteUrl } from '../../lib/site';
+import { SITE_NAME, normalizeCanonicalPathname, serializeJsonLd, toAbsoluteUrl } from '../../lib/site';
+import { createBreadcrumbList } from '../../lib/structured-data';
 import styles from './_layout.module.css';
 const EDIT_BASE = 'https://github.com/react-formation/react-bun-ssr/blob/main/app/routes/docs';
 
@@ -199,11 +200,51 @@ export default function DocsLayoutRoute() {
 
 export function head(ctx: { url: URL }) {
   const canonicalUrl = toAbsoluteUrl(normalizeCanonicalPathname(ctx.url.pathname));
+  const currentSlug = getCurrentSlug(ctx.url.pathname);
+  const manifest = manifestData as DocManifestEntry[];
+  const currentEntry = manifest.find(entry => entry.slug === currentSlug) ?? null;
+
+  if (!currentEntry) {
+    return (
+      <>
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:url" content={canonicalUrl} />
+      </>
+    );
+  }
+
+  const breadcrumbJsonLd = createBreadcrumbList([
+    { name: 'Documentation', pathname: '/docs' },
+    { name: currentEntry.navTitle, pathname: `/docs/${currentEntry.slug}` },
+  ]);
+  const techArticleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: currentEntry.title,
+    description: currentEntry.description,
+    url: canonicalUrl,
+    keywords: currentEntry.tags.join(', '),
+    articleSection: currentEntry.section,
+    mainEntityOfPage: canonicalUrl,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      url: toAbsoluteUrl('/docs'),
+    },
+  };
 
   return (
     <>
       <link rel="canonical" href={canonicalUrl} />
       <meta property="og:url" content={canonicalUrl} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(techArticleJsonLd) }}
+      />
     </>
   );
 }

@@ -2,6 +2,8 @@ import { Link } from 'react-bun-ssr/route';
 import blogManifestData from '../blog/blog-manifest.json';
 import manifestData from './docs-manifest.json';
 import { sidebar } from './_sidebar';
+import { serializeJsonLd } from '../../lib/site';
+import { createSoftwareSourceCodeJsonLd, createWebSiteJsonLd } from '../../lib/structured-data';
 import styles from './index.module.css';
 
 interface DocManifestEntry {
@@ -171,7 +173,19 @@ export default function DocsHomePage() {
 }
 
 export function head() {
-  return <title>react-bun-ssr | Documentation</title>;
+  return (
+    <>
+      <title>react-bun-ssr | Documentation</title>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(createWebSiteJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(createSoftwareSourceCodeJsonLd()) }}
+      />
+    </>
+  );
 }
 
 export function meta() {

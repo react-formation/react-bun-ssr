@@ -1,7 +1,7 @@
 ---
-title: API Reference Overview
+title: react-bun-ssr API Reference Overview
 navTitle: Overview
-description: Choose the right package entrypoint, understand the surface area, and jump from concepts to generated signatures quickly.
+description: Choose the right react-bun-ssr package entrypoint for Bun server startup, route modules, hooks, helpers, and generated TypeScript signatures.
 section: API
 order: 1
 kind: reference

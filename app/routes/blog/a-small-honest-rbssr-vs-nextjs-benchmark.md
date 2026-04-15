@@ -9,6 +9,8 @@ tags: benchmark,bun,nodejs,ssr,react,nextjs,performance,markdown
 
 I wanted a first benchmark for react-bun-ssr that says something real without pretending to say everything.
 
+For the stable evergreen summary, use the [react-bun-ssr benchmarks page](https://react-bun-ssr.dev/benchmarks). This article is the full methodology and interpretation behind that canonical page.
+
 `react-bun-ssr` is a Bun-native SSR React framework with file-based routing, loaders, actions, streaming, soft navigation, and first-class markdown routes. I chose to build it on Bun because I wanted the framework to start from Bun's runtime, server model, bundler, file APIs, and markdown support instead of treating Bun as a compatibility target. If you want the longer background on that decision, I wrote about it here: [Why I Built a Bun-Native SSR Framework](https://react-bun-ssr.dev/blog/why-i-built-a-bun-native-ssr-framework).
 
 So this is intentionally narrow. It is not a universal "framework X is faster than framework Y" post. It is one production-mode comparison against a single modern Next.js baseline, `Next 16.2.1` on `Node 24.14.1`, in two scenarios that match the current shape of `react-bun-ssr` especially well:

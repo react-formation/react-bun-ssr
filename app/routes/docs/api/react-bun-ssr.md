@@ -1,14 +1,14 @@
 ---
-title: react-bun-ssr Package API
+title: react-bun-ssr Runtime Package API Reference
 navTitle: react-bun-ssr
-description: Public runtime exports from the root package entrypoint.
+description: Reference the public react-bun-ssr runtime exports for Bun server startup, framework config, JSON helpers, redirects, and deployment types.
 section: API
 order: 3
 kind: api
 tags: api,generated
 ---
 
-# react-bun-ssr Package API
+# react-bun-ssr Runtime Package API Reference
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 

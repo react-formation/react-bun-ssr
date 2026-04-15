@@ -1,7 +1,7 @@
 ---
-title: Layouts and Groups
+title: Layouts and Route Groups for Bun React SSR
 navTitle: Layouts and Groups
-description: Share shells, route middleware, and URL-free group structure without breaking route boundaries.
+description: Share layout shells, nested outlets, route middleware, and URL-free groups in react-bun-ssr without breaking Bun React SSR route boundaries.
 section: Routing
 order: 2
 kind: guide

@@ -45,8 +45,10 @@ async function runGit(root: string, args: string[], env?: Record<string, string>
 describe("buildSitemap", () => {
   it("builds docs and blog entries, excludes non-canonical routes, and sorts deterministically", async () => {
     const root = await createRoot("sitemap-build");
+    const benchmarksFile = path.join(root, "app/routes/benchmarks.tsx");
     const docsIndex = path.join(root, "app/routes/docs/index.tsx");
     const blogIndex = path.join(root, "app/routes/blog/index.tsx");
+    await writeText(benchmarksFile, "export default function Benchmarks(){ return null; }");
     await writeText(docsIndex, "export default function Docs(){ return null; }");
     await writeText(blogIndex, "export default function Blog(){ return null; }");
 
@@ -101,6 +103,7 @@ describe("buildSitemap", () => {
     });
 
     expect(sitemap.map(entry => entry.pathname)).toEqual([
+      "/benchmarks",
       "/blog",
       "/blog/launch-post",
       "/docs",

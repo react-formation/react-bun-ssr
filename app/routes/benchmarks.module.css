@@ -1,0 +1,271 @@
+.page {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.4rem 1.25rem 2.2rem;
+  display: grid;
+  gap: 1.4rem;
+}
+
+.hero,
+.results,
+.caveats,
+.nextSteps {
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.9));
+  box-shadow: var(--shadow-md);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
+  gap: 1.4rem;
+  padding: 1.7rem;
+}
+
+.heroCopy h1,
+.sectionIntro h2,
+.caveats h2,
+.nextSteps h2 {
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.heroCopy h1 {
+  font-size: clamp(2.2rem, 4.6vw, 3.75rem);
+}
+
+.sectionIntro h2,
+.caveats h2,
+.nextSteps h2 {
+  font-size: clamp(1.75rem, 2.3vw, 2.45rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--accent-strong);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.lead,
+.sectionIntro p,
+.caveats p,
+.nextSteps p,
+.metricGrid p {
+  color: #5a6c80;
+}
+
+.lead {
+  max-width: 66ch;
+  margin: 1rem 0 0;
+  font-size: 1.04rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.4rem;
+}
+
+.primaryCta,
+.secondaryCta,
+.calloutLinks a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.74rem 1rem;
+  font-weight: 800;
+}
+
+.primaryCta {
+  background: linear-gradient(180deg, #0f766e, #0b5953);
+  color: #fff;
+}
+
+.secondaryCta,
+.calloutLinks a {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d344e;
+}
+
+.summaryPanel {
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(15, 118, 110, 0.14), transparent 36%),
+    linear-gradient(180deg, #f9fbfd, #f2f6fa);
+  padding: 1rem;
+}
+
+.panelLabel {
+  margin: 0 0 0.75rem;
+  color: #475a71;
+  font-weight: 900;
+}
+
+.summaryPanel dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.summaryPanel div,
+.metricGrid article {
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.9rem;
+}
+
+.summaryPanel dt {
+  color: var(--accent-strong);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summaryPanel dd {
+  margin: 0.18rem 0 0;
+  color: #263a50;
+  font-weight: 800;
+}
+
+.results,
+.caveats,
+.nextSteps {
+  padding: 1.5rem;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.metricGrid span {
+  display: block;
+  color: #607087;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.metricGrid strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #0f1d2b;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+.metricGrid p {
+  margin: 0.6rem 0 0;
+}
+
+.tableWrap {
+  margin-top: 1.2rem;
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(15, 29, 43, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.tableWrap caption {
+  margin-bottom: 0.55rem;
+  color: #475a71;
+  font-weight: 900;
+  text-align: left;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 0.85rem;
+  border-bottom: 1px solid rgba(15, 29, 43, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableWrap thead th {
+  background: #f3f7fa;
+  color: #20384f;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tableWrap tbody tr:last-child th,
+.tableWrap tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.caveats,
+.nextSteps {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.caveats ul {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #4f6176;
+}
+
+.calloutLinks {
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .metricGrid,
+  .caveats,
+  .nextSteps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 1rem 0.85rem 1.6rem;
+  }
+
+  .hero,
+  .results,
+  .caveats,
+  .nextSteps {
+    border-radius: 24px;
+    padding: 1rem;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primaryCta,
+  .secondaryCta,
+  .calloutLinks a {
+    width: 100%;
+  }
+}

@@ -1,7 +1,7 @@
 ---
-title: Deploying on Bun
+title: Deploying React SSR Apps on Bun with react-bun-ssr
 navTitle: Bun Deployment
-description: Ship the production build under Bun with a small deployment surface and no Node adapter layer.
+description: Deploy react-bun-ssr apps on Bun with production build output, server startup, public assets, and a small runtime surface without a Node adapter.
 section: Deployment
 order: 1
 kind: guide

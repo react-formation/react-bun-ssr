@@ -1,7 +1,7 @@
 ---
-title: Testing Bun SSR Apps
+title: Testing Bun SSR Apps with react-bun-ssr
 navTitle: Testing
-description: Test the framework and your app across unit, integration, and e2e layers without losing SSR or routing coverage.
+description: Test react-bun-ssr projects across unit, integration, and end-to-end layers while preserving SSR behavior and route coverage.
 section: Tooling
 order: 3
 kind: reference

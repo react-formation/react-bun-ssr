@@ -71,8 +71,8 @@ export default function DocsHomePage() {
             <Link className={styles.secondaryCta} to="/docs/routing/file-based-routing">
               Explore Routing
             </Link>
-            <Link className={styles.secondaryCta} to="/docs/api/overview">
-              Open API Reference
+            <Link className={styles.secondaryCta} to="/benchmarks">
+              Read Benchmarks
             </Link>
           </div>
         </div>
@@ -147,6 +147,7 @@ export default function DocsHomePage() {
           <Link to="/docs/api/overview">API Overview</Link>
           <Link to="/docs/api/react-bun-ssr">react-bun-ssr</Link>
           <Link to="/docs/api/react-bun-ssr-route">react-bun-ssr/route</Link>
+          <Link to="/benchmarks">Benchmarks</Link>
         </div>
       </section>
 

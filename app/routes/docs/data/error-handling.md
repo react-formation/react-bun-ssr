@@ -1,7 +1,7 @@
 ---
-title: Route Error Handling
+title: Route Error Handling for Bun React SSR Apps
 navTitle: Error Handling
-description: Model caught and uncaught errors with routeError, notFound, CatchBoundary, ErrorComponent, and lifecycle hooks.
+description: Model caught and uncaught errors in react-bun-ssr with routeError, notFound, catch boundaries, error components, and lifecycle hooks.
 section: Data
 order: 3
 kind: guide

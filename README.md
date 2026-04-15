@@ -10,6 +10,7 @@
 
 - Documentation: https://react-bun-ssr.dev/docs
 - API reference: https://react-bun-ssr.dev/docs/api/overview
+- Benchmarks: https://react-bun-ssr.dev/benchmarks
 - Blog: https://react-bun-ssr.dev/blog
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
 - Repository: https://github.com/react-formation/react-bun-ssr
@@ -94,6 +95,7 @@ rbssr.config.ts
 The quickest follow-up is:
 
 - https://react-bun-ssr.dev/docs/start/quick-start
+- https://react-bun-ssr.dev/benchmarks
 
 ## How it works
 

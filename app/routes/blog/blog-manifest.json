@@ -16,7 +16,7 @@
       "performance",
       "markdown"
     ],
-    "excerpt": "I wanted a first benchmark for react bun ssr that says something real without pretending to say everything. is a Bun native SSR React framework with file based routing, loaders, actions, streaming, soft navigation, and f",
+    "excerpt": "I wanted a first benchmark for react bun ssr that says something real without pretending to say everything. For the stable evergreen summary, use the . This article is the full methodology and interpretation behind that ",
     "readingMinutes": 5,
     "canonicalUrl": "https://react-bun-ssr.dev/blog/a-small-honest-rbssr-vs-nextjs-benchmark",
     "headings": [
@@ -143,7 +143,7 @@
   },
   {
     "slug": "how-i-built-react-bun-ssr-with-ai",
-    "title": "How I Built react-bun-ssr With AI",
+    "title": "How I Built react-bun-ssr Faster With AI",
     "description": "How I used AI to build react-bun-ssr faster, the constraints that kept the framework coherent, and the Bun-first architecture choices that made the workflow work.",
     "author": "gaudiauj",
     "publishedAt": "2026-03-01",

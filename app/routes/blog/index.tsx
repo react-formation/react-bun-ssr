@@ -37,6 +37,9 @@ export default function BlogIndexPage() {
             <Link className={styles.secondaryCta} to="/docs/start/quick-start">
               Start with Quick Start
             </Link>
+            <Link className={styles.secondaryCta} to="/benchmarks">
+              Review Benchmarks
+            </Link>
           </div>
         </div>
 

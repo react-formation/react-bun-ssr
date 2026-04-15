@@ -1,14 +1,14 @@
 ---
-title: react-bun-ssr/route API
+title: react-bun-ssr Route Module API Reference
 navTitle: react-bun-ssr/route
-description: Route module contracts, hooks, and helpers exposed to application routes.
+description: Reference route module contracts, loaders, actions, hooks, navigation helpers, and error primitives for Bun-native React SSR routes.
 section: API
 order: 4
 kind: api
 tags: api,generated
 ---
 
-# react-bun-ssr/route API
+# react-bun-ssr Route Module API Reference
 
 Auto-generated from framework TypeScript exports. Do not edit manually.
 

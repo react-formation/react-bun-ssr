@@ -1,7 +1,7 @@
 ---
-title: react-bun-ssr Overview
+title: react-bun-ssr Overview for Bun-Native React SSR
 navTitle: Overview
-description: Learn what react-bun-ssr is, why it is Bun-first, and how the Task Tracker example maps to the framework primitives.
+description: Learn what react-bun-ssr is, why it is Bun-first, and how routing, loaders, actions, streaming SSR, and the Task Tracker example fit together.
 section: Start
 order: 1
 kind: overview

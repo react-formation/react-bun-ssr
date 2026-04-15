@@ -26,6 +26,7 @@ export interface BuildSitemapOptions {
   publicDir?: string;
   docsManifest?: DocManifestEntry[];
   blogManifest?: BlogManifestEntry[];
+  staticRoutes?: Array<{ pathname: string; sourceFile: string }>;
   gitExecutable?: string;
 }
 
@@ -55,9 +56,14 @@ function resolvePaths(options: BuildSitemapOptions) {
     publicDir,
     docsIndexFile: path.join(rootDir, "app/routes/docs/index.tsx"),
     blogIndexFile: path.join(rootDir, "app/routes/blog/index.tsx"),
+    benchmarksFile: path.join(rootDir, "app/routes/benchmarks.tsx"),
     sitemapFile: path.join(publicDir, "sitemap.xml"),
     robotsFile: path.join(publicDir, "robots.txt"),
   };
+}
+
+async function routeSourceExists(sourceFile: string): Promise<boolean> {
+  return Bun.file(sourceFile).exists();
 }
 
 async function resolveLastmod(
@@ -140,8 +146,20 @@ export async function buildSitemap(options: BuildSitemapOptions = {}): Promise<S
   const paths = resolvePaths(options);
   const docsManifest = options.docsManifest ?? await buildDocsManifest({ docsDir: paths.docsDir });
   const blogManifest = options.blogManifest ?? await buildBlogManifest({ blogDir: paths.blogDir });
+  const defaultStaticRoutes = [
+    {
+      pathname: "/benchmarks",
+      sourceFile: paths.benchmarksFile,
+    },
+  ];
+  const staticRoutes = await Promise.all(
+    (options.staticRoutes ?? defaultStaticRoutes).map(async entry => (
+      await routeSourceExists(entry.sourceFile) ? entry : null
+    )),
+  );
 
   const rawEntries: Array<{ pathname: string; sourceFile: string }> = [
+    ...staticRoutes.filter((entry): entry is { pathname: string; sourceFile: string } => entry !== null),
     {
       pathname: "/docs",
       sourceFile: paths.docsIndexFile,

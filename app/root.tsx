@@ -42,6 +42,7 @@ export default function RootLayout() {
 
           <div className={styles.actions}>
             <nav className={styles.topnav}>
+              <Link to="/benchmarks">Benchmarks</Link>
               <Link to="/blog">Blog</Link>
               <Link to="/docs">Docs</Link>
               <Link to="/docs/api/overview">API</Link>
@@ -67,6 +68,7 @@ export default function RootLayout() {
           <p className={styles.siteFooterCopy}>react-bun-ssr</p>
           <nav className={styles.siteFooterNav} aria-label="Site footer">
             <Link to="/docs">Docs</Link>
+            <Link to="/benchmarks">Benchmarks</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/docs/api/overview">API</Link>
             <a href="/sitemap.xml">Sitemap</a>

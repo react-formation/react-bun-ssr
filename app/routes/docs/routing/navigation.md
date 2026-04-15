@@ -1,7 +1,7 @@
 ---
-title: Client Navigation and Links
+title: Client Navigation and Links for React SSR Apps
 navTitle: Navigation
-description: Use Link, useRouter, prefetching, route announcements, and soft transitions for Bun-native SSR apps.
+description: Use Link, useRouter, prefetching, route announcements, and soft transitions in react-bun-ssr apps without losing Bun-rendered SSR pages.
 section: Routing
 order: 4
 kind: guide

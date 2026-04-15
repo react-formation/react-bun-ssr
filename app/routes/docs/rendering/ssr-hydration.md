@@ -1,7 +1,7 @@
 ---
-title: SSR and Hydration
+title: SSR and Hydration for Bun-Native React Apps
 navTitle: SSR and Hydration
-description: Understand full-document SSR, payload injection, and how the client revives the same route tree without drift.
+description: Understand full-document SSR, payload injection, and client hydration in react-bun-ssr so Bun-rendered React route trees revive without drift.
 section: Rendering
 order: 1
 kind: guide

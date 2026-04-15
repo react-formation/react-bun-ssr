@@ -1,7 +1,7 @@
 ---
-title: Project Structure
+title: Project Structure for Bun-Native React SSR Apps
 navTitle: Project Structure
-description: Understand how the framework maps app, public, dist, and generated directories so your project stays predictable.
+description: Understand how react-bun-ssr maps app, public, dist, generated files, and route directories so Bun React SSR projects stay predictable.
 section: Start
 order: 4
 kind: reference

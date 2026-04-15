@@ -1,7 +1,7 @@
 ---
-title: Development Server Workflow
+title: Development Server Workflow for Bun React SSR
 navTitle: Dev Server
-description: Understand watch behavior, rebuild signatures, transition endpoints, and dev-only reload semantics.
+description: Understand the react-bun-ssr dev server workflow for Bun watch mode, rebuild signatures, transition endpoints, and reload semantics.
 section: Tooling
 order: 1
 kind: reference

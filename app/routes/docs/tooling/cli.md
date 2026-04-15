@@ -1,7 +1,7 @@
 ---
-title: rbssr CLI Reference
+title: rbssr CLI Reference for Bun React SSR Projects
 navTitle: CLI
-description: Use rbssr commands to initialize, develop, build, and preview a Bun-native SSR application.
+description: Use rbssr CLI commands to initialize, develop, typecheck, build, start, and preview Bun-native React SSR projects with react-bun-ssr.
 section: Tooling
 order: 2
 kind: reference

@@ -1,7 +1,7 @@
 ---
-title: Installation and Setup
+title: Installing react-bun-ssr for Bun React Apps
 navTitle: Installation
-description: Install Bun, prepare a project directory, and boot the framework with a minimal Bun-first setup.
+description: Install Bun, scaffold react-bun-ssr, prepare a project directory, and boot a minimal Bun-first React SSR app with the framework defaults.
 section: Start
 order: 2
 kind: guide

@@ -1,7 +1,7 @@
 ---
-title: Server Loaders and Data Fetching
+title: Server Loaders and Data Fetching for React SSR
 navTitle: Loaders
-description: Fetch server data, return deferred values, and hydrate the same payload into the client route tree.
+description: Fetch server data in react-bun-ssr loaders, return deferred values, and hydrate the same payload into a Bun-native client route tree.
 section: Data
 order: 1
 kind: guide

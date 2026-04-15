@@ -1,7 +1,7 @@
 ---
-title: From Demo Template
+title: Migrating from Demo Template to Bun-Native Docs
 navTitle: From Demo Template
-description: Move from an older demo-style setup to the docs-first, Bun-native framework structure used by the current project.
+description: Move an older react-bun-ssr demo-style setup to the current docs-first Bun-native project structure, route layout, and framework defaults.
 section: Migration
 order: 1
 kind: migration

@@ -1,7 +1,7 @@
 ---
-title: Route Middleware Pipeline
+title: Route Middleware Pipeline for Bun React SSR
 navTitle: Middleware
-description: Run request pipeline logic globally and per route tree before loaders, actions, page rendering, and API handlers.
+description: Run react-bun-ssr middleware globally or per route tree before loaders, actions, page rendering, and API handlers in Bun React SSR apps.
 section: Routing
 order: 3
 kind: guide

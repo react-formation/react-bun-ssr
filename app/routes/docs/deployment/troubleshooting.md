@@ -1,7 +1,7 @@
 ---
-title: Troubleshooting
+title: Troubleshooting Bun React SSR Apps in Production
 navTitle: Troubleshooting
-description: Debug hydration mismatches, stale generated artifacts, deployment failures, and Bun-version-specific runtime issues.
+description: Debug react-bun-ssr hydration mismatches, stale generated artifacts, deployment failures, and Bun runtime issues in production SSR apps.
 section: Deployment
 order: 3
 kind: reference

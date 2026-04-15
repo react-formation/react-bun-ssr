@@ -1,7 +1,7 @@
 ---
-title: Deployment Configuration
+title: Deployment Configuration for Bun React SSR Apps
 navTitle: Configuration
-description: Configure headers, ports, public paths, and server bytecode behavior through rbssr.config.ts.
+description: Configure react-bun-ssr deployment settings for headers, ports, public paths, server bytecode behavior, and Bun production runtime defaults.
 section: Deployment
 order: 2
 kind: reference

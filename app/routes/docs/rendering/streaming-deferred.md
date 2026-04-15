@@ -1,7 +1,7 @@
 ---
-title: Streaming and Deferred Data
+title: Streaming HTML and Deferred Data in React SSR
 navTitle: Streaming and Deferred
-description: Stream full HTML documents and deferred loader chunks so pages can reveal data progressively.
+description: Stream full HTML documents and deferred loader chunks in react-bun-ssr so Bun React SSR pages reveal data progressively without blocking.
 section: Rendering
 order: 2
 kind: guide

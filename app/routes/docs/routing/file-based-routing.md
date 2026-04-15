@@ -1,7 +1,7 @@
 ---
-title: File-Based Routing
+title: File-Based Routing for Bun React SSR Apps
 navTitle: File-Based Routing
-description: Map files to URLs for pages, APIs, markdown routes, dynamic params, catchalls, and route groups.
+description: Map files to URLs in react-bun-ssr for pages, API handlers, markdown routes, dynamic params, catchalls, layouts, and route groups.
 section: Routing
 order: 1
 kind: guide

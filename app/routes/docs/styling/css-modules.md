@@ -1,7 +1,7 @@
 ---
-title: CSS Modules Styling
+title: CSS Modules Styling for Bun React SSR Routes
 navTitle: CSS Modules
-description: Keep styling close to route and component code, and bridge framework-emitted markdown classes with scoped global selectors.
+description: Style react-bun-ssr routes with CSS Modules, colocated component styles, and scoped global selectors for framework-emitted markdown classes.
 section: Styling
 order: 1
 kind: guide

@@ -1,7 +1,7 @@
 ---
-title: Quick Start Task Tracker App
+title: Quick Start: Build a Bun React SSR Task Tracker
 navTitle: Quick Start
-description: Build the first Task Tracker route tree, then layer in a shared layout and middleware with complete working files.
+description: Build a Task Tracker with react-bun-ssr from route files to loaders, actions, shared layouts, and middleware using complete working code.
 section: Start
 order: 3
 kind: guide

@@ -1,7 +1,7 @@
 ---
-title: Form Actions and Mutations
+title: Form Actions and Mutations in Bun React SSR
 navTitle: Actions
-description: Process mutating requests, validate form data, redirect after success, and keep Task Tracker writes server-owned.
+description: Process mutating requests in react-bun-ssr with server actions, form validation, redirects, and Task Tracker writes that stay server-owned.
 section: Data
 order: 2
 kind: guide

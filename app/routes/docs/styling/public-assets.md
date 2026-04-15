@@ -1,7 +1,7 @@
 ---
-title: Static Public Assets
+title: Static Public Assets for Bun React SSR Apps
 navTitle: Public Assets
-description: Serve images, fonts, icons, and other static files from app/public with predictable URLs and production cache headers.
+description: Serve images, fonts, icons, and static files from app/public in react-bun-ssr with predictable URLs and production cache headers.
 section: Styling
 order: 3
 kind: reference

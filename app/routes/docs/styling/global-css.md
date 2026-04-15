@@ -1,7 +1,7 @@
 ---
-title: Global CSS Strategy
+title: Global CSS Strategy for Bun React SSR Apps
 navTitle: Global CSS
-description: Reserve global CSS for tokens, resets, typography primitives, and syntax highlighting rather than route-specific layout work.
+description: Organize global CSS in react-bun-ssr for design tokens, resets, typography primitives, and syntax highlighting while keeping route styles scoped.
 section: Styling
 order: 2
 kind: reference

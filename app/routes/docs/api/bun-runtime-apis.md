@@ -1,7 +1,7 @@
 ---
 title: Bun Runtime APIs Used by react-bun-ssr
 navTitle: Bun Runtime APIs
-description: Map the Bun-native APIs used by the framework to the public framework surface and official Bun documentation.
+description: Map the Bun-native APIs behind react-bun-ssr to public framework features, internal runtime behavior, and the official Bun documentation.
 section: API
 order: 2
 kind: reference

@@ -403,9 +403,9 @@ function buildApiDocs(): Record<string, string> {
     {
       slug: "react-bun-ssr",
       source: path.join(ROOT, "framework/runtime/index.ts"),
-      title: "react-bun-ssr Package API",
+      title: "react-bun-ssr Runtime Package API Reference",
       navTitle: "react-bun-ssr",
-      description: "Public runtime exports from the root package entrypoint.",
+      description: "Reference the public react-bun-ssr runtime exports for Bun server startup, framework config, JSON helpers, redirects, and deployment types.",
       section: "API",
       order: 3,
       intro:
@@ -444,9 +444,9 @@ export function POST() {
     {
       slug: "react-bun-ssr-route",
       source: path.join(ROOT, "framework/runtime/route-api.ts"),
-      title: "react-bun-ssr/route API",
+      title: "react-bun-ssr Route Module API Reference",
       navTitle: "react-bun-ssr/route",
-      description: "Route module contracts, hooks, and helpers exposed to application routes.",
+      description: "Reference route module contracts, loaders, actions, hooks, navigation helpers, and error primitives for Bun-native React SSR routes.",
       section: "API",
       order: 4,
       intro:

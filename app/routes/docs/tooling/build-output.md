@@ -1,7 +1,7 @@
 ---
-title: Production Build Output
+title: Production Build Output for Bun React SSR Apps
 navTitle: Build Output
-description: Inspect client assets, manifest data, copied public files, and the production server entry emitted by rbssr build.
+description: Inspect the react-bun-ssr production build output, including client assets, route manifests, copied public files, and the Bun server entry.
 section: Tooling
 order: 4
 kind: reference

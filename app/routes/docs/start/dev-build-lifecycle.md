@@ -1,7 +1,7 @@
 ---
-title: Dev and Build Lifecycle
+title: Dev and Build Lifecycle for Bun React SSR Apps
 navTitle: Dev/Build Lifecycle
-description: See how Bun hot reload, generated client entries, builds, and production startup differ across rbssr commands.
+description: See how react-bun-ssr handles Bun hot reload, generated client entries, production builds, and startup behavior across rbssr commands.
 section: Start
 order: 5
 kind: reference

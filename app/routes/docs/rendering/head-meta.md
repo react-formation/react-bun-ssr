@@ -1,7 +1,7 @@
 ---
-title: HTML Head and Metadata
+title: HTML Head Metadata for React SSR Routes
 navTitle: Head and Meta
-description: Set titles and metadata per route so SSR, hydration, and client transitions keep SEO and announcements in sync.
+description: Set route titles, meta descriptions, Open Graph tags, and head output in react-bun-ssr so SEO, hydration, and transitions stay aligned.
 section: Rendering
 order: 3
 kind: guide

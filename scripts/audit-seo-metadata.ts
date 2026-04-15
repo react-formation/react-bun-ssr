@@ -2,14 +2,12 @@ import path from "node:path";
 import { parseMarkdownWithFrontmatter, walkFiles } from "./docs-utils.ts";
 
 const ROOT = process.cwd();
-const DOCS_ROUTES_DIR = path.join(ROOT, "app/routes/docs");
-const BLOG_ROUTES_DIR = path.join(ROOT, "app/routes/blog");
 const MIN_TITLE_LENGTH = 35;
 const MAX_TITLE_LENGTH = 70;
 const MIN_DESCRIPTION_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 170;
 
-interface MetadataIssue {
+export interface MetadataIssue {
   file: string;
   field: "title" | "description";
   length: number;
@@ -84,6 +82,25 @@ async function auditMarkdownRoutes(rootDir: string): Promise<MetadataIssue[]> {
   });
 }
 
+export async function auditSeoMetadata(options: {
+  rootDir?: string;
+  docsRoutesDir?: string;
+  blogRoutesDir?: string;
+} = {}): Promise<MetadataIssue[]> {
+  const rootDir = path.resolve(options.rootDir ?? ROOT);
+  const docsRoutesDir = path.resolve(options.docsRoutesDir ?? path.join(rootDir, "app/routes/docs"));
+  const blogRoutesDir = path.resolve(options.blogRoutesDir ?? path.join(rootDir, "app/routes/blog"));
+
+  return [
+    ...(await auditMarkdownRoutes(docsRoutesDir)),
+    ...(await auditMarkdownRoutes(blogRoutesDir)),
+  ];
+}
+
+export function formatMetadataIssue(issue: MetadataIssue): string {
+  return `${issue.file} ${issue.field} length ${issue.length} (${issue.expected}): ${issue.value}`;
+}
+
 function printIssues(issues: MetadataIssue[]): void {
   if (issues.length === 0) {
     console.log("[seo:audit] Metadata lengths look good.");
@@ -92,19 +109,16 @@ function printIssues(issues: MetadataIssue[]): void {
 
   console.log(`[seo:audit] Found ${issues.length} metadata length issue(s).`);
   for (const issue of issues) {
-    console.log(
-      `${issue.file} ${issue.field} length ${issue.length} (${issue.expected}): ${issue.value}`,
-    );
+    console.log(formatMetadataIssue(issue));
   }
 }
 
-const issues = [
-  ...(await auditMarkdownRoutes(DOCS_ROUTES_DIR)),
-  ...(await auditMarkdownRoutes(BLOG_ROUTES_DIR)),
-];
+if (import.meta.main) {
+  const issues = await auditSeoMetadata();
 
-printIssues(issues);
+  printIssues(issues);
 
-if (process.argv.includes("--strict") && issues.length > 0) {
-  process.exit(1);
+  if (process.argv.includes("--strict") && issues.length > 0) {
+    process.exit(1);
+  }
 }

@@ -1,5 +1,6 @@
 import path from "node:path";
 import { flattenSidebarSlugs, sidebar } from "../app/routes/docs/_sidebar.ts";
+import { auditSeoMetadata, formatMetadataIssue } from "./audit-seo-metadata.ts";
 import { buildBlogManifest } from "./build-blog-manifest.ts";
 import { buildDocsManifest } from "./build-docs-manifest.ts";
 import { buildSearchIndex } from "./build-search-index.ts";
@@ -189,6 +190,19 @@ async function validateBlogLinks(): Promise<void> {
   }
 }
 
+async function validateSeoMetadata(): Promise<void> {
+  const issues = await auditSeoMetadata();
+  if (issues.length === 0) {
+    return;
+  }
+
+  fail(
+    `SEO metadata length issues found:\n${issues
+      .map(issue => `- ${formatMetadataIssue(issue)}`)
+      .join("\n")}`,
+  );
+}
+
 async function validateGeneratedFreshness(): Promise<void> {
   const apiFiles = await walkFiles(API_DIR, ".md");
   const before = new Map(
@@ -321,6 +335,7 @@ async function run(): Promise<void> {
   await validateSidebarMappings();
   await validateLinks();
   await validateBlogLinks();
+  await validateSeoMetadata();
   await validateGeneratedFreshness();
   await validateNodeApiPolicy();
   // eslint-disable-next-line no-console
